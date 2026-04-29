@@ -265,6 +265,110 @@ server/src/
 
 ---
 
+## 🛠 Implementation Patterns (Production-Earned)
+
+These conventions can't be derived from reading code — they encode *why* certain choices were made and *what would break* without them. New modules must follow these.
+
+### Process Lifecycle (graceful shutdown)
+
+Shutdown is split between `server.ts`/`worker.ts` and `shared/db.ts`. Both register signal handlers, but with different responsibilities:
+
+- **`shared/db.ts`** runs `prisma.$disconnect()` on `SIGINT`/`SIGTERM`/`beforeExit`. It uses an idempotency flag (`shuttingDown`) and try/catch around disconnect so concurrent signals or disconnect failures don't blow up. **It does NOT call `process.exit`** — that would race with the entry point and kill in-flight HTTP requests before `server.close()` drains them.
+- **`server.ts` / `worker.ts`** own the final exit. On `SIGINT`/`SIGTERM` they:
+  1. `server.close()` — stop accepting new connections, drain in-flight requests
+  2. Call `prisma.$disconnect()` (idempotent — db.ts may have already done it)
+  3. `process.exit(0)`
+  4. Force-exit via `setTimeout` after 10s as a safety net
+
+`prisma.$disconnect()` is safe to call multiple times. Splitting responsibilities this way keeps `db.ts` reusable in scripts that don't run a long-lived server, while letting the server orchestrate graceful HTTP shutdown.
+
+### Race-prone Mutations (pre-check + P2002 catch)
+
+Pre-check + try/catch on the Prisma unique-constraint error code is the standard pattern for "is this slug/email/key taken?":
+
+```ts
+const existing = await repo.findBySlug(brandId, slug);
+if (existing) throw new SlugAlreadyExistsError();   // friendly UX in common case
+
+try {
+  return await repo.create(brandId, data);
+} catch (err) {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+    throw new SlugAlreadyExistsError();             // race-safety in rare case
+  }
+  throw err;
+}
+```
+
+Without the catch, two simultaneous creates that both pass the pre-check would surface as `500 INTERNAL_ERROR` (P2002 leaking from Prisma) instead of our `409 SLUG_EXISTS`. Reference: `modules/products/products.service.ts`.
+
+### External API Boundaries (Google, Razorpay, Meshy, S3, Replicate)
+
+Calls to external services must wrap throwing operations in a try/catch that converts the underlying error into a typed `DomainError`. An uncaught throw leaks as `500 INTERNAL_ERROR` and pollutes Sentry with garbage from public-internet attackers spamming the endpoint with malformed inputs.
+
+Pattern: catch the external error, log it at `warn` level (not `error` → Sentry) since this is the expected failure mode for client-supplied inputs, then throw the appropriate typed error.
+
+```ts
+let ticket;
+try {
+  ticket = await oauthClient.verifyIdToken({ idToken, audience });
+} catch (err) {
+  logger.warn({ err }, 'google id token verification failed');
+  throw new ValidationError('Invalid Google ID token');
+}
+```
+
+Reference: `modules/auth/auth.service.ts loginWithGoogle`. Apply the same pattern when wiring Razorpay (Phase 1), Meshy (Week 5), Replicate/Modal (Phase 4).
+
+### Testing (DB safety guard — prevents prod-DB nukes)
+
+**Tests use a SEPARATE database from dev.** The `afterEach` hook in `__tests__/setup.ts` runs `deleteMany()` on every Brand, Product, Membership, ApiKey, ARSession, AREvent, Subscription, Invoice, OrgInvitation row in whatever database `DATABASE_URL` points to. Running tests against the dev/prod Neon DB would wipe all data including the seeded PricingPlans.
+
+**The setup enforces this with a hard refusal.** `beforeAll` checks `DATABASE_URL`:
+- ✅ Allowed: `localhost`, `127.0.0.1`, `::1`
+- ✅ Allowed: any URL **only if** `RUN_DESTRUCTIVE_TESTS=true` is also set (explicit opt-in)
+- ❌ Refused: anything else, with the offending host name in the error message
+
+**Local test workflow:**
+1. Spin up an isolated Postgres: `docker run -d --name rekaman-test-db -p 5433:5432 -e POSTGRES_PASSWORD=test postgres:17`
+2. `cp .env.test.example .env.test` (already gitignored)
+3. Apply schema: `DATABASE_URL='postgresql://postgres:test@localhost:5433/postgres' pnpm prisma migrate deploy`
+4. `pnpm test`
+
+`vitest.config.ts` loads `.env.test` before vitest spawns workers, so `process.env.DATABASE_URL` is set before `shared/db.ts` instantiates the Prisma client.
+
+**Rate limiters skip in `NODE_ENV=test`.** `middleware/rateLimiter.ts` has `skip: () => NODE_ENV === 'test'` on both `authRateLimit` and `apiRateLimit`. Without this, a 7-test suite signing up 2 brands per `beforeEach` would hit the 5/hr auth limit on test 3. Production behavior is unchanged.
+
+**CI uses a fresh Postgres service container** per run (`.github/workflows/ci.yml`). No opt-in needed there because the URL is `localhost`. Prisma scripts in CI must use the explicit script names (`prisma:generate`, `prisma:deploy`) — pnpm 9's `--filter <pkg> <bin>` only matches scripts and silently exits 0 when no script matches, so `pnpm --filter @rekaman/server prisma migrate deploy` is a no-op trap.
+
+### TypeScript / ESLint Conventions
+
+Two non-obvious patterns are unavoidable across modules:
+
+1. **Router exports require explicit `: Router` annotation.** Because `declaration: true` is set in `tsconfig.base.json`, TS emits `.d.ts` files. An inferred `Router` type pulls in deeply-nested `@types/express-serve-static-core` paths that aren't portable, causing TS2742. Every route file must declare `export const xRoutes: Router = router`.
+
+2. **Express request augmentation uses `declare global { namespace Express }` with a per-file lint disable.** The augmentation pattern (adding `requestId`, `auth`, etc. to `Request`) is the idiom shipped by `@types/express` itself, but conflicts with `@typescript-eslint/no-namespace`. Use `// eslint-disable-next-line @typescript-eslint/no-namespace` immediately above each `namespace Express` line. References: `middleware/requestContext.ts`, `middleware/auth.ts`.
+
+3. **Production builds exclude tests.** `tsconfig.json` excludes both `**/*.test.ts` AND `src/__tests__/**` so `setup.ts` (which imports `vitest`, a devDependency) doesn't leak into the production bundle.
+
+### Git Conventions
+
+**Commit message format:** `shiva | <type>(<scope>): <short description>`
+
+- **`shiva |`** prefix is required on every commit — identifies the author at a glance in `git log`.
+- **`<type>`** follows Conventional Commits: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`.
+- **`<scope>`** is the affected area: `server`, `sdk`, `dashboard`, `landing`, `db`, `ci`, etc. Optional but encouraged.
+- Description is imperative present-tense and ≤ 72 characters.
+
+Examples:
+- `shiva | feat(server): production-grade auth, products, tenant isolation`
+- `shiva | fix(auth): catch Google verifier throws as 400 instead of 500`
+- `shiva | docs: update CLAUDE.md to v5 with full feature catalog and roadmap`
+
+Every Claude-authored commit must use the `shiva | …` prefix.
+
+---
+
 ## 🗃️ Database Schema (Prisma) — Production v3
 
 This is the locked schema. All future changes are ADDITIVE (new tables/columns, never restructure existing).
