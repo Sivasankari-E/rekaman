@@ -90,6 +90,7 @@ These are one-way doors. Don't revisit without a very good reason.
 | Decision | Choice | Reason |
 |----------|--------|--------|
 | Package manager | **pnpm** | Fastest, strictest, best workspace protocol for monorepo |
+| Node runtime | **Node 22 LTS** (pinned via `.nvmrc`) | Node 24 breaks Prisma 5 internals; explicit major lock prevents drift |
 | Monorepo structure | **Single repo, npm workspaces via pnpm** | One version of code, shared types between SDK / dashboard / server |
 | Backend architecture | **Modular monolith** (not microservices) | Solo dev, enforced boundaries via ESLint rules enable future extraction |
 | Backend hosting | **Railway** (Month 1–15), then **Fly.io** | Simple to start, multi-region when needed |
@@ -278,6 +279,86 @@ Error response format (universal):
 ```
 
 `requestId` lets customers/you correlate errors with logs/Sentry.
+
+### Process Lifecycle
+
+Shutdown is split between the entry point and `shared/db.ts`, both of which register signal handlers:
+
+- `shared/db.ts` only runs `prisma.$disconnect()` on `SIGINT` / `SIGTERM` / `beforeExit`. It uses an idempotency flag (`shuttingDown`) and try/catch around disconnect so concurrent signals or disconnect failures don't blow up. **It does NOT call `process.exit`** — that would race with the entry point and kill in-flight HTTP requests before `server.close()` drains them.
+
+- `server.ts` / `worker.ts` own the final exit. On `SIGINT`/`SIGTERM` they:
+  1. `server.close()` to stop accepting new connections and drain in-flight requests
+  2. Call `prisma.$disconnect()` (idempotent — db.ts may have already done it)
+  3. `process.exit(0)`
+  4. Force-exit via `setTimeout` after 10s as a safety net
+
+`prisma.$disconnect()` is safe to call multiple times. Splitting responsibilities this way keeps `db.ts` reusable in scripts that don't run a long-lived server, while letting the server orchestrate graceful HTTP shutdown.
+
+### Testing
+
+**Tests use a SEPARATE database from dev.** The `afterEach` hook in `__tests__/setup.ts` runs `deleteMany()` on every Brand, Product, Membership, ApiKey, ARSession, AREvent, Subscription, Invoice, and OrgInvitation row in whatever database `DATABASE_URL` points to. Running tests against the dev/prod Neon DB would wipe all data including the seeded PricingPlans.
+
+**The setup enforces this with a hard refusal.** `beforeAll` checks `DATABASE_URL`:
+- ✅ Allowed: `localhost`, `127.0.0.1`, `::1`
+- ✅ Allowed: any URL **only if** `RUN_DESTRUCTIVE_TESTS=true` is also set (explicit opt-in)
+- ❌ Refused: anything else, with the offending host name in the error message
+
+**Local test workflow:**
+1. Spin up an isolated Postgres: `docker run -d --name rekaman-test-db -p 5433:5432 -e POSTGRES_PASSWORD=test postgres:17`
+2. `cp .env.test.example .env.test` (already gitignored)
+3. Apply the schema: `DATABASE_URL='postgresql://postgres:test@localhost:5433/postgres' pnpm prisma migrate deploy`
+4. `pnpm test`
+
+`vitest.config.ts` loads `.env.test` if it exists, so `process.env.DATABASE_URL` is set before `shared/db.ts` instantiates the Prisma client.
+
+**CI uses a fresh Postgres service container** per run (`.github/workflows/ci.yml`). No opt-in needed there because the URL is `localhost`.
+
+**Rate limiters skip in `NODE_ENV=test`.** `middleware/rateLimiter.ts` has `skip: () => NODE_ENV === 'test'` on both `authRateLimit` and `apiRateLimit`. Without this, a 7-test suite signing up 2 brands per `beforeEach` would hit the 5/hr auth limit on test 3. Production behavior is unchanged.
+
+### Race-prone Mutations
+
+Pre-check + try/catch on the Prisma unique-constraint error code is the standard pattern for "is this slug taken?":
+
+```ts
+const existing = await repo.findBySlug(brandId, slug);
+if (existing) throw new SlugAlreadyExistsError();   // friendly UX in common case
+try {
+  return await repo.create(brandId, data);
+} catch (err) {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+    throw new SlugAlreadyExistsError();             // race-safety in rare case
+  }
+  throw err;
+}
+```
+
+Without the catch, two simultaneous creates that both pass the pre-check would surface as `500 INTERNAL_ERROR` (P2002 leaking from Prisma) instead of our `409 SLUG_EXISTS`. Reference: `modules/products/products.service.ts`.
+
+### External API Boundaries
+
+Calls to external services (Google OAuth, Razorpay, Meshy, S3) must wrap throwing operations in a try/catch that converts the underlying error into a typed `DomainError`. An uncaught throw leaks as `500 INTERNAL_ERROR` and pollutes Sentry with garbage from public-internet attackers spamming the endpoint with malformed inputs.
+
+Pattern: catch the external error, log it at `warn` level (not `error` → Sentry) since this is the expected failure mode for client-supplied inputs, then throw the appropriate typed error.
+
+```ts
+let ticket;
+try {
+  ticket = await oauthClient.verifyIdToken({ idToken, audience });
+} catch (err) {
+  logger.warn({ err }, 'google id token verification failed');
+  throw new ValidationError('Invalid Google ID token');
+}
+```
+
+Reference: `modules/auth/auth.service.ts loginWithGoogle`.
+
+### TypeScript / ESLint Conventions
+
+Two non-obvious patterns are unavoidable across modules and worth knowing:
+
+1. **Router exports require explicit `: Router` annotation.** Because `declaration: true` is set in `tsconfig.base.json`, TS emits `.d.ts` files. An inferred `Router` type pulls in deeply-nested `@types/express-serve-static-core` paths that aren't portable, causing TS2742. Every route file must declare `export const xRoutes: Router = router`.
+
+2. **Express request augmentation uses `declare global { namespace Express }` with a per-file lint disable.** The augmentation pattern (adding `requestId`, `auth`, etc. to `Request`) is the idiom shipped by `@types/express` itself, but conflicts with `@typescript-eslint/no-namespace`. We use `// eslint-disable-next-line @typescript-eslint/no-namespace` immediately above each `namespace Express` line. References: `middleware/requestContext.ts`, `middleware/auth.ts`.
 
 ---
 
@@ -621,7 +702,7 @@ enum InvoiceStatus { DRAFT PENDING PAID FAILED REFUNDED }
 - Shadow DOM for CSS isolation
 
 ### Backend
-- Node.js 20+ LTS
+- Node.js 22 LTS (pinned via `.nvmrc`; do NOT use Node 24 — incompatible with Prisma 5)
 - Express 4
 - Prisma 5 (ORM, migrations)
 - BullMQ (queue, Week 5)
@@ -945,6 +1026,25 @@ rekaman/
 
 ---
 
+## 📝 Git Conventions
+
+**Commit message format:** `shiva | <type>(<scope>): <short description>`
+
+- **`shiva |`** prefix is required on every commit — identifies the author at a glance in `git log` (helps when other contributors join later).
+- **`<type>`** follows Conventional Commits: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`.
+- **`<scope>`** is the affected area: `server`, `sdk`, `dashboard`, `landing`, `db`, `ci`, etc. Optional but encouraged.
+- **Description** is imperative present-tense and ≤ 72 characters. Body (after a blank line) for context if needed.
+
+Examples:
+- `shiva | feat(server): production-grade auth, products, tenant middleware`
+- `shiva | fix(auth): catch Google verifier throws as 400 instead of 500`
+- `shiva | chore: add env var template`
+- `shiva | docs: update CLAUDE.md with testing workflow`
+
+This convention applies to all commits Claude generates as well — every Claude-authored commit must use the `shiva | …` prefix.
+
+---
+
 ## 📍 Current Status
 
 *Update this section every Sunday.*
@@ -1014,5 +1114,7 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 
 ---
 
-*Last updated: April 2026 | Version 4.0*
+*Last updated: April 2026 | Version 4.1*
 *Key shifts from v3: Production schema v2 with multi-brand Membership, ApiKey table, split ARSession/AREvent, PricingPlan, Invoice. Universal SDK reach (not just Shopify). Typed error model. Production-grade patterns from Week 3 onwards. Tenant isolation verified by 7 automated tests.*
+*v4.1: Node runtime pinned to 22 LTS via `.nvmrc` (Node 24 incompatible with Prisma 5).*
+*v4.2: Test DB isolation — refuse destructive tests against non-local DBs unless `RUN_DESTRUCTIVE_TESTS=true`. Race-prone mutations use pre-check + P2002 catch.*

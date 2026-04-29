@@ -1,0 +1,324 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// IDENTITY & ACCESS
+// ─────────────────────────────────────────
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  passwordHash  String?
+  googleId      String?         @unique
+  name          String?
+  emailVerified Boolean         @default(false)
+  isSuperAdmin  Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  lastLoginAt   DateTime?
+  deletedAt     DateTime?
+
+  memberships     Membership[]
+  invitationsSent OrgInvitation[] @relation("InvitedBy")
+
+  @@index([googleId])
+  @@index([email])
+}
+
+model Brand {
+  id           String         @id @default(cuid())
+  slug         String         @unique
+  companyName  String
+  primaryEmail String
+  billingEmail String?
+  website      String?
+  trialEndsAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+
+  memberships  Membership[]
+  apiKeys      ApiKey[]
+  products     Product[]
+  sessions     ARSession[]
+  events       AREvent[]
+  subscription Subscription?
+  invoices     Invoice[]
+  invitations  OrgInvitation[]
+
+  @@index([slug])
+  @@index([deletedAt])
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  brandId   String
+  role      Role     @default(MEMBER)
+  invitedBy String?
+  joinedAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, brandId])
+  @@index([brandId])
+  @@index([userId])
+}
+
+model OrgInvitation {
+  id          String           @id @default(cuid())
+  brandId     String
+  email       String
+  role        Role             @default(MEMBER)
+  token       String           @unique
+  invitedById String
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  brand     Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  invitedBy User  @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([brandId, email])
+  @@index([brandId])
+  @@index([email])
+  @@index([token])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  brandId    String
+  keyHash    String    @unique
+  keyPrefix  String
+  name       String?
+  scopes     String[]  @default([])
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([keyHash])
+}
+
+// ─────────────────────────────────────────
+// PRODUCTS
+// ─────────────────────────────────────────
+
+model Product {
+  id        String        @id @default(cuid())
+  brandId   String
+  name      String
+  slug      String
+  status    ProductStatus @default(PENDING)
+  glbUrl    String?
+  glbSizeKb Int?
+  photoUrls String[]      @default([])
+  widthCm   Float?
+  heightCm  Float?
+  depthCm   Float?
+  variants  Json?
+  metadata  Json?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?
+
+  brand    Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  sessions ARSession[]
+  events   AREvent[]
+
+  @@unique([brandId, slug])
+  @@index([brandId, status])
+  @@index([brandId, deletedAt])
+}
+
+// ─────────────────────────────────────────
+// ANALYTICS
+// ─────────────────────────────────────────
+
+model ARSession {
+  id           String    @id @default(cuid())
+  sessionId    String    @unique
+  brandId      String
+  productId    String?
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  durationMs   Int?
+  deviceType   String
+  countryCode  String?
+  city         String?
+  userAgent    String?
+  referrer     String?
+  didPlace     Boolean   @default(false)
+  didAddToCart Boolean   @default(false)
+  productCount Int       @default(0)
+
+  brand   Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  product Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  events  AREvent[]
+
+  @@index([brandId, startedAt])
+  @@index([productId, startedAt])
+}
+
+model AREvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  brandId   String
+  productId String?
+  eventType String
+  payload   Json?
+  timestamp DateTime @default(now())
+
+  session ARSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  brand   Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  product Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([brandId, timestamp])
+  @@index([sessionId])
+  @@index([eventType, timestamp])
+}
+
+// ─────────────────────────────────────────
+// BILLING
+// ─────────────────────────────────────────
+
+model PricingPlan {
+  id            String        @id @default(cuid())
+  code          String        @unique
+  tier          Plan
+  displayName   String
+  amountInPaise Int
+  currency      String        @default("INR")
+  billingPeriod BillingPeriod
+  sessionLimit  Int
+  productLimit  Int
+  features      String[]      @default([])
+  isPublic      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  deprecatedAt  DateTime?
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  brandId            String             @unique
+  pricingPlanId      String
+  razorpaySubId      String             @unique
+  status             SubscriptionStatus
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
+  trialEndsAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  brand       Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  pricingPlan PricingPlan @relation(fields: [pricingPlanId], references: [id])
+  invoices    Invoice[]
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model Invoice {
+  id                String        @id @default(cuid())
+  brandId           String
+  subscriptionId    String
+  razorpayInvoiceId String?       @unique
+  amountInPaise     Int
+  currency          String        @default("INR")
+  status            InvoiceStatus
+  periodStart       DateTime
+  periodEnd         DateTime
+  paidAt            DateTime?
+  invoiceUrl        String?
+  createdAt         DateTime      @default(now())
+
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, createdAt])
+}
+
+// ─────────────────────────────────────────
+// WEBHOOKS (idempotency log)
+// ─────────────────────────────────────────
+
+model InboundWebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String
+  eventId     String
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([provider, eventId])
+  @@index([provider, processedAt])
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum Plan {
+  STARTER
+  PRO
+  ENTERPRISE
+  CUSTOM
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum ProductStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  PAUSED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
