@@ -1050,7 +1050,7 @@ This convention applies to all commits Claude generates as well — every Claude
 *Update this section every Sunday.*
 
 - **Week/Month:** Week 4, Month 1
-- **Last completed:** Week 3 — Production-grade backend with Prisma schema v2, multi-tenant isolation tests, JWT + Google OAuth, deployed to Railway
+- **Last completed:** Week 3 — Production-grade backend deployed to Railway. Auth (email/password + Google OAuth), Products CRUD, multi-tenant isolation (7 automated tests passing locally + in CI + verified on production), api & worker services live, CI green on every push.
 - **Currently working on:** Week 4 — SDK package + CloudFront deployment + public AR endpoint
 - **Blocked on:** Nothing
 - **Next milestone:** Week 4 deliverable — sales demo URL with one `<script>` tag opening AR
@@ -1058,7 +1058,8 @@ This convention applies to all commits Claude generates as well — every Claude
 - **Paying clients:** 0
 - **Deployed URLs:**
   - Playground: [Vercel URL from Week 1-2]
-  - API: [Railway URL from Week 3]
+  - API: https://api-production-0a54.up.railway.app
+  - Worker: deployed on Railway (no public URL — internal only)
   - Dashboard: not live
   - Landing: not live
 
@@ -1068,7 +1069,7 @@ This convention applies to all commits Claude generates as well — every Claude
 
 - Landing: `rekaman.io` or `.co` or `.app` (purchased)
 - Dashboard: `dashboard.rekaman.io` (not live, Week 7+)
-- API: `api.rekaman.io` (Railway URL active, custom domain Week 4)
+- API: `api.rekaman.io` (planned). Currently live at: `https://api-production-0a54.up.railway.app` (auto-generated Railway domain — custom domain wired in Week 4+)
 - CDN: `cdn.rekaman.io` (Week 4)
 - SDK global: `window.Rekaman`
 - GitHub: `github.com/[username]/rekaman` (private monorepo)
@@ -1118,3 +1119,4 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 *Key shifts from v3: Production schema v2 with multi-brand Membership, ApiKey table, split ARSession/AREvent, PricingPlan, Invoice. Universal SDK reach (not just Shopify). Typed error model. Production-grade patterns from Week 3 onwards. Tenant isolation verified by 7 automated tests.*
 *v4.1: Node runtime pinned to 22 LTS via `.nvmrc` (Node 24 incompatible with Prisma 5).*
 *v4.2: Test DB isolation — refuse destructive tests against non-local DBs unless `RUN_DESTRUCTIVE_TESTS=true`. Race-prone mutations use pre-check + P2002 catch.*
+*v4.3: External API boundaries (Google verifier, future Razorpay/Meshy) wrap throws → typed 4xx instead of leaking 500. CI uses explicit `prisma:generate`/`prisma:deploy` script names — pnpm 9's `--filter <pkg> <bin>` doesn't fall back to binaries. Production deployed to Railway: api + worker services live, tenant isolation verified end-to-end against the live URL.*
