@@ -1,7 +1,7 @@
 # Rekaman — Spatial Commerce AR Platform
-## Project Context for Claude (v4.0)
+## Project Context for Claude (v5.0)
 
-> This file is the single source of truth for Claude conversations about Rekaman. Update it at the end of each sprint. Everything below is locked unless explicitly changed.
+> **Single source of truth.** This file is loaded into every Claude conversation about Rekaman. Update at the end of each sprint and after every major strategic shift. Companion document: `REKAMAN_ROADMAP.md` (long-horizon vision).
 
 ---
 
@@ -11,33 +11,37 @@ Solo software engineer based in **Chennai, Tamil Nadu, India**. Full-time at a C
 
 **Existing skills:** Node.js, Express, TypeScript, React, Next.js, PostgreSQL, Prisma, AWS basics, Docker basics, Python/ML.
 
-**Learning for this project:** Three.js, WebXR, GLB/GLTF, Meshy.ai API, BullMQ, Razorpay Subscriptions, Shopify app dev, SwiftUI + visionOS (Month 10+).
+**Learning for this project:** Three.js, WebXR, GLB/GLTF, Meshy.ai API, BullMQ, Razorpay Subscriptions, Shopify app dev, MediaPipe (Phase 3), Stable Diffusion (Phase 4), SwiftUI + visionOS (Year 2+).
 
 **AI tools used while building:** Claude (architecture, debugging, code review), Cursor, Antigravity, v0.dev, GitHub Copilot.
 
-**Hardware for testing:** Android phone with Chrome (primary). iPhone for AR Quick Look testing — currently borrowing brother's iPhone, will buy a refurbished iPhone 12/13 base by Week 8 (~₹25-35K business expense).
+**Hardware for testing:** Android phone with Chrome (primary). iPhone (borrowed from brother now; refurbished iPhone 12/13 base purchase by Week 8 — ~₹25-35K business expense).
 
 ---
 
 ## 🚀 The Product — Rekaman
 
-**Name origin:** *Rekaman* (రికమన్ / रिकमन) means "recording/capture" in Indonesian & Malay (300M+ speakers). It's also a perfect anagram of the founder's name "ekaraman."
+**Name origin:** *Rekaman* (రికమన్ / रिकमन) means "recording/capture" in Indonesian & Malay (300M+ speakers). Also a perfect anagram of the founder's name "ekaraman."
 
 **Tagline:** *Capture products. Place them anywhere.*
 
 **One-line description:**
-> A SaaS platform that lets any e-commerce brand add "View in your room" AR to their product pages in under 20 minutes — no 3D artists needed. Brands upload photos, our AI makes the 3D model, shoppers see it life-size in their real space in the browser. No app download.
+> A SaaS platform that lets any e-commerce brand add AR experiences ("View in your room," "Try it on") to their product pages in under 20 minutes — no 3D artists needed. Brands upload photos, our AI generates the assets, shoppers see products in their space or on themselves through their browser. No app download.
 
-**The problem:** E-commerce brands suffer 25–30% return rates because shoppers can't visualize products in their space before buying. Each return costs ₹2,000–₹5,000.
+**The problem:** E-commerce brands suffer 25–30% return rates because shoppers can't visualize products before buying. Each return costs ₹2,000–₹5,000.
 
-**The solution:** Shoppers tap "View in your room" on any product page → phone camera opens → product appears at real scale on their floor. Works in mobile browser, no install.
+**The solution:** Multiple AR modes per product category, all working from the same SDK with one script tag. Photo-to-3D AI generation. Real-world scale rendering. Zero shopper app install.
 
-**The differentiator:** Photos → 3D model in 90 seconds via AI. No competitor does this at our price point. Threekit/Zakeke require brands to already have 3D files.
+**The differentiator:**
+- Photos → 3D model in 90 seconds via AI (no competitor does this at our price point)
+- Multiple AR modes (placement + face try-on + wrist try-on + AI photo try-on)
+- Indian-market specific (multilingual UI, WhatsApp-native sharing, low-end Android fallback)
+- Universal: works on Shopify, WooCommerce, AND every custom website
 
 **Customer flow:**
 1. Browse product on brand's website (any platform — Shopify, WooCommerce, custom)
-2. Tap "View in your room"
-3. SDK loads, phone camera opens, product appears anchored to floor at real scale (Android WebXR or iOS AR Quick Look)
+2. Tap "View in your room" or "Try on yourself" (mode auto-selected by product category)
+3. SDK loads, camera opens, product renders at real-world scale
 4. Buy with confidence — no guesswork, fewer returns
 
 ---
@@ -52,13 +56,10 @@ Solo software engineer based in **Chennai, Tamil Nadu, India**. Full-time at a C
 Brand clicks "Install" in Shopify/WooCommerce app store. Theme App Extensions auto-inject the snippet.
 
 ### Tier 2: Platform template edit (one-time, MVP)
-Brand pastes snippet once with platform's template variable for product slug:
-
 ```liquid
 <!-- Shopify product.liquid -->
 <div data-rk-product="{{ product.handle }}" data-rk-key="rk_live_xxx"></div>
 ```
-
 ```php
 <!-- WooCommerce / WordPress -->
 <div data-rk-product="<?php echo $product->get_slug(); ?>" data-rk-key="rk_live_xxx"></div>
@@ -67,16 +68,9 @@ Brand pastes snippet once with platform's template variable for product slug:
 Works for: Shopify, WooCommerce, Magento, BigCommerce, Webflow, Wix, Squarespace, OpenCart, PrestaShop.
 
 ### Tier 3: Custom site (manual injection)
-For React, Next.js, Laravel, Django, Rails, plain HTML:
-
 ```jsx
 // React/Next.js product page
 <div data-rk-product={product.slug} data-rk-key="rk_live_xxx"></div>
-```
-
-```html
-<!-- Plain HTML / any framework -->
-<div data-rk-product="oslo-sofa" data-rk-key="rk_live_xxx"></div>
 ```
 
 The `/install` dashboard page has THREE tabs: **Shopify | WooCommerce | Custom (Everything else)**. The Custom tab is just as important — likely 30%+ of brands use custom-built stores.
@@ -90,26 +84,29 @@ These are one-way doors. Don't revisit without a very good reason.
 | Decision | Choice | Reason |
 |----------|--------|--------|
 | Package manager | **pnpm** | Fastest, strictest, best workspace protocol for monorepo |
-| Node runtime | **Node 22 LTS** (pinned via `.nvmrc`) | Node 24 breaks Prisma 5 internals; explicit major lock prevents drift |
+| Node runtime | **Node 22 LTS** (pinned via `.nvmrc`) | Stable, long-term supported |
 | Monorepo structure | **Single repo, npm workspaces via pnpm** | One version of code, shared types between SDK / dashboard / server |
-| Backend architecture | **Modular monolith** (not microservices) | Solo dev, enforced boundaries via ESLint rules enable future extraction |
+| Backend architecture | **Modular monolith** (NEVER microservices for ≥3 years) | Solo dev, enforced boundaries via ESLint enable future extraction without splitting |
 | Backend hosting | **Railway** (Month 1–15), then **Fly.io** | Simple to start, multi-region when needed |
 | Database hosting | **Neon Postgres 17, Singapore region** (`ap-southeast-1`) | Mumbai unavailable on Neon; Singapore is closest. Branching for schema iteration, scale-to-zero |
 | Redis hosting | **Upstash free** → Railway-native (Month 6+) | BullMQ + rate limiting |
-| File storage | **AWS S3 + CloudFront** (`ap-south-1`) | GLB files and product photos, global CDN |
-| Frontend hosting | **Vercel** | Next.js native, free tier is enough |
+| File storage | **AWS S3 + CloudFront** (`ap-south-1`) | GLB files, photos, global CDN |
+| Frontend hosting | **Vercel** | Next.js native, free tier sufficient |
 | SDK hosting | **CloudFront over S3** at `cdn.rekaman.io` | Immutable versioned URLs (`/v1/sdk.js`) |
-| Billing (INR) | **Razorpay Subscriptions** | Phase 2: Stripe for international |
-| AI 3D pipeline | **Meshy.ai** | Industry leader. Don't build TripoSR backup until Meshy actually fails |
+| Billing (INR) | **Razorpay Subscriptions** | Phase 4: add Stripe for international |
+| AI 3D pipeline | **Meshy.ai** | Industry leader. Don't build TripoSR backup until Meshy fails |
+| AI clothing try-on (Phase 4) | **Replicate / Modal external services** | GPU inference as external service, not Rekaman code |
+| Face/body tracking | **MediaPipe (client-side)** | Free, runs on-device, no privacy concerns |
 | Error tracking | **Sentry** from Day 1 | Solo devs can't watch logs |
 | Product analytics | **PostHog** (cloud) | On the dashboard, not on brands' sites |
 | Email | **Resend** | Simple API, transactional only |
 | Input validation | **Zod** on every endpoint | Schemas = docs |
 | Logging | **Pino** (structured JSON, redacted PII) | Not `console.log` |
-| CI/CD | **GitHub Actions** with Postgres service for tests | Typecheck + lint + test on every push |
-| Auth | **JWT + bcrypt cost 12** + Google OAuth | Email/password and Google from day 1. Cookie + Bearer header transport |
+| CI/CD | **GitHub Actions** with Postgres service | Typecheck + lint + tenant isolation tests on every push |
+| Auth | **JWT + bcrypt cost 12** + Google OAuth + future SAML | Cookie + Bearer header transport |
 | ORM | **Prisma 5** | Type-safe, migrations built in |
 | Test runner | **Vitest + Supertest** | Fast, ESM-native, integration-test friendly |
+| API versioning | **`/v1/` URL prefix** for all routes | Future v2 lives in parallel without breaking integrations |
 
 ---
 
@@ -117,24 +114,22 @@ These are one-way doors. Don't revisit without a very good reason.
 
 **One tenant = one brand = one company** (HomeTown, Urban Ladder, Woodcraft Chennai).
 
-**Critical: Users belong to brands via `Membership`, not directly.** A user can be a member of multiple brands (consultants, acquired companies, internal Rekaman admin team).
+**Critical: Users belong to brands via `Membership`, not directly.** A user can be a member of multiple brands.
 
 Each tenant has:
-- Many **users** (employees) connected via Membership rows with roles: OWNER, ADMIN, MEMBER
-- Many **products** (from 10 to 10,000)
-- Multiple **API keys** (`ApiKey` table) — keys are stored as SHA-256 hashes; original shown once at creation
-- One or more **sites** where the SDK runs (Shopify, WooCommerce, custom React app, anything)
+- Many **users** connected via Membership rows with roles: OWNER, ADMIN, MEMBER
+- Many **products** (10 to 10,000)
+- Multiple **API keys** (`ApiKey` table) — keys stored as SHA-256 hashes
+- One or more **sites** running the SDK
 - One **subscription** (linked to a `PricingPlan`)
 - Many **invoices** (full payment history, amounts in paise)
 
 **Tenant isolation enforced at THREE layers:**
 1. **Auth middleware** — extracts `brandId` from verified JWT → `req.brandId`
-2. **Repository signatures** — every DB query function takes `brandId` as required arg (TypeScript catches missing arg at compile time)
-3. **DB constraints** — `@@unique([brandId, slug])` enforces brand-scoped uniqueness at database level
+2. **Repository signatures** — every DB query function takes `brandId` as required arg (compile-time enforcement)
+3. **DB constraints** — `@@unique([brandId, slug])` enforces brand-scoped uniqueness
 
-Defense in depth. Even if a developer (sleep-deprived future you) forgets layer 1 or 2, layer 3 catches it.
-
-**Multi-tenant isolation is verified by 7 automated tests** that run on every commit via CI.
+**Multi-tenant isolation verified by 7 automated tests** that run on every commit via CI.
 
 ---
 
@@ -142,37 +137,53 @@ Defense in depth. Even if a developer (sleep-deprived future you) forgets layer 
 
 **There is ONE `sdk.js` file. Globally. Forever.**
 
-Not one per brand. Not one per product. One file at `https://cdn.rekaman.io/v1/sdk.js`, served from CloudFront, cached for 1 year in every browser on Earth.
+`https://cdn.rekaman.io/v1/sdk.js` — same for every brand, cached for 1 year in every browser.
 
 ### How it works
-
-Brand pastes ONE script tag + ONE template div ONE time in their site's product page template:
 
 ```html
 <!-- One time in theme.liquid (or equivalent) before </body> -->
 <script src="https://cdn.rekaman.io/v1/sdk.js"></script>
 
-<!-- In product.liquid (or product page component), where button should appear -->
+<!-- In product page template, where button should appear -->
 <div data-rk-product="{{ product.handle }}"
      data-rk-key="rk_live_abc123"></div>
 ```
 
-The `{{ product.handle }}` is platform-specific (Shopify uses Liquid, WooCommerce uses PHP, custom React uses JSX prop) — but the principle is the same: dynamic product slug fills in automatically per page.
-
 ### How the SDK runs on a shopper's page
 1. Scans DOM for `<div data-rk-product="...">`
 2. Reads product + key attributes
-3. Calls `GET /ar/:apiKey/:productSlug` → gets GLB URL + metadata + dimensions
-4. Injects "View in your room" button (Shadow DOM-isolated for CSS independence)
-5. On tap: detects iOS vs Android → routes to AR Quick Look (iOS) or WebXR engine (Android)
-6. Fires analytics events via `navigator.sendBeacon` to `/events`
+3. Calls `GET /v1/ar/:apiKey/:productSlug` → gets product metadata + arMode + asset URLs
+4. Routes to the correct AR mode chunk (placement, face-tryon, wrist-tryon, photo-tryon, etc.)
+5. Injects "View in your room" / "Try on yourself" button (Shadow DOM-isolated)
+6. On tap: lazy-loads the appropriate engine chunk
+7. Fires analytics events via `navigator.sendBeacon` to `/v1/events`
 
 ### Critical rules for SDK
-- **Tiny:** Main bundle ≤ 50KB gzipped. Three.js loaded as separate chunk only when AR button is tapped.
-- **Zero-config:** Script tag + div. Nothing else.
-- **Isolated:** No global leaks except `window.Rekaman`. No CSS leaks (Shadow DOM for button).
-- **Versioned forever:** `v1/sdk.js` never breaks. v2 gets a new URL. Brands migrate on their timeline.
-- **Lazy:** 99% of shoppers never tap AR. They pay zero cost beyond the tiny loader.
+- **Tiny:** Main bundle ≤ 50KB gzipped
+- **Lazy chunks:** Each AR mode (placement, face-tryon, etc.) is a separate chunk loaded only when needed
+- **Zero-config:** Script tag + div. Nothing else
+- **Isolated:** No global leaks except `window.Rekaman`. No CSS leaks (Shadow DOM)
+- **Versioned forever:** `/v1/sdk.js` never breaks. v2 gets a new URL
+- **Lazy:** 99% of shoppers never tap AR — they pay zero cost beyond the loader
+
+### SDK Chunk Architecture
+
+```
+cdn.rekaman.io/v1/
+├── sdk.js                          (~15KB) Main loader, runs on every page
+├── chunks/
+│   ├── placement-engine.js         (~150KB) Three.js + WebXR (Phase 1)
+│   ├── face-tryon-engine.js        (~180KB) MediaPipe FaceMesh + Three.js (Phase 3)
+│   ├── wrist-tryon-engine.js       (~180KB) MediaPipe Hand + Three.js (Phase 3)
+│   ├── hand-tryon-engine.js        (~180KB) MediaPipe Hand + Three.js (Phase 3)
+│   ├── photo-tryon-engine.js       (~50KB)  Photo upload + AI orchestration (Phase 4)
+│   └── multi-scene-engine.js       (~200KB) Multi-product placement (Phase 3)
+└── i18n/
+    ├── hi.js                       (~5KB) Hindi translations (Phase 2)
+    ├── ta.js                       (~5KB) Tamil translations (Phase 2)
+    └── ...
+```
 
 ---
 
@@ -182,23 +193,23 @@ The `{{ product.handle }}` is platform-specific (Shopify uses Liquid, WooCommerc
 Next.js static site. Landing, pricing, docs, blog. Vercel.
 
 ### 2. Brand Dashboard (`dashboard.rekaman.io`)
-Next.js 14 App Router. Where brands live. Separate deployment from marketing site (different release cadences).
+Next.js 14 App Router. Where brands live. Separate deployment from marketing site.
 
 ### 3. Embeddable SDK (`cdn.rekaman.io/v1/sdk.js`)
-TypeScript → esbuild → IIFE. Main bundle ~15KB, WebXR chunk ~150KB lazy-loaded.
+TypeScript → esbuild → IIFE. Main bundle ~15KB, mode chunks lazy-loaded.
 
 ### 4. Core API (modular monolith)
 Express + TypeScript. Two entry points sharing the same codebase:
 - `server.ts` → HTTP API
 - `worker.ts` → BullMQ job processor
 
-Deployed as two Railway services (`api` and `worker`) sharing code + database, scaling independently.
+Deployed as multiple Railway services (`api`, `generation-worker`, `analytics-worker`, `email-worker` over time) sharing code + database, scaling independently.
 
 ### 5. Data Tier
-- **Neon Postgres** — primary source of truth (Singapore region)
-- **Upstash Redis** — BullMQ queue + rate limiting (added Week 5)
-- **AWS S3 + CloudFront** — GLB files, product photos (Mumbai region)
-- **External**: Meshy.ai (3D gen), Razorpay (billing), Resend (email), Sentry (errors)
+- **Neon Postgres** — primary source of truth (Singapore)
+- **Upstash Redis** — BullMQ queue + rate limiting (Week 5+)
+- **AWS S3 + CloudFront** — GLB files, product photos (Mumbai)
+- **External services**: Meshy.ai (3D gen), Replicate/Modal (AI try-on, Phase 4), Razorpay (billing), Resend (email), Sentry (errors)
 
 ---
 
@@ -209,160 +220,54 @@ Every domain module has the **same 3-file shape** — enforced by ESLint:
 ```
 server/src/
   modules/
-    auth/
-      auth.routes.ts       # Express routes — thin glue
-      auth.service.ts      # Business logic
-      auth.repository.ts   # ONLY file that calls Prisma
-      auth.types.ts        # Shared TypeScript types
-    products/
-      products.routes.ts
-      products.service.ts
-      products.repository.ts
-      products.types.ts
-    apiKeys/               # Week 4
-    arSessions/            # Week 4 — analytics events
-    generation/            # Week 5 — Meshy orchestration
-      generation.queue.ts  # BullMQ enqueue
-    billing/               # Week 10
-    webhooks/              # Week 10
+    auth/                         # Built Week 3
+    products/                     # Built Week 3 (extended Week 4 with arMode)
+    apiKeys/                      # Built Week 4
+    publicAr/                     # Built Week 4 — public AR endpoint
+    arSessions/                   # Built Week 4 — analytics events
+    generation/                   # Week 5 — Meshy orchestration
+    conversions/                  # Phase 2 — ROI tracking
+    billing/                      # Week 10 — Razorpay
+    webhooks/                     # Week 10 — inbound (Razorpay, Shopify)
+    outboundWebhooks/             # Phase 2 — brand-facing webhooks
+    audit/                        # Phase 2 — audit logs
+    auditLogs/                    # Phase 2
+    teamInvitations/              # Week 8
+    productAssets/                # Phase 3 — multi-asset products
+    tryOnFace/                    # Phase 3 — face try-on backend logic
+    tryOnPhoto/                   # Phase 4 — AI photo try-on orchestration
   workers/
-    generation.worker.ts   # BullMQ processor (Week 5)
+    generation.worker.ts          # Week 5 — Meshy 3D generation
+    aiTryOn.worker.ts             # Phase 4 — Replicate/Modal calls
+    notifications.worker.ts       # Phase 2 — email, WhatsApp, SMS
   middleware/
-    requestContext.ts      # Request ID + per-request logger
-    auth.ts                # JWT verification + role checks
-    errorHandler.ts        # Maps DomainError → HTTP responses
-    rateLimiter.ts         # Auth + API rate limits
-    asyncHandler.ts        # Wraps async routes for error propagation
+    requestContext.ts             # Built Week 3
+    auth.ts                       # Built Week 3
+    errorHandler.ts               # Built Week 3
+    rateLimiter.ts                # Built Week 3 (per-plan in Phase 2)
+    asyncHandler.ts               # Built Week 3
   shared/
-    db.ts                  # Prisma singleton with shutdown hooks
-    logger.ts              # Pino with redaction
-    sentry.ts              # Sentry init with 4xx filter
-    errors.ts              # DomainError + typed subclasses
-    env.ts                 # Zod-validated env vars
-    crypto.ts              # API key generation + hashing
-    slug.ts                # Brand slug generation
+    db.ts, logger.ts, sentry.ts, errors.ts, env.ts, crypto.ts, slug.ts
   __tests__/
-    setup.ts               # Test DB cleanup hooks
-    tenantIsolation.test.ts # 7 critical isolation tests
-  app.ts                   # Express app factory
-  server.ts                # HTTP entry — verifies DB on start
-  worker.ts                # Worker entry
+    setup.ts
+    tenantIsolation.test.ts       # 7 critical tests
+  app.ts, server.ts, worker.ts
 ```
 
-### Module rules (enforced by ESLint import boundaries)
-- Modules only expose their **service** layer publicly
+### Module rules (enforced by ESLint)
+- Modules expose only their **service** layer publicly
 - `billing.service` can call `products.service.getProduct()`
 - `billing.service` NEVER imports `products.repository.ts` directly
 - Repositories are the ONLY files that touch Prisma
 - Routes are thin: validate input (Zod), call service, format response
-- Service throws **typed DomainError subclasses** (not strings)
+- Services throw **typed DomainError subclasses** (not strings)
 - Error handler converts errors → consistent HTTP responses
-
-### The Error Model
-All errors extend `DomainError` base class with declared `code` and `status`:
-
-```ts
-export class EmailAlreadyExistsError extends DomainError {
-  readonly code = 'EMAIL_EXISTS' as const;
-  readonly status = 409;
-}
-```
-
-Error response format (universal):
-```json
-{
-  "error": "EMAIL_EXISTS",
-  "message": "An account with this email already exists",
-  "details": { "fields": {...} },
-  "requestId": "abc-123-def"
-}
-```
-
-`requestId` lets customers/you correlate errors with logs/Sentry.
-
-### Process Lifecycle
-
-Shutdown is split between the entry point and `shared/db.ts`, both of which register signal handlers:
-
-- `shared/db.ts` only runs `prisma.$disconnect()` on `SIGINT` / `SIGTERM` / `beforeExit`. It uses an idempotency flag (`shuttingDown`) and try/catch around disconnect so concurrent signals or disconnect failures don't blow up. **It does NOT call `process.exit`** — that would race with the entry point and kill in-flight HTTP requests before `server.close()` drains them.
-
-- `server.ts` / `worker.ts` own the final exit. On `SIGINT`/`SIGTERM` they:
-  1. `server.close()` to stop accepting new connections and drain in-flight requests
-  2. Call `prisma.$disconnect()` (idempotent — db.ts may have already done it)
-  3. `process.exit(0)`
-  4. Force-exit via `setTimeout` after 10s as a safety net
-
-`prisma.$disconnect()` is safe to call multiple times. Splitting responsibilities this way keeps `db.ts` reusable in scripts that don't run a long-lived server, while letting the server orchestrate graceful HTTP shutdown.
-
-### Testing
-
-**Tests use a SEPARATE database from dev.** The `afterEach` hook in `__tests__/setup.ts` runs `deleteMany()` on every Brand, Product, Membership, ApiKey, ARSession, AREvent, Subscription, Invoice, and OrgInvitation row in whatever database `DATABASE_URL` points to. Running tests against the dev/prod Neon DB would wipe all data including the seeded PricingPlans.
-
-**The setup enforces this with a hard refusal.** `beforeAll` checks `DATABASE_URL`:
-- ✅ Allowed: `localhost`, `127.0.0.1`, `::1`
-- ✅ Allowed: any URL **only if** `RUN_DESTRUCTIVE_TESTS=true` is also set (explicit opt-in)
-- ❌ Refused: anything else, with the offending host name in the error message
-
-**Local test workflow:**
-1. Spin up an isolated Postgres: `docker run -d --name rekaman-test-db -p 5433:5432 -e POSTGRES_PASSWORD=test postgres:17`
-2. `cp .env.test.example .env.test` (already gitignored)
-3. Apply the schema: `DATABASE_URL='postgresql://postgres:test@localhost:5433/postgres' pnpm prisma migrate deploy`
-4. `pnpm test`
-
-`vitest.config.ts` loads `.env.test` if it exists, so `process.env.DATABASE_URL` is set before `shared/db.ts` instantiates the Prisma client.
-
-**CI uses a fresh Postgres service container** per run (`.github/workflows/ci.yml`). No opt-in needed there because the URL is `localhost`.
-
-**Rate limiters skip in `NODE_ENV=test`.** `middleware/rateLimiter.ts` has `skip: () => NODE_ENV === 'test'` on both `authRateLimit` and `apiRateLimit`. Without this, a 7-test suite signing up 2 brands per `beforeEach` would hit the 5/hr auth limit on test 3. Production behavior is unchanged.
-
-### Race-prone Mutations
-
-Pre-check + try/catch on the Prisma unique-constraint error code is the standard pattern for "is this slug taken?":
-
-```ts
-const existing = await repo.findBySlug(brandId, slug);
-if (existing) throw new SlugAlreadyExistsError();   // friendly UX in common case
-try {
-  return await repo.create(brandId, data);
-} catch (err) {
-  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-    throw new SlugAlreadyExistsError();             // race-safety in rare case
-  }
-  throw err;
-}
-```
-
-Without the catch, two simultaneous creates that both pass the pre-check would surface as `500 INTERNAL_ERROR` (P2002 leaking from Prisma) instead of our `409 SLUG_EXISTS`. Reference: `modules/products/products.service.ts`.
-
-### External API Boundaries
-
-Calls to external services (Google OAuth, Razorpay, Meshy, S3) must wrap throwing operations in a try/catch that converts the underlying error into a typed `DomainError`. An uncaught throw leaks as `500 INTERNAL_ERROR` and pollutes Sentry with garbage from public-internet attackers spamming the endpoint with malformed inputs.
-
-Pattern: catch the external error, log it at `warn` level (not `error` → Sentry) since this is the expected failure mode for client-supplied inputs, then throw the appropriate typed error.
-
-```ts
-let ticket;
-try {
-  ticket = await oauthClient.verifyIdToken({ idToken, audience });
-} catch (err) {
-  logger.warn({ err }, 'google id token verification failed');
-  throw new ValidationError('Invalid Google ID token');
-}
-```
-
-Reference: `modules/auth/auth.service.ts loginWithGoogle`.
-
-### TypeScript / ESLint Conventions
-
-Two non-obvious patterns are unavoidable across modules and worth knowing:
-
-1. **Router exports require explicit `: Router` annotation.** Because `declaration: true` is set in `tsconfig.base.json`, TS emits `.d.ts` files. An inferred `Router` type pulls in deeply-nested `@types/express-serve-static-core` paths that aren't portable, causing TS2742. Every route file must declare `export const xRoutes: Router = router`.
-
-2. **Express request augmentation uses `declare global { namespace Express }` with a per-file lint disable.** The augmentation pattern (adding `requestId`, `auth`, etc. to `Request`) is the idiom shipped by `@types/express` itself, but conflicts with `@typescript-eslint/no-namespace`. We use `// eslint-disable-next-line @typescript-eslint/no-namespace` immediately above each `namespace Express` line. References: `middleware/requestContext.ts`, `middleware/auth.ts`.
 
 ---
 
-## 🗃️ Database Schema (Prisma) — Production v2
+## 🗃️ Database Schema (Prisma) — Production v3
+
+This is the locked schema. All future changes are ADDITIVE (new tables/columns, never restructure existing).
 
 ```prisma
 generator client {
@@ -379,11 +284,12 @@ datasource db {
 model User {
   id            String          @id @default(cuid())
   email         String          @unique
-  passwordHash  String?         // null for OAuth-only users
+  passwordHash  String?
   googleId      String?         @unique
   name          String?
   emailVerified Boolean         @default(false)
-  isSuperAdmin  Boolean         @default(false)  // Rekaman team only
+  isSuperAdmin  Boolean         @default(false)
+  preferredLanguage String      @default("en")    // for Phase 2 multilingual
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   lastLoginAt   DateTime?
@@ -400,22 +306,26 @@ model Brand {
   id           String         @id @default(cuid())
   slug         String         @unique
   companyName  String
-  primaryEmail String                              // denormalized from OWNER
-  billingEmail String?                             // explicit override for invoices
+  primaryEmail String
+  billingEmail String?
   website      String?
+  whatsappBusinessId String?                       // Phase 2 — WhatsApp integration
+  preferredLanguage String     @default("en")      // Phase 2 — brand's UI language
   trialEndsAt  DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   deletedAt    DateTime?
 
-  memberships   Membership[]
-  apiKeys       ApiKey[]
-  products      Product[]
-  sessions      ARSession[]
-  events        AREvent[]
-  subscription  Subscription?
-  invoices      Invoice[]
-  invitations   OrgInvitation[]
+  memberships       Membership[]
+  apiKeys           ApiKey[]
+  products          Product[]
+  sessions          ARSession[]
+  events            AREvent[]
+  conversions       ConversionEvent[]              // Phase 2
+  subscription      Subscription?
+  invoices          Invoice[]
+  invitations       OrgInvitation[]
+  outboundWebhooks  OutboundWebhook[]              // Phase 2
 
   @@index([slug])
   @@index([deletedAt])
@@ -461,9 +371,9 @@ model OrgInvitation {
 model ApiKey {
   id         String    @id @default(cuid())
   brandId    String
-  keyHash    String    @unique                    // SHA-256, never plaintext
-  keyPrefix  String                                // "rk_live_abc..." for UI display
-  name       String?                               // "Production", "Old key (rotated)"
+  keyHash    String    @unique
+  keyPrefix  String
+  name       String?
   scopes     String[]  @default([])
   lastUsedAt DateTime?
   expiresAt  DateTime?
@@ -483,8 +393,10 @@ model Product {
   brandId    String
   name       String
   slug       String
+  arMode     String        @default("placement")  // 'placement' | 'tryon-face' | 'tryon-wrist' | 'tryon-hand' | 'tryon-foot' | 'tryon-photo' | 'multi-scene' | 'audio-preview'
+  category   String?                              // 'furniture', 'eyewear', 'apparel', 'jewelry', 'watches', etc.
   status     ProductStatus @default(PENDING)
-  glbUrl     String?
+  glbUrl     String?                              // primary GLB (placement)
   glbSizeKb  Int?
   photoUrls  String[]      @default([])
   widthCm    Float?
@@ -496,33 +408,54 @@ model Product {
   updatedAt  DateTime      @updatedAt
   deletedAt  DateTime?
 
-  brand      Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand      Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  assets     ProductAsset[]                       // Phase 3 — multi-asset products
   sessions   ARSession[]
   events     AREvent[]
+  conversions ConversionEvent[]                   // Phase 2
 
   @@unique([brandId, slug])
   @@index([brandId, status])
   @@index([brandId, deletedAt])
+  @@index([brandId, arMode])
+}
+
+// Multi-asset products (e.g., a watch needs placement GLB + wrist try-on GLB)
+model ProductAsset {
+  id          String      @id @default(cuid())
+  productId   String
+  assetType   String                              // 'glb-placement', 'glb-face-mask', 'glb-wrist-mount', 'photo-tryon-prompt', 'thumbnail'
+  url         String?
+  metadata    Json?                               // mode-specific config
+  status      AssetStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, assetType])
 }
 
 // ── ANALYTICS (split: session vs event) ──
 
 model ARSession {
   id           String     @id @default(cuid())
-  sessionId    String     @unique                  // SDK-generated, idempotent
+  sessionId    String     @unique
   brandId      String
   productId    String?
+  arMode       String                              // which mode the session used
   startedAt    DateTime   @default(now())
   endedAt      DateTime?
   durationMs   Int?
   deviceType   String                              // 'ios', 'android', 'desktop'
   countryCode  String?
   city         String?
+  language     String     @default("en")           // detected language
   userAgent    String?
   referrer     String?
   didPlace     Boolean    @default(false)
   didAddToCart Boolean    @default(false)
-  productCount Int        @default(0)              // distinct products viewed
+  productCount Int        @default(0)
 
   brand        Brand      @relation(fields: [brandId], references: [id], onDelete: Cascade)
   product      Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -530,15 +463,16 @@ model ARSession {
 
   @@index([brandId, startedAt])
   @@index([productId, startedAt])
+  @@index([brandId, arMode])
 }
 
 model AREvent {
   id         String    @id @default(cuid())
   sessionId  String
-  brandId    String                                // denormalized for fast brand-scoped queries
+  brandId    String
   productId  String?
-  eventType  String                                // 'ar_opened', 'ar_placed', etc.
-  payload    Json?                                 // event-specific data
+  eventType  String                                // 'ar_opened', 'ar_placed', 'variant_changed', 'shared', etc.
+  payload    Json?
   timestamp  DateTime  @default(now())
 
   session    ARSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
@@ -550,20 +484,41 @@ model AREvent {
   @@index([eventType, timestamp])
 }
 
+// Conversion tracking (Phase 2)
+model ConversionEvent {
+  id            String      @id @default(cuid())
+  brandId       String
+  productId     String?
+  sessionId     String?
+  eventType     String                              // 'page_view', 'add_to_cart', 'purchase', 'return'
+  amountInPaise Int?                                // for purchases
+  metadata      Json?                               // SKU variant, quantity, etc.
+  source        String                              // 'ar' | 'non_ar'
+  timestamp     DateTime    @default(now())
+
+  brand         Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  product       Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([brandId, timestamp])
+  @@index([brandId, eventType, timestamp])
+  @@index([sessionId])
+}
+
 // ── BILLING ──
 
 model PricingPlan {
   id            String         @id @default(cuid())
-  code          String         @unique             // 'starter_monthly_inr'
+  code          String         @unique
   tier          Plan
   displayName   String
-  amountInPaise Int                                // 399900 for ₹3,999 — NEVER float
+  amountInPaise Int                                 // 399900 for ₹3,999 — NEVER float
   currency      String         @default("INR")
   billingPeriod BillingPeriod
   sessionLimit  Int
   productLimit  Int
+  arModesIncluded String[]     @default([])         // which arModes the plan includes
   features      String[]       @default([])
-  isPublic      Boolean        @default(true)      // false for custom enterprise plans
+  isPublic      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   deprecatedAt  DateTime?
 
@@ -597,13 +552,13 @@ model Invoice {
   brandId           String
   subscriptionId    String
   razorpayInvoiceId String?       @unique
-  amountInPaise     Int                             // integer paise, never float
+  amountInPaise     Int
   currency          String        @default("INR")
   status            InvoiceStatus
   periodStart       DateTime
   periodEnd         DateTime
   paidAt            DateTime?
-  invoiceUrl        String?                         // Razorpay-hosted PDF
+  invoiceUrl        String?
   createdAt         DateTime      @default(now())
 
   brand             Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
@@ -612,8 +567,9 @@ model Invoice {
   @@index([brandId, createdAt])
 }
 
-// ── WEBHOOKS (idempotency log) ──
+// ── WEBHOOKS ──
 
+// Inbound (Razorpay, Shopify) — idempotency log
 model InboundWebhookEvent {
   id          String    @id @default(cuid())
   provider    String                                // 'razorpay', 'shopify'
@@ -622,203 +578,345 @@ model InboundWebhookEvent {
   processedAt DateTime?
   createdAt   DateTime  @default(now())
 
-  @@unique([provider, eventId])                     // idempotency
+  @@unique([provider, eventId])
   @@index([provider, processedAt])
+}
+
+// Outbound (Phase 2) — brand systems get notified of Rekaman events
+model OutboundWebhook {
+  id            String    @id @default(cuid())
+  brandId       String
+  url           String
+  secret        String                              // HMAC signing key
+  events        String[]                            // ['ar.session.completed', 'ar.placed', 'product.ready']
+  isActive      Boolean   @default(true)
+  failureCount  Int       @default(0)
+  lastFailedAt  DateTime?
+  createdAt     DateTime  @default(now())
+
+  brand         Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  deliveries    OutboundWebhookDelivery[]
+
+  @@index([brandId])
+}
+
+model OutboundWebhookDelivery {
+  id           String   @id @default(cuid())
+  webhookId    String
+  eventType    String
+  payload      Json
+  statusCode   Int?
+  responseBody String?
+  attempt      Int      @default(1)
+  deliveredAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  webhook      OutboundWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+}
+
+// ── AUDIT (Phase 2) ──
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  brandId    String?
+  userId     String?
+  action     String                                // 'product.deleted', 'apikey.revoked'
+  entityType String?
+  entityId   String?
+  diff       Json?                                 // before/after
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
+  @@index([brandId, timestamp])
+  @@index([entityType, entityId])
 }
 
 // ── ENUMS ──
 
 enum Role { OWNER ADMIN MEMBER }
-
 enum InvitationStatus { PENDING ACCEPTED EXPIRED REVOKED }
-
 enum Plan { STARTER PRO ENTERPRISE CUSTOM }
-
 enum BillingPeriod { MONTHLY YEARLY }
-
 enum ProductStatus { PENDING PROCESSING READY FAILED ARCHIVED }
-
+enum AssetStatus { PENDING PROCESSING READY FAILED }
 enum SubscriptionStatus { TRIALING ACTIVE PAST_DUE CANCELED PAUSED EXPIRED }
-
 enum InvoiceStatus { DRAFT PENDING PAID FAILED REFUNDED }
 ```
 
-### Key schema principles
+### Schema principles (NEVER VIOLATE)
 - **Money in paise (`Int`), never `Float`.** Float arithmetic on money compounds errors.
-- **Append-only event log.** `AREvent` rows are written, never updated or deleted.
-- **Soft deletes on Brand, Product, User.** Restoreable, GDPR-compliant.
-- **Cascade on Brand deletion.** All related data goes with the brand. Required for compliance.
+- **Append-only event logs.** `AREvent`, `ConversionEvent`, `AuditLog` rows never updated/deleted.
+- **Soft deletes on Brand, Product, User.** Restoreable, GDPR/DPDP-compliant.
+- **Cascade on Brand deletion.** All related data goes with the brand.
 - **Indexes on every `brandId` column.** Query performance scales with data.
 - **Denormalized fields where it matters:** `Brand.primaryEmail`, `AREvent.brandId`.
+- **Schema is additive.** New features add tables/columns. Never restructure existing.
 
 ---
 
-## 🔄 The 3 Data Flows
+## 📚 The Complete Feature Catalog
 
-### Flow 1: Brand creates product → AR is live
-1. Brand opens dashboard → "New Product" form
-2. Metadata (name, dimensions) → `POST /products` → Product row `status: PENDING`
-3. Photos uploaded **directly to S3 via presigned URLs** (bypasses API — critical for scale)
-4. Brand clicks "Generate" → `POST /products/:id/generate` → BullMQ job queued
-5. Worker calls Meshy, polls for result (60–120s), downloads GLB
-6. gltf-pipeline → Draco compress (30MB → 3MB) → upload to S3
-7. Worker updates Product row: `status: READY`, `glbUrl`
-8. Dashboard polls `GET /products/:id/status` → shows preview
+Organized by what Rekaman offers, broken down by phase.
 
-### Flow 2: Shopper sees AR
-1. SDK loads from CDN (cached ~forever)
-2. SDK reads `data-rk-product` + `data-rk-key` from DOM
-3. `GET /ar/:apiKey/:productSlug` → returns GLB URL, dimensions, variants
-4. Button injected in Shadow DOM; shopper taps
-5. iOS: inject `<a rel="ar" href="product.glb">` → AR Quick Look opens
-6. Android: lazy-load WebXR chunk → Three.js hit test → place model at real-world scale
-7. Events fired via `sendBeacon` to `POST /events` (writes to ARSession + AREvent tables)
+### 🎯 AR Modes (Shopper Experiences)
 
-### Flow 3: Razorpay webhook → subscription updated
-1. Razorpay POSTs to `/webhooks/razorpay`
-2. API verifies HMAC signature (don't trust body)
-3. Write to `InboundWebhookEvent` with unique (provider, eventId) — idempotency
-4. Update Subscription + create Invoice rows
-5. Respond 200 quickly (webhook providers time out fast)
+| Mode | Phase | Tech Stack | Best For |
+|---|---|---|---|
+| **Placement AR** | 1 (MVP) | WebXR + Three.js + GLB | Furniture, decor, electronics |
+| **iOS AR Quick Look** | 1 (MVP) | Native iOS handoff | All products on iPhone |
+| **Face Try-On** | 3 | MediaPipe FaceMesh + Three.js | Glasses, sunglasses, earrings, hats |
+| **Wrist Try-On** | 3 | MediaPipe Hand + Three.js | Watches, bracelets |
+| **Hand Try-On** | 3 | MediaPipe Hand + Three.js | Rings, bangles |
+| **Foot Try-On** | 3 | Foot tracking + Three.js | Shoes, sandals |
+| **Photo Try-On (AI)** | 4 | Replicate/Modal + diffusion models | Clothing, sarees, kurtas |
+| **Virtual Models** | 4 | Pre-baked AI generation | Privacy-friendly clothing alternative |
+| **Multi-Product Scenes** | 3 | Composed placement AR | Room planning, bundles |
+| **Audio Preview** | 5 | Spatial audio simulation | Speakers, soundbars |
+| **Texture/Material Swap** | 3 | Live shader manipulation | Customizable furniture |
+| **AR Lite (low-end Android)** | 2 | 360° rotating + 2D overlay | Cheap phones without WebXR |
+
+### 🏢 Brand-Facing Features (Dashboard)
+
+#### Phase 1 (MVP, Months 1-3)
+- Auth: signup/login + Google OAuth
+- Multi-brand membership (Slack-style switcher when needed)
+- Photo upload + AI 3D generation (Meshy)
+- Product CRUD with status tracking
+- 3D preview before approval
+- Embed code generator (Shopify / WooCommerce / Custom tabs)
+- API key management (create, revoke, rotate)
+- Basic analytics (sessions, placements)
+
+#### Phase 2 (Months 4-6 — Indian Differentiators)
+- **Multi-lingual AR UI** (Hindi, Tamil, Telugu, Marathi, Bengali, Kannada, Gujarati)
+- **WhatsApp-native AR sharing** (link previews work in WhatsApp)
+- **Low-end Android fallback** (AR Lite mode)
+- **AR-driven upsell engine** (suggest complementary products in AR)
+- **Returns reduction analytics** (compare with-AR vs without-AR)
+- **Heatmaps of AR engagement** (where shoppers look at the model)
+- **A/B testing for AR button placement**
+- **Bulk CSV import** + bulk generation
+- **Variant management** (5 fabric colors → 5 GLBs, switch in AR)
+- **Branded AR button customization** (colors, fonts)
+- **Outbound webhooks** to brand's systems
+- **Public status page** (`status.rekaman.io`)
+- **Public API documentation** (`docs.rekaman.io`)
+- **Audit log** (compliance)
+- **GDPR/DPDP data export + delete**
+- **Per-plan rate limiting**
+- **WhatsApp Business analytics digest** (daily summary to brand owner)
+
+#### Phase 3 (Months 7-12 — Try-On Expansion)
+- Face Try-On (glasses, jewelry, hats)
+- Wrist Try-On (watches, bracelets)
+- Hand Try-On (rings)
+- Multi-product scenes ("Room Builder")
+- Festival/cultural templates (Diwali, weddings, Christmas)
+- Live shopping mode (shopper + sales rep view together via WebRTC)
+- AR product comparison (place 2 products side by side)
+- Auto-generated product pages (AI writes copy from photos)
+- Approval workflows (senior approves before live)
+- Custom domains (`ar.brandsite.com/v1/sdk.js`)
+
+#### Phase 4 (Months 13-18 — AI Try-On + International)
+- AI photo try-on for clothing
+- Virtual model alternative (privacy-friendly)
+- PII handling infrastructure
+- Multi-region API deployment (Fly.io)
+- Stripe billing for international
+- SOC 2 / ISO 27001 prep
+- SSO (SAML, Google Workspace)
+- Smart sizing recommendations
+
+#### Phase 5 (Year 2-3 — Platform Maturity)
+- Apple Vision Pro app (visionOS)
+- Voice-driven AR controls
+- Audio AR (spatial sound preview for speakers)
+- Public app marketplace
+- Open API ecosystem
+- Customer support AR (assembly help overlay)
+- Augmented packaging (scan box → assembly instructions)
+
+### 🛍️ Shopper-Facing Features (SDK Runtime)
+
+#### Phase 1 (MVP)
+- "View in your room" button (customizable)
+- iOS AR Quick Look + Android WebXR routing
+- Tap-to-place with reticle
+- Single-replacement placement mode
+- Real-world scale rendering
+- Pre-AR explainer (first-time UX)
+
+#### Phase 2
+- **Multilingual AR UI** (regional Indian languages)
+- **Pinch to scale, twist to rotate**
+- **Drag placed model to reposition**
+- **Variant switcher in AR**
+- **Save AR scene for later** (wishlist)
+- **Share AR scene** via QR code or WhatsApp link
+- **Shadows on floor** (realism boost)
+- **AR Lite fallback** for low-end phones
+
+#### Phase 3
+- **"Try with these" suggestions** (cross-sell in AR)
+- **Lighting estimation** (realistic environment matching)
+- **Multi-product placement** (sofa + table + lamp)
+- **AR comparison view** (side-by-side)
+
+#### Phase 4
+- **Photo upload for clothing try-on**
+- **AI-generated "you in this outfit"**
+- **Virtual model selection** (pick body type closest to yours)
+
+#### Phase 5
+- **Voice-driven controls** ("make it bigger", "show in red")
+- **Live shopping with sales rep**
+
+### 🔧 Platform Features (Infrastructure)
+
+| Feature | Phase | Notes |
+|---|---|---|
+| Multi-tenant isolation (3 layers) | 1 | Built Week 3 |
+| API key management with rotation | 1 | Built Week 4 |
+| Razorpay subscriptions | 1 | Week 10 |
+| Plan gating middleware | 1 | Week 10 |
+| Webhook ingestion (Razorpay + Shopify) | 1 | Week 10 |
+| `/v1/` API versioning | 1 | Week 4 |
+| Outbound webhooks | 2 | Month 4-5 |
+| Per-plan rate limiting | 2 | Week 10+ (with Redis) |
+| Public status page | 2 | Month 5 |
+| Public API docs | 2 | Month 5 |
+| GDPR/DPDP compliance endpoints | 2 | Month 4-5 |
+| Audit log | 2 | Month 4-5 |
+| Disaster recovery procedure | 2 | Month 6 |
+| Customer health monitoring | 2 | Month 6 (internal tool) |
+| PII handling for try-on photos | 3 | Month 9+ |
+| Multi-region deployment | 4 | Month 13+ |
+| SOC 2 / ISO 27001 | 5 | Year 2+ |
+| SLAs for enterprise | 4 | When first ₹50K+ deal lands |
 
 ---
 
-## 💻 Complete Tech Stack
+## 🇮🇳 Indian-Market Differentiation (Defensibility)
 
-### Frontend / AR
-- Three.js r160+ (3D scene, GLB loading, AR rendering)
-- WebXR Device API (Android browser AR, hit testing)
-- AR Quick Look (iOS native — `<a rel="ar">`)
-- model-viewer (Google web component, optional iOS fallback)
-- MediaPipe FaceMesh (face AR, Month 8+)
-- Next.js 14 App Router (dashboard)
-- shadcn/ui + Tailwind
-- Recharts
-- React Query v5 (server state, polling)
+These are unique to Indian e-commerce and form Rekaman's competitive moat. International competitors (Threekit, Zakeke) won't bother building these.
 
-### SDK
-- TypeScript compiled to IIFE via esbuild
-- Target: ~15KB main + ~150KB WebXR chunk (lazy)
-- Shadow DOM for CSS isolation
+### 1. WhatsApp-Native AR Sharing (Phase 2)
+Brand sends product link via WhatsApp Business → recipient taps → AR opens in WhatsApp's WebView. No app install. India is WhatsApp-first.
 
-### Backend
-- Node.js 22 LTS (pinned via `.nvmrc`; do NOT use Node 24 — incompatible with Prisma 5)
-- Express 4
-- Prisma 5 (ORM, migrations)
-- BullMQ (queue, Week 5)
-- Zod (validation everywhere)
-- Pino + pino-http (structured logs with PII redaction)
-- JWT (jsonwebtoken) + bcryptjs (cost 12)
-- google-auth-library (OAuth verification)
-- express-rate-limit (in-memory now, Redis-backed Week 5+)
-- helmet, cors, compression, cookie-parser
+### 2. Multi-Lingual AR UI (Phase 2)
+SDK auto-detects browser language → "View in your room" becomes "अपने कमरे में देखें" or "உங்கள் அறையில் பார்க்கவும்". 5 languages launch (Hindi, Tamil, Telugu, Marathi, Bengali). 3 days of work.
 
-### Testing
-- Vitest (test runner, ESM-native)
-- Supertest (HTTP integration tests)
-- 7 mandatory tenant isolation tests run on every CI build
+### 3. Festival/Cultural AR Templates (Phase 3)
+Pre-built multi-product scenes for Diwali, weddings, Pongal, Christmas, Eid. Brands customize products that fit each occasion.
 
-### Linting & types
-- TypeScript 5.4+ strict mode + `noUncheckedIndexedAccess`
-- ESLint with typescript-eslint
-- Custom `no-restricted-imports` rule prevents cross-module repository imports
+### 4. Low-End Android Fallback (Phase 2)
+200M+ Indian Androids run cheap phones without WebXR. Detect → show 360° rotating product + draggable 2D overlay. Better than nothing.
 
-### Data
-- Neon Postgres 17 (Singapore region, primary DB)
-- Upstash Redis (queue + rate limiting, Week 5+)
-- AWS S3 + CloudFront (Mumbai region, files + CDN)
+### 5. WhatsApp + UPI Checkout from AR (Phase 3)
+Shopper sees product in AR → "Buy now" → opens UPI app → pays. Skips brand's checkout entirely (with permission).
 
-### External
-- Meshy.ai (3D generation)
-- Razorpay Subscriptions (INR billing)
-- Resend (transactional email)
-- Sentry (error tracking, 4xx filtered out)
-- PostHog (product analytics, dashboard-side only)
-- Google OAuth (sign in with Google)
+### 6. AR Analytics in Brand's WhatsApp/Slack (Phase 2)
+Daily message: "Yesterday, 47 shoppers tried AR. 32 placed Oslo Sofa. Estimated revenue impact: ₹1,15,000."
 
-### Planned (Month 6+)
-- Shopify App Bridge (Theme App Extensions for zero-code install)
-- WooCommerce PHP plugin
-- Webflow custom code template
-- RealityKit + SwiftUI (Apple Vision Pro, Month 10+)
+### 7. Post-AR SMS Follow-up (Phase 2)
+Shopper places product, doesn't buy → automated SMS in 24h: "Liked the Oslo Sofa? Code OSLO500 expires today."
 
 ---
 
-## 🗺️ Revised 12-Month Roadmap
+## 🚫 The Anti-Roadmap (Things to NEVER Build)
 
-**Key shift: first paying customer by Week 6, not Month 3.**
+Equally important as the roadmap. These are explicitly forbidden:
 
-### Weeks 1–2: 3D foundations ✅
-- ✅ Week 1: Three.js + GLB loading + HDR lighting (DONE, deployed)
-- ✅ Week 2: WebXR, ARButton, hit testing, reticle, placement, gestures, iOS Quick Look (DONE, deployed)
+- **Custom 3D modeling tool** — we're not Vectary
+- **Consumer marketplace** — different business, kills B2B focus
+- **Custom branded apps for individual brands** — kills 4 months for ₹10L revenue
+- **Real-time multiplayer AR** — solves zero customer problems
+- **Vision Pro app first** — ~10K units in India, Year 2-3 problem
+- **Our own 3D AI model** — Meshy/Hunyuan/TripoSR exist
+- **Real-time full-body clothing AR** — companies with $200M+ have failed
+- **NFT/Web3/blockchain** — pure distraction for Indian SaaS
+- **Generic chatbot** — don't try to be Intercom
+- **SEO tools for brands** — different product, different sales motion
+- **Email marketing platform** — different product, refer to Mailmodo/Klaviyo
+- **Shopify alternative** — stay a layer ABOVE Shopify, not competitor TO it
 
-### Week 3: Production Backend Foundation ✅ (current)
-- Modular monolith with proper boundaries
-- Prisma schema v2 (multi-brand membership, separate ApiKey, split ARSession/AREvent)
-- JWT auth + Google OAuth from day 1
-- 3-layer tenant isolation, verified by 7 automated tests
-- Deployed to Railway (api + worker services)
-- Sentry, Pino, request IDs, typed DomainErrors
+---
 
-### Week 4: SDK v1 + Public AR Endpoint
-- `packages/sdk` with esbuild bundle config
-- Port Week 2 AR code into production package
-- ApiKey CRUD module (create, revoke, list)
-- Public AR endpoint: `GET /ar/:apiKey/:productSlug`
-- S3 + CloudFront setup for `cdn.rekaman.io`
-- Deploy SDK to `cdn.rekaman.io/v1/sdk.js`
-- Static HTML demo: one `<script>` tag opens AR
-- **Deliverable:** Sales demo URL for first prospect
+## 🗺️ The 5-Phase Roadmap
 
-### Weeks 5–6: Meshy + manual onboarding
-- Meshy.ai integration (wrapped in `shared/meshy.ts`)
-- BullMQ worker for 3D generation
-- S3 upload + Draco compression pipeline
-- `POST /products/:id/generate` endpoint
-- **🎯 First paying customer (₹3,999) via Concierge MVP** — manually process photos, email embed code
+### Phase 1: MVP — Months 1-3 ✅ (in progress)
+**Goal:** Ship placement AR, get 4-5 paying customers
 
-### Weeks 7–9: Dashboard MVP
-- Auth pages (signup, login, password reset)
-- Onboarding wizard (3-step)
-- Product list + create + upload (presigned S3)
-- Embed code page with Shopify / WooCommerce / Custom tabs
-- Basic analytics (session counts, placement rate)
+- ✅ Week 1: Three.js + GLB foundations
+- ✅ Week 2: WebXR + AR placement (Android Chrome + iOS Quick Look)
+- ✅ Week 3: Production backend (multi-tenant, deployed to Railway)
+- **Week 4 (current): SDK + CloudFront + Public AR endpoint + 5 schema hooks**
+- Week 5-6: Meshy.ai + first paying customer (Concierge MVP)
+- Week 7-9: Dashboard MVP + analytics
+- Week 10-12: Razorpay + plan gating + 4 paying customers, ₹40K MRR
 
-### Weeks 10–12: Billing + customer wave
-- Razorpay subscriptions integration
-- Plan gating middleware (enforces session/product limits)
-- ROI calculator
-- Target: **4 paying customers, ₹40,000 MRR**
+### Phase 2: Indian-Market Differentiation — Months 4-6
+**Goal:** ₹3-5L MRR, 15-25 customers, lock in defensibility
 
-### Month 4–5: Product Hunt launch
-- Full analytics pipeline (funnel, cohort)
-- Shopify app (private beta)
-- Variant switching in AR
-- Target: **15 paying brands, ₹75,000 MRR**
+- Multi-lingual AR UI (Hindi, Tamil, Telugu)
+- Low-end Android fallback (AR Lite)
+- WhatsApp-native AR sharing
+- AR-driven upsell suggestions
+- Heatmaps + advanced analytics
+- Public status page + docs
+- Audit log + GDPR/DPDP endpoints
+- Outbound webhooks
+- Bulk CSV import for catalogs
+- Returns reduction analytics
+- Product Hunt launch
 
-### Month 6–9: Scale
-- Public Shopify app
-- WooCommerce plugin
-- 3D quality improvements (manual refinement option)
-- MediaPipe face AR (fashion vertical)
-- SEO content
-- Target: **50 brands, ₹5L MRR**
+### Phase 3: Try-On Expansion — Months 7-12
+**Goal:** ₹15-25L MRR, 50+ customers across 3 verticals
 
-### Month 10–12: Expansion
-- Apple Vision Pro visionOS app
-- Fly.io migration (multi-region)
-- International billing (Stripe alongside Razorpay)
-- Investor conversations
-- Target: **₹8.5L MRR → ₹1 Cr ARR by end of year**
+- Face Try-On (glasses, jewelry, hats)
+- Wrist Try-On (watches)
+- Hand Try-On (rings)
+- Multi-product scenes
+- Festival/cultural templates
+- Live shopping mode
+- Auto-generated product pages
+- Approval workflows
+- Conversion event tracking + ROI dashboard
+
+### Phase 4: AI Clothing + International — Months 13-18
+**Goal:** ₹30-50L MRR, 100+ customers, Series A closed
+
+- AI photo try-on for clothing
+- Virtual model alternative
+- PII handling infrastructure
+- Multi-region deployment (Fly.io)
+- Stripe for international
+- SOC 2 prep
+- SAML SSO
+
+### Phase 5: Platform Maturity — Year 2-3
+**Goal:** ₹2-3 Cr MRR, category leader
+
+- Apple Vision Pro app
+- Live shopping mode (WebRTC)
+- Voice-driven AR
+- Audio AR for speakers
+- Open API ecosystem
+- Apple/Shopify deep integrations
+- Public app marketplace
 
 ---
 
 ## 🎯 Dashboard Pages Map
 
-### MVP (Week 7–12)
+### MVP (Weeks 7-12)
 - `/signup`, `/login`, `/forgot-password`
 - `/onboarding` (3-step wizard)
-- `/brands` (brand switcher if user belongs to multiple — Slack-style)
+- `/brands` (brand switcher when user has multiple memberships)
 - `/products` (list with status badges)
 - `/products/new` (upload flow)
 - `/products/:id` (preview, approve, embed code)
@@ -829,86 +927,107 @@ enum InvoiceStatus { DRAFT PENDING PAID FAILED REFUNDED }
 - `/team` (basic — invite via email)
 - `/settings`, `/billing`
 
-### Month 4–5
-- `/team` (advanced — roles, audit log of invitations)
+### Phase 2 (Months 4-6)
+- `/team` (advanced — roles, audit log)
 - `/variants` (colors, materials)
 - `/bulk-upload` (CSV)
-- `/integrations` (Shopify, Slack, webhooks)
+- `/integrations` (Shopify, WhatsApp, Slack, webhooks)
 - `/branding` (AR button customization)
+- `/webhooks` (outbound webhook management)
+- `/insights` (returns reduction, ROI)
+- `/audit` (compliance log)
 
-### Month 6+
-- `/insights` (AI-generated recommendations)
-- `/leads` (captured shopper interest)
+### Phase 3 (Months 7-12)
+- `/scenes` (multi-product scene composer)
+- `/templates` (festival/cultural templates)
 - `/experiments` (A/B testing)
-- `/api-docs`
+- `/live` (live shopping mode)
+- `/api-docs` (developer documentation)
 
 ---
 
 ## 🔌 Key API Endpoints
 
+All routes prefixed with `/v1/` for future versioning.
+
 ```
 # Auth (rate-limited: 5/hr per IP)
-POST   /auth/signup                   # email/password + creates User+Brand+Membership atomically
-POST   /auth/login                    # email/password
-POST   /auth/google                   # Google OAuth ID token
-POST   /auth/logout                   # clears cookie
-GET    /auth/me                       # returns user + ALL memberships + active brandId
-POST   /auth/switch-brand/:brandId    # re-issues JWT with different active brand (Week 4)
+POST   /v1/auth/signup
+POST   /v1/auth/login
+POST   /v1/auth/google
+POST   /v1/auth/logout
+GET    /v1/auth/me
+POST   /v1/auth/switch-brand/:brandId
 
 # Products (authenticated, brand-scoped)
-GET    /products
-POST   /products
-GET    /products/:id
-PATCH  /products/:id
-DELETE /products/:id                  # soft delete, requires OWNER/ADMIN role
-POST   /products/:id/upload-url       # presigned S3 URL (Week 5)
-POST   /products/:id/generate         # queue 3D job (Week 5)
-GET    /products/:id/status           # poll progress
-GET    /products/:id/embed-code
+GET    /v1/products
+POST   /v1/products
+GET    /v1/products/:id
+PATCH  /v1/products/:id
+DELETE /v1/products/:id
+POST   /v1/products/:id/upload-url
+POST   /v1/products/:id/generate
+GET    /v1/products/:id/status
+GET    /v1/products/:id/embed-code
+GET    /v1/products/:id/assets         # Phase 3 — multi-asset products
+POST   /v1/products/:id/assets
 
-# API Keys (Week 4)
-GET    /api-keys                      # list (returns prefixes, never full keys)
-POST   /api-keys                      # create (returns full key ONCE in response)
-DELETE /api-keys/:id                  # revoke
+# API Keys
+GET    /v1/api-keys
+POST   /v1/api-keys
+DELETE /v1/api-keys/:id
 
 # Public AR (API-key authenticated, rate-limited, cached)
-GET    /ar/:apiKey/:productSlug       # shopper view → product metadata + GLB URL
+GET    /v1/ar/:apiKey/:productSlug
 
-# Events (SDK ingestion, Week 4)
-POST   /events                        # batch AR session events via sendBeacon
+# Events (SDK ingestion)
+POST   /v1/events                       # batch AR session events
+
+# Conversions (Phase 2 — brand-side)
+POST   /v1/conversions                  # purchases, returns, etc.
 
 # Analytics (authenticated)
-GET    /analytics/summary
-GET    /analytics/roi
-GET    /analytics/products/:id
+GET    /v1/analytics/summary
+GET    /v1/analytics/roi
+GET    /v1/analytics/products/:id
+GET    /v1/analytics/heatmaps           # Phase 2
 
 # Billing (Week 10)
-POST   /billing/subscribe
-GET    /billing/portal
-GET    /billing/invoices
+POST   /v1/billing/subscribe
+GET    /v1/billing/portal
+GET    /v1/billing/invoices
 
-# Webhooks (Week 10, idempotent)
-POST   /webhooks/razorpay
+# Webhooks
+POST   /v1/webhooks/razorpay            # Inbound (idempotent)
+POST   /v1/webhooks/shopify             # Phase 2
+GET    /v1/outbound-webhooks            # Phase 2 — outbound mgmt
+POST   /v1/outbound-webhooks
+DELETE /v1/outbound-webhooks/:id
 
-# Team (Week 8)
-GET    /team
-POST   /team/invite
-POST   /team/accept                   # uses invitation token
-PATCH  /team/:userId/role
-DELETE /team/:userId
+# Team (Week 8+)
+GET    /v1/team
+POST   /v1/team/invite
+POST   /v1/team/accept
+PATCH  /v1/team/:userId/role
+DELETE /v1/team/:userId
+
+# Compliance (Phase 2)
+POST   /v1/me/export                    # GDPR/DPDP data export
+DELETE /v1/me/account                   # right-to-be-forgotten
+GET    /v1/audit                        # audit log
 
 # System
-GET    /health                        # always 200, no auth
-GET    /metrics                       # uptime, db status, version
+GET    /health                          # always 200, no auth, no version prefix
+GET    /metrics                         # uptime, db status, version
 ```
 
 ### Universal error response format
 ```json
 {
-  "error": "EMAIL_EXISTS",            // stable code
+  "error": "EMAIL_EXISTS",
   "message": "Human-readable message",
-  "details": {...},                   // optional, structured
-  "requestId": "abc-123"              // for log correlation
+  "details": {...},
+  "requestId": "abc-123"
 }
 ```
 
@@ -916,18 +1035,28 @@ GET    /metrics                       # uptime, db status, version
 
 ## 💰 Pricing (INR — India First)
 
-Stored dynamically in `PricingPlan` table (not hardcoded enum). Allows pricing experiments without migrations.
+Stored dynamically in `PricingPlan` table — pricing experiments without migrations.
 
-| Plan | Price | Sessions | Products | Key Features |
-|------|-------|----------|----------|--------------|
-| Starter | ₹3,999/mo | 500 | 10 | Basic analytics, email support |
-| Pro | ₹12,999/mo | 5,000 | 50 | Full analytics, ROI, Shopify app |
-| Enterprise | ₹49,999+/mo | Unlimited | Unlimited | White-label SDK, dedicated support |
+### Phase 1 Pricing
+| Plan | Price | Sessions | Products | AR Modes | Key Features |
+|------|-------|----------|----------|----------|--------------|
+| Starter | ₹3,999/mo | 500 | 10 | Placement only | Basic analytics, email support |
+| Pro | ₹12,999/mo | 5,000 | 50 | Placement only | Full analytics, ROI, Shopify app |
+| Enterprise | ₹49,999+/mo | Unlimited | Unlimited | All MVP modes | White-label SDK, dedicated support |
 
-**Add-ons:**
+### Phase 3 Pricing (with try-on)
+| Plan | Price | Sessions | Products | AR Modes | Key Features |
+|------|-------|----------|----------|----------|--------------|
+| Starter | ₹3,999/mo | 500 | 10 | Placement | Basic analytics |
+| Pro | ₹12,999/mo | 5,000 | 50 | Placement + Face Try-On | Full analytics, Shopify app |
+| Pro+ | ₹19,999/mo | 10,000 | 100 | All modes incl. wrist/hand try-on | Multi-product scenes |
+| Enterprise | ₹49,999+/mo | Unlimited | Unlimited | All modes + AI photo try-on | White-label, SLA |
+
+### Add-ons
 - Manual 3D refinement: ₹500/product
 - Extra AI generation credits: ₹99/model
 - Annual plan: 2 months free
+- AI photo try-on (Phase 4): ₹2-5 per generated image
 
 **All amounts stored as paise (Int). Never use Float for money.**
 
@@ -937,27 +1066,52 @@ Stored dynamically in `PricingPlan` table (not hardcoded enum). Allows pricing e
 
 | Competitor | Price | Weakness | Our Edge |
 |------------|-------|----------|----------|
-| Threekit | $50K+/yr | 6-month onboarding | 20-min setup, ₹4K/mo |
-| Zakeke | $30–$200/mo | Needs existing 3D files | AI generates from photos |
+| Threekit | $50K+/yr | 6-month onboarding, US-focused | 20-min setup, ₹4K/mo, India-native |
+| Zakeke | $30–$200/mo | Needs existing 3D files, no try-on | AI from photos, multi-mode |
 | Vectary | Free–$14/mo | Design tool, no commerce | We're a commerce platform |
-| Roomle | $200–$2K/mo | Complex UX | Simple: point, place, buy |
+| Roomle | $200–$2K/mo | Complex UX, EU-focused | Simple, India-localized |
+| ModiFace | Enterprise only | L'Oréal-owned, makeup-specific | Multi-category, accessible pricing |
+| Snap AR | Free | Snapchat ecosystem | We're embedded in brand's site |
 
-**Positioning:** "The Shopify of AR" — platform layer for any brand without a $500K engineering budget. Works on every website, not just Shopify.
+**Positioning:** "The Shopify of AR" — platform layer for any Indian brand without a $500K engineering budget. Universal across platforms (Shopify, custom, anything). Multi-mode (placement, try-on, AI). India-first features (multilingual, WhatsApp, UPI).
 
 ---
 
 ## 📊 Key Metrics
 
-- **MRR** — ₹8.5L by Month 12
-- **Churn** — < 5%/month
-- **Placement rate** — > 70% (% of AR opens that result in model placement)
-- **Conversion lift** — 3–4× AR vs non-AR shoppers
-- **Return rate reduction** — 20–25% per brand
-- **LTV** — > ₹1.5L/brand
-- **CAC** — < ₹15K
-- **LTV:CAC** — > 10:1
-- **API uptime** — 99.5% (allows ~3.5 hours/month downtime)
-- **AR session p95 latency** — < 2 seconds (button tap to camera open)
+### Phase 1 Targets (Months 1-3)
+- MRR: ₹40K
+- Paying brands: 4-5
+- Placement rate: > 70%
+- Conversion lift: 3-4× AR vs non-AR
+- Return rate reduction: 20-25% per brand
+
+### Phase 2 Targets (Months 4-6)
+- MRR: ₹3-5L
+- Paying brands: 15-25
+- Indian language adoption: 30%+ of sessions
+- WhatsApp share rate: 10%+ of placements
+
+### Phase 3 Targets (Months 7-12)
+- MRR: ₹15-25L
+- Paying brands: 50+
+- Try-on conversion lift: 4-5× (higher than placement)
+
+### Phase 4 Targets (Months 13-18)
+- MRR: ₹30-50L
+- Paying brands: 100+
+- International revenue: 10%+
+
+### Phase 5 Targets (Year 2-3)
+- MRR: ₹2-3 Cr
+- Paying brands: 500+
+- Category leadership in India
+
+### Universal SLAs (Always)
+- API uptime: 99.5% (Pro), 99.9% (Enterprise)
+- AR session p95 latency: < 2 seconds
+- Churn: < 5%/month
+- LTV:CAC: > 10:1
 
 ---
 
@@ -967,33 +1121,44 @@ Stored dynamically in `PricingPlan` table (not hardcoded enum). Allows pricing e
 rekaman/
 ├── apps/
 │   ├── dashboard/              # Next.js 14 App Router (Vercel)
-│   └── landing/                # rekaman.io marketing site (Vercel)
+│   ├── landing/                # rekaman.io marketing site (Vercel)
+│   └── demo/                   # Static AR demo pages (Vercel)
 ├── packages/
 │   ├── sdk/                    # Embeddable JS SDK (esbuild → IIFE → CloudFront)
 │   │   ├── src/
-│   │   │   ├── index.ts        # IIFE entry, exposes window.Rekaman
-│   │   │   ├── ar-launcher.ts  # iOS vs Android router
+│   │   │   ├── index.ts        # Main IIFE entry, exposes window.Rekaman
+│   │   │   ├── ar-launcher.ts  # Mode router
+│   │   │   ├── api-client.ts   # API calls
 │   │   │   ├── analytics.ts    # sendBeacon event firing
-│   │   │   └── webxr-chunk.ts  # lazy-loaded Three.js engine
-│   │   └── dist/sdk.js
-│   ├── ar-engine/              # Shared Three.js + WebXR logic
+│   │   │   ├── ui.ts           # Button injection (Shadow DOM)
+│   │   │   ├── i18n/           # Phase 2 — language packs
+│   │   │   └── chunks/
+│   │   │       ├── placement-engine.ts    # Phase 1
+│   │   │       ├── face-tryon-engine.ts   # Phase 3
+│   │   │       ├── wrist-tryon-engine.ts  # Phase 3
+│   │   │       ├── photo-tryon-engine.ts  # Phase 4
+│   │   │       └── multi-scene-engine.ts  # Phase 3
+│   │   ├── build.config.ts
+│   │   └── package.json
+│   ├── ar-engine/              # Shared Three.js + WebXR utilities
 │   └── shared-types/           # Types shared between server + dashboard + sdk
 ├── server/                     # Node.js + Express (Railway)
 │   ├── src/
-│   │   ├── modules/            # auth, products, generation, ar-sessions, billing, webhooks
+│   │   ├── modules/            # auth, products, apiKeys, publicAr, arSessions, conversions, generation, billing, webhooks, outboundWebhooks, audit, team
 │   │   ├── workers/
 │   │   ├── middleware/
-│   │   ├── shared/             # db, logger, sentry, errors, env, crypto, slug
-│   │   ├── __tests__/          # tenant isolation + integration tests
+│   │   ├── shared/
+│   │   ├── __tests__/
 │   │   └── prisma/
 │   │       ├── schema.prisma
-│   │       └── seed.ts         # PricingPlan defaults
+│   │       └── seed.ts
 │   └── package.json
-├── .github/workflows/ci.yml    # Postgres service + typecheck + lint + tests
+├── .github/workflows/ci.yml
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 ├── package.json
-└── CLAUDE.md                   # this file
+├── CLAUDE.md                   # this file
+└── REKAMAN_ROADMAP.md          # long-horizon strategic doc
 ```
 
 ---
@@ -1007,14 +1172,14 @@ rekaman/
 4. Tech stack context if unclear
 
 ### Great prompt templates
-- `[AR ENGINE] Write the Three.js WebXR hit-test code for placing a product on an AR surface.`
+- `[AR ENGINE] Write the MediaPipe FaceMesh + Three.js code for face try-on with glasses.`
 - `[BACKEND] Review this Prisma query for tenant leak risk — must filter by req.brandId.`
-- `[AI PIPELINE] Write the BullMQ worker that calls Meshy, polls, uploads GLB to S3 with Draco compression.`
-- `[SDK] How do I isolate CSS in the embed so host page styles don't leak in?`
-- `[DEBUG] WebXR session fails with [error]. Here's my ARButton config: [...]`
+- `[AI PIPELINE] Write the BullMQ worker for Replicate-based AI photo try-on.`
+- `[SDK] How do I lazy-load the wrist-tryon chunk only when arMode === 'tryon-wrist'?`
+- `[STRATEGY] Should we ship Hindi UI in Phase 2 Week 1 or Week 4?`
 
 ### Claude's expected behavior
-- Assume modular monolith with strict module boundaries (services talk to services, never repositories)
+- Assume modular monolith with strict module boundaries
 - Assume multi-tenant with `req.brandId` injection from JWT
 - Assume Membership-based (User can belong to multiple Brands)
 - Default to TypeScript + Zod validation + typed DomainErrors
@@ -1023,65 +1188,71 @@ rekaman/
 - Prefer boring, battle-tested tech
 - Push back on premature abstraction or microservices
 - Reference this file's decisions rather than suggesting new stacks
-
----
-
-## 📝 Git Conventions
-
-**Commit message format:** `shiva | <type>(<scope>): <short description>`
-
-- **`shiva |`** prefix is required on every commit — identifies the author at a glance in `git log` (helps when other contributors join later).
-- **`<type>`** follows Conventional Commits: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`.
-- **`<scope>`** is the affected area: `server`, `sdk`, `dashboard`, `landing`, `db`, `ci`, etc. Optional but encouraged.
-- **Description** is imperative present-tense and ≤ 72 characters. Body (after a blank line) for context if needed.
-
-Examples:
-- `shiva | feat(server): production-grade auth, products, tenant middleware`
-- `shiva | fix(auth): catch Google verifier throws as 400 instead of 500`
-- `shiva | chore: add env var template`
-- `shiva | docs: update CLAUDE.md with testing workflow`
-
-This convention applies to all commits Claude generates as well — every Claude-authored commit must use the `shiva | …` prefix.
+- Reference REKAMAN_ROADMAP.md for long-horizon questions
 
 ---
 
 ## 📍 Current Status
 
-*Update this section every Sunday.*
+*Update every Sunday and after every major milestone.*
 
 - **Week/Month:** Week 4, Month 1
-- **Last completed:** Week 3 — Production-grade backend deployed to Railway. Auth (email/password + Google OAuth), Products CRUD, multi-tenant isolation (7 automated tests passing locally + in CI + verified on production), api & worker services live, CI green on every push.
-- **Currently working on:** Week 4 — SDK package + CloudFront deployment + public AR endpoint
+- **Last completed:** Week 3 — Production-grade backend with multi-tenant isolation tests, JWT + Google OAuth, deployed to Railway. Strategic roadmap document created.
+- **Currently working on:** Week 4 — SDK package + CloudFront + Public AR endpoint + 5 schema hooks (arMode, ProductAsset, ConversionEvent, /v1/ versioning, OutboundWebhook tables)
 - **Blocked on:** Nothing
 - **Next milestone:** Week 4 deliverable — sales demo URL with one `<script>` tag opening AR
 - **Current MRR:** ₹0
 - **Paying clients:** 0
 - **Deployed URLs:**
   - Playground: [Vercel URL from Week 1-2]
-  - API: https://api-production-0a54.up.railway.app
-  - Worker: deployed on Railway (no public URL — internal only)
-  - Dashboard: not live
+  - API: [Railway URL from Week 3]
+  - SDK CDN: not live (Week 4)
+  - Demo: not live (Week 4)
+  - Dashboard: not live (Week 7)
   - Landing: not live
 
 ---
 
 ## 🌐 Live URLs
 
-- Landing: `rekaman.io` or `.co` or `.app` (purchased)
-- Dashboard: `dashboard.rekaman.io` (not live, Week 7+)
-- API: `api.rekaman.io` (planned). Currently live at: `https://api-production-0a54.up.railway.app` (auto-generated Railway domain — custom domain wired in Week 4+)
+- Landing: `rekaman.io`
+- Dashboard: `dashboard.rekaman.io` (Week 7+)
+- API: `api.rekaman.io` (Railway live, custom domain Week 4-5)
 - CDN: `cdn.rekaman.io` (Week 4)
+- Demo: `demo.rekaman.io` (Week 4)
+- Status: `status.rekaman.io` (Phase 2 / Month 5)
+- Docs: `docs.rekaman.io` (Phase 2 / Month 5)
 - SDK global: `window.Rekaman`
-- GitHub: `github.com/[username]/rekaman` (private monorepo)
+- GitHub: private monorepo
 
 ---
 
-## ✅ Immediate Next Actions
+## ✅ Immediate Next Actions (Week 4)
 
-1. **Move to Week 4:** SDK package setup, CloudFront, public AR endpoint
-2. **Reserve "Rekaman" trademark** via MCA RUN service (₹1,000) — done in spare time
-3. **Borrow brother's iPhone** for 30 minutes to verify iOS AR Quick Look path on Week 2 deploy
-4. **Plan domain DNS** — point `api.rekaman.io` to Railway when Week 4 begins
+1. **Add 5 schema hooks** before SDK code (~70 min):
+   - `arMode` and `category` columns on Product
+   - `ProductAsset` table
+   - `ConversionEvent` table
+   - Restructure routes to `/v1/` prefix
+   - `OutboundWebhook` + `OutboundWebhookDelivery` tables
+
+2. **Build API Keys module** (~60 min)
+
+3. **Build Public AR endpoint** (~45 min)
+
+4. **Build Events ingestion endpoint** (~30 min)
+
+5. **Create SDK package** with esbuild config (~45 min)
+
+6. **Write SDK source code** — main bundle + placement chunk (~90 min)
+
+7. **Set up CloudFront + S3** (~90 min)
+
+8. **Deploy demo HTML page** (~30 min)
+
+9. **Test end-to-end** on Android Chrome + iOS Safari
+
+10. **Update CLAUDE.md** with Week 4 completion status
 
 ---
 
@@ -1099,7 +1270,12 @@ This convention applies to all commits Claude generates as well — every Claude
 10. **Typed errors, never strings** — DomainError subclasses with stable codes
 11. **Production-ready from Week 3** — patterns that work at customer #5000, not just #5
 12. **Repository functions take brandId as required arg** — TypeScript prevents leaks at compile time
-13. **Schema is additive** — new features add tables/columns, never restructure existing ones
+13. **Schema is additive** — new features add tables/columns, never restructure
+14. **API versioned at `/v1/`** — future v2 lives alongside, never breaks integrations
+15. **No microservices for ≥3 years** — modular monolith with extraction-ready boundaries
+16. **External AI services, not in-house GPUs** — Meshy, Replicate, Modal stay external
+17. **India-first features are the moat** — what international competitors won't bother building
+18. **Anti-roadmap is sacred** — the things we won't build matter as much as what we will
 
 ---
 
@@ -1109,14 +1285,11 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 
 **Registration plan:**
 - **Week 6-8:** Incorporate Pvt Ltd in Tamil Nadu (~₹15-25K, 5-7 days)
-- **Immediately after:** Apply for DPIIT Startup India recognition (free, 1-3 days, unlocks 3-year tax holiday)
+- **Immediately after:** Apply for DPIIT Startup India recognition (free, 1-3 days)
 - **Week 10-12:** Open Razorpay business account, file trademark for "Rekaman"
 - **No international entity** for Year 1 — Indian Pvt Ltd is correct starting structure
 
 ---
 
-*Last updated: April 2026 | Version 4.1*
-*Key shifts from v3: Production schema v2 with multi-brand Membership, ApiKey table, split ARSession/AREvent, PricingPlan, Invoice. Universal SDK reach (not just Shopify). Typed error model. Production-grade patterns from Week 3 onwards. Tenant isolation verified by 7 automated tests.*
-*v4.1: Node runtime pinned to 22 LTS via `.nvmrc` (Node 24 incompatible with Prisma 5).*
-*v4.2: Test DB isolation — refuse destructive tests against non-local DBs unless `RUN_DESTRUCTIVE_TESTS=true`. Race-prone mutations use pre-check + P2002 catch.*
-*v4.3: External API boundaries (Google verifier, future Razorpay/Meshy) wrap throws → typed 4xx instead of leaking 500. CI uses explicit `prisma:generate`/`prisma:deploy` script names — pnpm 9's `--filter <pkg> <bin>` doesn't fall back to binaries. Production deployed to Railway: api + worker services live, tenant isolation verified end-to-end against the live URL.*
+*Last updated: April 2026 | Version 5.0*
+*v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
