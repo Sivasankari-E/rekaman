@@ -66,8 +66,8 @@ export function createApp(): Express {
 
   // ── Authenticated API routes ──
   app.use(apiRateLimit);
-  app.use('/auth', authRoutes);
-  app.use('/products', productsRoutes);
+  app.use('/v1/auth', authRoutes);
+  app.use('/v1/products', productsRoutes);
 
   // 404 for unmatched routes
   app.use((_req, _res, next) => {

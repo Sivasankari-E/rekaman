@@ -13,7 +13,7 @@ interface AuthCreds {
 
 async function signupBrand(label: string): Promise<AuthCreds> {
   const res = await request(app)
-    .post('/auth/signup')
+    .post('/v1/auth/signup')
     .send({
       email: `test-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@rekaman.test`,
       password: 'test12345',
@@ -40,13 +40,13 @@ describe('Tenant Isolation (CRITICAL)', () => {
 
   it('Brand B cannot see Brand A’s products via list', async () => {
     await request(app)
-      .post('/products')
+      .post('/v1/products')
       .set('Authorization', `Bearer ${brandA.token}`)
       .send({ name: 'Oslo Sofa', slug: 'oslo-sofa' })
       .expect(201);
 
     const res = await request(app)
-      .get('/products')
+      .get('/v1/products')
       .set('Authorization', `Bearer ${brandB.token}`)
       .expect(200);
 
@@ -55,14 +55,14 @@ describe('Tenant Isolation (CRITICAL)', () => {
 
   it('Brand B cannot read Brand A’s product by ID', async () => {
     const created = await request(app)
-      .post('/products')
+      .post('/v1/products')
       .set('Authorization', `Bearer ${brandA.token}`)
       .send({ name: 'Berlin Chair', slug: 'berlin-chair' });
 
     const productId = created.body.product.id;
 
     const res = await request(app)
-      .get(`/products/${productId}`)
+      .get(`/v1/products/${productId}`)
       .set('Authorization', `Bearer ${brandB.token}`)
       .expect(404);
 
@@ -71,20 +71,20 @@ describe('Tenant Isolation (CRITICAL)', () => {
 
   it('Brand B cannot update Brand A’s product', async () => {
     const created = await request(app)
-      .post('/products')
+      .post('/v1/products')
       .set('Authorization', `Bearer ${brandA.token}`)
       .send({ name: 'Tokyo Lamp', slug: 'tokyo-lamp' });
 
     const productId = created.body.product.id;
 
     await request(app)
-      .patch(`/products/${productId}`)
+      .patch(`/v1/products/${productId}`)
       .set('Authorization', `Bearer ${brandB.token}`)
       .send({ name: 'HACKED' })
       .expect(404);
 
     const verify = await request(app)
-      .get(`/products/${productId}`)
+      .get(`/v1/products/${productId}`)
       .set('Authorization', `Bearer ${brandA.token}`)
       .expect(200);
 
@@ -93,46 +93,46 @@ describe('Tenant Isolation (CRITICAL)', () => {
 
   it('Brand B cannot delete Brand A’s product', async () => {
     const created = await request(app)
-      .post('/products')
+      .post('/v1/products')
       .set('Authorization', `Bearer ${brandA.token}`)
       .send({ name: 'Paris Bed', slug: 'paris-bed' });
 
     const productId = created.body.product.id;
 
     await request(app)
-      .delete(`/products/${productId}`)
+      .delete(`/v1/products/${productId}`)
       .set('Authorization', `Bearer ${brandB.token}`)
       .expect(404);
 
     await request(app)
-      .get(`/products/${productId}`)
+      .get(`/v1/products/${productId}`)
       .set('Authorization', `Bearer ${brandA.token}`)
       .expect(200);
   });
 
   it('Both brands can have a product with the same slug (DB-level isolation)', async () => {
     await request(app)
-      .post('/products')
+      .post('/v1/products')
       .set('Authorization', `Bearer ${brandA.token}`)
       .send({ name: 'A’s Sofa', slug: 'oslo-sofa' })
       .expect(201);
 
     await request(app)
-      .post('/products')
+      .post('/v1/products')
       .set('Authorization', `Bearer ${brandB.token}`)
       .send({ name: 'B’s Sofa', slug: 'oslo-sofa' })
       .expect(201);
   });
 
   it('Requests without auth token are rejected', async () => {
-    await request(app).get('/products').expect(401);
-    await request(app).post('/products').send({}).expect(401);
+    await request(app).get('/v1/products').expect(401);
+    await request(app).post('/v1/products').send({}).expect(401);
   });
 
   it('Requests with tampered tokens are rejected', async () => {
     const tampered = brandA.token.slice(0, -5) + 'XXXXX';
     await request(app)
-      .get('/products')
+      .get('/v1/products')
       .set('Authorization', `Bearer ${tampered}`)
       .expect(401);
   });

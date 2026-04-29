@@ -43,14 +43,16 @@ model Brand {
   updatedAt    DateTime       @updatedAt
   deletedAt    DateTime?
 
-  memberships  Membership[]
-  apiKeys      ApiKey[]
-  products     Product[]
-  sessions     ARSession[]
-  events       AREvent[]
-  subscription Subscription?
-  invoices     Invoice[]
-  invitations  OrgInvitation[]
+  memberships      Membership[]
+  apiKeys          ApiKey[]
+  products         Product[]
+  sessions         ARSession[]
+  events           AREvent[]
+  subscription     Subscription?
+  invoices         Invoice[]
+  invitations      OrgInvitation[]
+  conversions      ConversionEvent[]
+  outboundWebhooks OutboundWebhook[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -121,6 +123,8 @@ model Product {
   name      String
   slug      String
   status    ProductStatus @default(PENDING)
+  arMode    String        @default("placement")
+  category  String?
   glbUrl    String?
   glbSizeKb Int?
   photoUrls String[]      @default([])
@@ -133,13 +137,30 @@ model Product {
   updatedAt DateTime      @updatedAt
   deletedAt DateTime?
 
-  brand    Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  sessions ARSession[]
-  events   AREvent[]
+  brand       Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  sessions    ARSession[]
+  events      AREvent[]
+  assets      ProductAsset[]
+  conversions ConversionEvent[]
 
   @@unique([brandId, slug])
   @@index([brandId, status])
   @@index([brandId, deletedAt])
+}
+
+model ProductAsset {
+  id        String      @id @default(cuid())
+  productId String
+  assetType String
+  url       String?
+  metadata  Json?
+  status    AssetStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, assetType])
 }
 
 // ─────────────────────────────────────────
@@ -187,6 +208,29 @@ model AREvent {
   @@index([brandId, timestamp])
   @@index([sessionId])
   @@index([eventType, timestamp])
+}
+
+// ─────────────────────────────────────────
+// CONVERSIONS (post-AR-session purchase tracking)
+// ─────────────────────────────────────────
+
+model ConversionEvent {
+  id            String   @id @default(cuid())
+  brandId       String
+  productId     String?
+  sessionId     String?
+  eventType     String
+  amountInPaise Int?
+  metadata      Json?
+  source        String
+  timestamp     DateTime @default(now())
+
+  brand   Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([brandId, timestamp])
+  @@index([brandId, eventType, timestamp])
+  @@index([sessionId])
 }
 
 // ─────────────────────────────────────────
@@ -269,6 +313,39 @@ model InboundWebhookEvent {
   @@index([provider, processedAt])
 }
 
+model OutboundWebhook {
+  id           String    @id @default(cuid())
+  brandId      String
+  url          String
+  secret       String
+  events       String[]
+  isActive     Boolean   @default(true)
+  failureCount Int       @default(0)
+  lastFailedAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  brand      Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  deliveries OutboundWebhookDelivery[]
+
+  @@index([brandId])
+}
+
+model OutboundWebhookDelivery {
+  id           String    @id @default(cuid())
+  webhookId    String
+  eventType    String
+  payload      Json
+  statusCode   Int?
+  responseBody String?
+  attempt      Int       @default(1)
+  deliveredAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  webhook OutboundWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+}
+
 // ─────────────────────────────────────────
 // ENUMS
 // ─────────────────────────────────────────
@@ -321,4 +398,11 @@ enum InvoiceStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+enum AssetStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
 }
