@@ -146,6 +146,7 @@ model Product {
   @@unique([brandId, slug])
   @@index([brandId, status])
   @@index([brandId, deletedAt])
+  @@index([brandId, arMode])
 }
 
 model ProductAsset {
@@ -172,12 +173,14 @@ model ARSession {
   sessionId    String    @unique
   brandId      String
   productId    String?
+  arMode       String    @default("placement")
   startedAt    DateTime  @default(now())
   endedAt      DateTime?
   durationMs   Int?
   deviceType   String
   countryCode  String?
   city         String?
+  language     String    @default("en")
   userAgent    String?
   referrer     String?
   didPlace     Boolean   @default(false)
@@ -190,6 +193,7 @@ model ARSession {
 
   @@index([brandId, startedAt])
   @@index([productId, startedAt])
+  @@index([brandId, arMode])
 }
 
 model AREvent {
