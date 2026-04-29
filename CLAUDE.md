@@ -302,14 +302,16 @@ try {
 
 Without the catch, two simultaneous creates that both pass the pre-check would surface as `500 INTERNAL_ERROR` (P2002 leaking from Prisma) instead of our `409 SLUG_EXISTS`. Reference: `modules/products/products.service.ts`.
 
-### Path-aware CORS for the Public SDK Endpoint
+### Path-aware CORS for the Public SDK Endpoints
 
 The SDK runs on **arbitrary brand websites** — `hometown.co.in`, `urbanladder.com`, etc. — none of which are in our dashboard CORS whitelist. To support this without weakening dashboard security:
 
-`app.ts` uses a `corsOptionsDelegate` (one global `cors()` call) that branches on `req.path`:
+`app.ts` uses a `corsOptionsDelegate` (one global `cors()` call) that branches on `req.path`. Public SDK paths (currently `/v1/ar/*` for product metadata and `/v1/events` for analytics ingestion) get permissive CORS; everything else gets strict CORS.
 
-- `/v1/ar/*` (the public AR endpoint): `origin: '*'`, `methods: ['GET', 'OPTIONS']`, `maxAge: 86400`, **no credentials**. Applies to all responses including 404 and 500 + handles OPTIONS preflights so the SDK can read error bodies and avoid misleading "CORS error" messages.
-- Everything else: strict whitelist `[DASHBOARD_URL, rekaman.io, dashboard.rekaman.io]` + `credentials: true` for cookie-based auth.
+- **Public SDK paths:** `origin: '*'`, `methods: ['GET', 'POST', 'OPTIONS']`, `maxAge: 86400`, **no credentials**. Applies to all responses including 404/500 + handles OPTIONS preflights so the SDK can read error bodies and avoid misleading "CORS error" messages.
+- **Everything else:** strict whitelist `[DASHBOARD_URL, rekaman.io, dashboard.rekaman.io]` + `credentials: true` for cookie-based auth.
+
+When adding a new public SDK route, extend `isPublicSdkPath()` in `app.ts` — single source of truth.
 
 **Don't add `Access-Control-Allow-Origin` inline in handlers** — the global delegate already covers all responses. Inline `res.set` only sets headers on the success path; errors miss them.
 

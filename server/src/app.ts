@@ -11,6 +11,7 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { productsRoutes } from './modules/products/products.routes.js';
 import { apiKeysRoutes } from './modules/apiKeys/apiKeys.routes.js';
 import { publicArRoutes } from './modules/publicAr/publicAr.routes.js';
+import { arSessionsRoutes } from './modules/arSessions/arSessions.routes.js';
 import { prisma } from './shared/db.js';
 import { NotFoundError } from './shared/errors.js';
 
@@ -40,11 +41,15 @@ export function createApp(): Express {
   };
   const publicSdkCorsOptions: CorsOptions = {
     origin: '*',
-    methods: ['GET', 'OPTIONS'],
+    // GET for /v1/ar/* (product metadata), POST for /v1/events (analytics ingestion)
+    methods: ['GET', 'POST', 'OPTIONS'],
     maxAge: 86400,
   };
+  // Public SDK paths: /v1/ar/* (product metadata) and /v1/events (analytics ingestion).
+  const isPublicSdkPath = (p: string) =>
+    p.startsWith('/v1/ar/') || p === '/v1/events' || p.startsWith('/v1/events/');
   const corsDelegate: CorsOptionsDelegate<Request> = (req, callback) => {
-    if (req.path.startsWith('/v1/ar/')) {
+    if (isPublicSdkPath(req.path)) {
       callback(null, publicSdkCorsOptions);
     } else {
       callback(null, dashboardCorsOptions);
@@ -54,6 +59,9 @@ export function createApp(): Express {
 
   app.use(compression());
 
+  // sendBeacon may post events as Content-Type: text/plain; capture as string,
+  // route-level middleware in arSessions parses it to JSON.
+  app.use(express.text({ type: 'text/plain', limit: '500kb' }));
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(cookieParser());
@@ -81,9 +89,10 @@ export function createApp(): Express {
     }
   });
 
-  // ── Public SDK route (mounted BEFORE apiRateLimit so the 100/min global doesn't
-  // pre-empt this endpoint's own 1000/min limit; SDK on every shopper page is hot) ──
+  // ── Public SDK routes (mounted BEFORE apiRateLimit so the 100/min global doesn't
+  // pre-empt these endpoints' own higher limits; SDK is on every shopper page) ──
   app.use('/v1/ar', publicArRoutes);
+  app.use('/v1/events', arSessionsRoutes);
 
   // ── Authenticated API routes ──
   app.use(apiRateLimit);

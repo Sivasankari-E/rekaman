@@ -12,6 +12,16 @@ export const productsRepository = {
       orderBy: { createdAt: 'desc' },
     }),
 
+  /**
+   * Bulk slug → id lookup for cross-module needs (e.g. events ingestion).
+   * Returns minimal projection; deleted products are excluded.
+   */
+  findIdsBySlugs: (brandId: string, slugs: string[]) =>
+    prisma.product.findMany({
+      where: { brandId, slug: { in: slugs }, deletedAt: null },
+      select: { id: true, slug: true },
+    }),
+
   findById: (brandId: string, id: string) =>
     prisma.product.findFirst({
       where: { id, brandId, deletedAt: null },

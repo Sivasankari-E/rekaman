@@ -21,6 +21,19 @@ export const productsService = {
   list: (brandId: string): Promise<Product[]> =>
     productsRepository.list(brandId),
 
+  /**
+   * Bulk slug → product-id lookup. Returns a Map for O(1) access.
+   * Used by the events ingestion service to resolve productSlug → productId.
+   */
+  findIdMapBySlug: async (
+    brandId: string,
+    slugs: string[],
+  ): Promise<Map<string, string>> => {
+    if (slugs.length === 0) return new Map();
+    const rows = await productsRepository.findIdsBySlugs(brandId, slugs);
+    return new Map(rows.map((r) => [r.slug, r.id]));
+  },
+
   async get(brandId: string, id: string): Promise<Product> {
     const product = await productsRepository.findById(brandId, id);
     if (!product) throw new NotFoundError('Product');
