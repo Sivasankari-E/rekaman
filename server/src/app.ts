@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { apiRateLimit } from './middleware/rateLimiter.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { productsRoutes } from './modules/products/products.routes.js';
+import { apiKeysRoutes } from './modules/apiKeys/apiKeys.routes.js';
 import { prisma } from './shared/db.js';
 import { NotFoundError } from './shared/errors.js';
 
@@ -68,6 +69,7 @@ export function createApp(): Express {
   app.use(apiRateLimit);
   app.use('/v1/auth', authRoutes);
   app.use('/v1/products', productsRoutes);
+  app.use('/v1/api-keys', apiKeysRoutes);
 
   // 404 for unmatched routes
   app.use((_req, _res, next) => {
