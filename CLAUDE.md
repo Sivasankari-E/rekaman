@@ -302,6 +302,17 @@ try {
 
 Without the catch, two simultaneous creates that both pass the pre-check would surface as `500 INTERNAL_ERROR` (P2002 leaking from Prisma) instead of our `409 SLUG_EXISTS`. Reference: `modules/products/products.service.ts`.
 
+### Path-aware CORS for the Public SDK Endpoint
+
+The SDK runs on **arbitrary brand websites** — `hometown.co.in`, `urbanladder.com`, etc. — none of which are in our dashboard CORS whitelist. To support this without weakening dashboard security:
+
+`app.ts` uses a `corsOptionsDelegate` (one global `cors()` call) that branches on `req.path`:
+
+- `/v1/ar/*` (the public AR endpoint): `origin: '*'`, `methods: ['GET', 'OPTIONS']`, `maxAge: 86400`, **no credentials**. Applies to all responses including 404 and 500 + handles OPTIONS preflights so the SDK can read error bodies and avoid misleading "CORS error" messages.
+- Everything else: strict whitelist `[DASHBOARD_URL, rekaman.io, dashboard.rekaman.io]` + `credentials: true` for cookie-based auth.
+
+**Don't add `Access-Control-Allow-Origin` inline in handlers** — the global delegate already covers all responses. Inline `res.set` only sets headers on the success path; errors miss them.
+
 ### External API Boundaries (Google, Razorpay, Meshy, S3, Replicate)
 
 Calls to external services must wrap throwing operations in a try/catch that converts the underlying error into a typed `DomainError`. An uncaught throw leaks as `500 INTERNAL_ERROR` and pollutes Sentry with garbage from public-internet attackers spamming the endpoint with malformed inputs.
