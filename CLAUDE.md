@@ -143,7 +143,7 @@ Each tenant has:
 
 ```html
 <!-- One time in theme.liquid (or equivalent) before </body> -->
-<script src="https://cdn.rekaman.io/v1/sdk.js"></script>
+<script src="https://cdn.rekaman.io/v1/sdk.js" defer></script>
 
 <!-- In product page template, where button should appear -->
 <div data-rk-product="{{ product.handle }}"
@@ -170,6 +170,7 @@ Each tenant has:
 - **Resilient delivery:** `flush()` tries `navigator.sendBeacon` first; if the UA queue refuses (returns `false`), falls back to `fetch(... { keepalive: true })`. Events aren't silently dropped when the page is unloading.
 - **Errors carry requestId:** when `/v1/ar/...` returns 4xx/5xx, `fetchProduct` parses the `{ error, message, requestId }` envelope and surfaces it in the thrown Error message — so brand support tickets can be grepped in our logs/Sentry instantly.
 - **Accessible:** AR button has `aria-label` matching the visible text; `aria-busy` toggles during chunk load. The decorative SVG icon is `aria-hidden`.
+- **Non-blocking install:** Brands embed with `<script src="…/sdk.js" defer>`. The SDK's entry handles both `readyState === 'loading'` and the post-DOMContentLoaded case, so `defer` is always safe and prevents render-blocking on the brand's product page.
 
 ### SDK Build Pipeline Conventions
 

@@ -1,0 +1,10 @@
+{
+  "name": "@rekaman/demo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Local demo product pages for testing the SDK before CDN deployment.",
+  "scripts": {
+    "serve": "python3 -m http.server 8080 --directory public",
+    "copy:sdk": "mkdir -p public/v1 && cp ../../packages/sdk/dist/sdk.js public/sdk.js && cp ../../packages/sdk/dist/placement-engine-v1.js public/v1/placement-engine-v1.js"
+  }
+}

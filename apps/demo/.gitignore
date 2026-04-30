@@ -1,0 +1,7 @@
+node_modules
+
+# Generated SDK artifacts copied from packages/sdk/dist/ via `pnpm copy:sdk`.
+# Source of truth lives in packages/sdk/src/. Don't commit copies.
+public/sdk.js
+public/sdk.js.map
+public/v1/

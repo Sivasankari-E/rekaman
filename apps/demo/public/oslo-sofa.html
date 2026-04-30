@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>HomeTown — Oslo Sofa</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font: 16px/1.6 system-ui, -apple-system, sans-serif; color: #111; background: #fafafa; }
+      .container { max-width: 800px; margin: 0 auto; padding: 32px 16px; }
+      h1 { font-size: 32px; margin-bottom: 8px; }
+      .price { font-size: 22px; color: #6366f1; margin-bottom: 16px; font-weight: 600; }
+      .photo {
+        width: 100%; aspect-ratio: 4/3; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        border-radius: 12px; display: flex; align-items: center;
+        justify-content: center; color: #888; margin-bottom: 24px;
+        font-size: 14px;
+      }
+      .meta { color: #555; margin-bottom: 24px; line-height: 1.8; }
+      .meta strong { color: #111; }
+      footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid #eee; color: #888; font-size: 13px; }
+      footer a { color: #6366f1; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="photo">[ Product photo placeholder ]</div>
+
+      <h1>Oslo 3-Seater Sofa</h1>
+      <div class="price">₹64,999</div>
+      <div class="meta">
+        <strong>Fabric upholstered.</strong> Solid wood frame. Available in Slate, Indigo, Cream.<br>
+        <strong>Dimensions:</strong> 220cm × 95cm × 85cm<br>
+        <strong>Free delivery & assembly</strong> across India.
+      </div>
+
+      <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
+      <div data-rk-product="oslo-sofa" data-rk-key="rk_live_wW8dUxrRLB1_IOEUZj_5vZNFE95PUTGE"></div>
+      <script src="/sdk.js" defer></script>
+
+      <footer>
+        Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.
+      </footer>
+    </div>
+  </body>
+</html>
