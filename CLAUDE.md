@@ -167,6 +167,17 @@ Each tenant has:
 - **Versioned forever:** `/v1/sdk.js` never breaks. v2 gets a new URL
 - **Lazy:** 99% of shoppers never tap AR — they pay zero cost beyond the loader
 
+### SDK Build Pipeline Conventions
+
+The `packages/sdk` package uses esbuild via `build.config.ts`. Conventions every new chunk must follow:
+
+- **Compile-time constants** — `__SDK_VERSION__`, `__API_BASE__`, `__CDN_BASE__` are injected via esbuild's `define` (zero runtime cost). Declared as ambient globals in `src/globals.d.ts` so source code references typecheck. Override at build time with `SDK_API_BASE=` / `SDK_CDN_BASE=` env vars.
+- **Clean before build** — `dist/` is wiped on every non-watch build for deterministic output (no stale chunks served from CDN).
+- **Size budget enforced in build** — `build.config.ts` measures gzipped size of `sdk.js` and warns if it exceeds the 50KB rule above. Adding feature code to the main bundle that pushes it over should fail review; move to a lazy chunk instead.
+- **Watch mode covers main + chunks** — `pnpm build:watch` watches all bundles, not just the main one.
+- **Versioned chunk filenames** — `placement-engine-v1.js` (immutable URL pattern). When a chunk gets a breaking change, ship `-v2.js` alongside; old SDK loaders keep working with `-v1.js` for as long as the brand has the old `sdk.js` cached.
+- **Production builds via `pnpm build:prod`** — sets `NODE_ENV=production` which enables `minify`, disables sourcemaps (no internal path leaks to brand sites), and strips dev defines.
+
 ### SDK Chunk Architecture
 
 ```

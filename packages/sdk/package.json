@@ -1,0 +1,29 @@
+{
+  "name": "@rekaman/sdk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsx build.config.ts",
+    "build:prod": "NODE_ENV=production tsx build.config.ts",
+    "build:watch": "tsx build.config.ts --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "clean": "rm -rf dist dist-ts"
+  },
+  "dependencies": {
+    "three": "^0.181.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "@types/three": "^0.181.0",
+    "esbuild": "^0.27.7",
+    "eslint": "^10.2.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.1"
+  }
+}
