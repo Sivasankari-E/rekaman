@@ -160,12 +160,16 @@ Each tenant has:
 7. Fires analytics events via `navigator.sendBeacon` to `/v1/events`
 
 ### Critical rules for SDK
-- **Tiny:** Main bundle ≤ 50KB gzipped
+- **Tiny:** Main bundle ≤ 50KB gzipped (current: 3.0 KB)
 - **Lazy chunks:** Each AR mode (placement, face-tryon, etc.) is a separate chunk loaded only when needed
 - **Zero-config:** Script tag + div. Nothing else
 - **Isolated:** No global leaks except `window.Rekaman`. No CSS leaks (Shadow DOM)
 - **Versioned forever:** `/v1/sdk.js` never breaks. v2 gets a new URL
 - **Lazy:** 99% of shoppers never tap AR — they pay zero cost beyond the loader
+- **Idempotent:** `scan()` and `initAnalytics()` can run multiple times safely. The `[data-rk-mounted]` guard prevents double-mount; analytics tracks `listenersAttached` so `pagehide`/`visibilitychange` aren't bound multiple times when a page has multiple AR widgets.
+- **Resilient delivery:** `flush()` tries `navigator.sendBeacon` first; if the UA queue refuses (returns `false`), falls back to `fetch(... { keepalive: true })`. Events aren't silently dropped when the page is unloading.
+- **Errors carry requestId:** when `/v1/ar/...` returns 4xx/5xx, `fetchProduct` parses the `{ error, message, requestId }` envelope and surfaces it in the thrown Error message — so brand support tickets can be grepped in our logs/Sentry instantly.
+- **Accessible:** AR button has `aria-label` matching the visible text; `aria-busy` toggles during chunk load. The decorative SVG icon is `aria-hidden`.
 
 ### SDK Build Pipeline Conventions
 

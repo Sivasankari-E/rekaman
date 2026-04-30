@@ -10,7 +10,10 @@ const outdir = 'dist';
 
 const sharedConfig: esbuild.BuildOptions = {
   bundle: true,
-  target: ['es2020', 'chrome88', 'safari14', 'firefox85'],
+  // ES2020 covers Chrome 80+, Safari 14+, Firefox 78+, Edge 80+ — our minimum support targets.
+  // Listing browsers explicitly alongside es2020 confused esbuild into trying to downcompile
+  // destructuring; a single target string sidesteps that.
+  target: 'es2020',
   sourcemap: isProd ? false : 'linked',
   minify: isProd,
   treeShaking: true,
