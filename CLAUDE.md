@@ -1,5 +1,5 @@
 # Rekaman — Spatial Commerce AR Platform
-## Project Context for Claude (v5.0)
+## Project Context for Claude (v5.1)
 
 > **Single source of truth.** This file is loaded into every Claude conversation about Rekaman. Update at the end of each sprint and after every major strategic shift. Companion document: `REKAMAN_ROADMAP.md` (long-horizon vision).
 
@@ -155,8 +155,8 @@ Each tenant has:
 2. Reads product + key attributes
 3. Calls `GET /v1/ar/:apiKey/:productSlug` → gets product metadata + arMode + asset URLs
 4. Routes to the correct AR mode chunk (placement, face-tryon, wrist-tryon, photo-tryon, etc.)
-5. Injects "View in your room" / "Try on yourself" button (Shadow DOM-isolated)
-6. On tap: lazy-loads the appropriate engine chunk
+5. Injects "View in your room" / "Try on yourself" button (Shadow DOM-isolated) — early, before product fetch resolves, so it appears within ~50ms of page load
+6. On tap: lazy-loads the appropriate engine chunk via `<script>` tag injection (NOT dynamic `import()` — see Critical rules below)
 7. Fires analytics events via `navigator.sendBeacon` to `/v1/events`
 
 ### Critical rules for SDK
@@ -171,6 +171,8 @@ Each tenant has:
 - **Errors carry requestId:** when `/v1/ar/...` returns 4xx/5xx, `fetchProduct` parses the `{ error, message, requestId }` envelope and surfaces it in the thrown Error message — so brand support tickets can be grepped in our logs/Sentry instantly.
 - **Accessible:** AR button has `aria-label` matching the visible text; `aria-busy` toggles during chunk load. The decorative SVG icon is `aria-hidden`.
 - **Non-blocking install:** Brands embed with `<script src="…/sdk.js" defer>`. The SDK's entry handles both `readyState === 'loading'` and the post-DOMContentLoaded case, so `defer` is always safe and prevents render-blocking on the brand's product page.
+- **Chunks load via `<script>` tag, NOT `import()`:** Cross-origin module imports trip CORS preflight quirks across browsers (Brave, mobile webviews, CloudFront missing OPTIONS handling). The SDK's `loadChunk()` injects a `<script src="cdn.../v1/<chunk>.js">` and waits for `onload`. Each chunk is built as IIFE format and self-registers on `window.__rkChunks.<modeName>` so the launcher can call into it. Bypasses CORS entirely — same pattern Stripe/Segment/Intercom use.
+- **AR session must NOT pin `document.body` as `domOverlay`:** Doing so renders the brand's entire page on top of the camera feed (looks broken). The placement engine requests `immersive-ar` without `dom-overlay`; the browser presents a clean camera-only view with a system-rendered exit button. Reference: Sentry incident 2026-05 — phones showed product page text overlapping the AR model.
 
 ### SDK Build Pipeline Conventions
 
@@ -180,7 +182,7 @@ The `packages/sdk` package uses esbuild via `build.config.ts`. Conventions every
 - **Clean before build** — `dist/` is wiped on every non-watch build for deterministic output (no stale chunks served from CDN).
 - **Size budget enforced in build** — `build.config.ts` measures gzipped size of `sdk.js` and warns if it exceeds the 50KB rule above. Adding feature code to the main bundle that pushes it over should fail review; move to a lazy chunk instead.
 - **Watch mode covers main + chunks** — `pnpm build:watch` watches all bundles, not just the main one.
-- **Versioned chunk filenames** — `placement-engine-v1.js` (immutable URL pattern). When a chunk gets a breaking change, ship `-v2.js` alongside; old SDK loaders keep working with `-v1.js` for as long as the brand has the old `sdk.js` cached.
+- **Versioned chunk filenames** — `placement-engine-v2.js` is the current production chunk (immutable URL pattern). When ANY content changes in a chunk, bump the version and ship the new file alongside the old one — never edit content at an existing `-vN` URL because clients have cached it as immutable for a year. Old SDK loaders keep working with the old version for as long as the brand has the old `sdk.js` cached (≤ 24 hr at edge, ≤ 5 min in browser). v1 of the placement chunk shipped with a `dom-overlay` bug; v2 fixed it. Lesson learned the hard way (May 2026).
 - **Production builds via `pnpm build:prod`** — sets `NODE_ENV=production` which enables `minify`, disables sourcemaps (no internal path leaks to brand sites), and strips dev defines.
 
 ### SDK Chunk Architecture
@@ -989,8 +991,8 @@ Equally important as the roadmap. These are explicitly forbidden:
 - ✅ Week 1: Three.js + GLB foundations
 - ✅ Week 2: WebXR + AR placement (Android Chrome + iOS Quick Look)
 - ✅ Week 3: Production backend (multi-tenant, deployed to Railway)
-- **Week 4 (current): SDK + CloudFront + Public AR endpoint + 5 schema hooks**
-- Week 5-6: Meshy.ai + first paying customer (Concierge MVP)
+- ✅ Week 4: SDK + CloudFront/S3 CDN + Public AR endpoint + Events ingestion + v3 schema hooks + Vercel demo. End-to-end AR working on Android Chrome and iOS Safari from the live demo URL.
+- **Week 5-6 (current): Meshy.ai + first paying customer (Concierge MVP)**
 - Week 7-9: Dashboard MVP + analytics
 - Week 10-12: Razorpay + plan gating + 4 paying customers, ₹40K MRR
 
@@ -1331,20 +1333,20 @@ rekaman/
 
 *Update every Sunday and after every major milestone.*
 
-- **Week/Month:** Week 4, Month 1
-- **Last completed:** Week 3 — Production-grade backend with multi-tenant isolation tests, JWT + Google OAuth, deployed to Railway. Strategic roadmap document created.
-- **Currently working on:** Week 4 — SDK package + CloudFront + Public AR endpoint + 5 schema hooks (arMode, ProductAsset, ConversionEvent, /v1/ versioning, OutboundWebhook tables)
+- **Week/Month:** Week 5, Month 2
+- **Last completed:** Week 4 — Full production stack live and verified end-to-end on Android Chrome + iOS Safari. SDK ships from CloudFront (one `<script>` + one `<div>` integration), public AR endpoint on Railway, events ingestion via sendBeacon, demo on Vercel. v3 schema hooks (arMode, ProductAsset, ConversionEvent, OutboundWebhook tables, /v1/ versioning).
+- **Currently working on:** Week 5 — Meshy.ai integration (photos → 3D), generation worker, first paying customer onboarding
 - **Blocked on:** Nothing
-- **Next milestone:** Week 4 deliverable — sales demo URL with one `<script>` tag opening AR
+- **Next milestone:** Week 6 — first ₹3,999/mo paying brand
 - **Current MRR:** ₹0
 - **Paying clients:** 0
 - **Deployed URLs:**
-  - API: https://api-production-0a54.up.railway.app (Railway, custom domain Week 4+)
-  - Worker: deployed on Railway (no public URL — internal only)
+  - API: https://api-production-0a54.up.railway.app (Railway, custom domain `api.rekaman.io` deferred)
+  - Worker: deployed on Railway (no public URL — internal only, idle until Week 5 Meshy work)
   - SDK CDN: https://d3ens3al2ub47k.cloudfront.net (CloudFront → S3 ap-south-1; custom domain `cdn.rekaman.io` deferred)
-    - `/v1/sdk.js` — main bundle, 6.8 KB raw / 3.0 KB gzipped
-    - `/v1/placement-engine-v1.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped
-  - Demo: not live (Vercel deploy is Part 10)
+    - `/v1/sdk.js` — main bundle, 7.1 KB raw / 3.0 KB gzipped (loads chunks via `<script>` tag injection)
+    - `/v1/placement-engine-v2.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped (current). v1 was deprecated when `dom-overlay` was removed; some edge nodes may still cache v1, but no live SDK references it.
+  - Demo: https://rekaman-demo.vercel.app (Vercel, auto-deploys from `main` via git integration). Live AR demo: `/oslo-sofa`.
   - Dashboard: not live (Week 7)
   - Landing: not live
 
@@ -1428,5 +1430,6 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 
 ---
 
-*Last updated: April 2026 | Version 5.0*
+*Last updated: May 2026 | Version 5.1*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
+*v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
