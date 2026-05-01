@@ -1337,10 +1337,12 @@ rekaman/
 - **Current MRR:** ₹0
 - **Paying clients:** 0
 - **Deployed URLs:**
-  - Playground: [Vercel URL from Week 1-2]
-  - API: [Railway URL from Week 3]
-  - SDK CDN: not live (Week 4)
-  - Demo: not live (Week 4)
+  - API: https://api-production-0a54.up.railway.app (Railway, custom domain Week 4+)
+  - Worker: deployed on Railway (no public URL — internal only)
+  - SDK CDN: https://d3ens3al2ub47k.cloudfront.net (CloudFront → S3 ap-south-1; custom domain `cdn.rekaman.io` deferred)
+    - `/v1/sdk.js` — main bundle, 6.8 KB raw / 3.0 KB gzipped
+    - `/v1/placement-engine-v1.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped
+  - Demo: not live (Vercel deploy is Part 10)
   - Dashboard: not live (Week 7)
   - Landing: not live
 
