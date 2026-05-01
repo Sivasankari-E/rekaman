@@ -50,10 +50,16 @@ const mainBundle: esbuild.BuildOptions = {
 // (Sentry incident May 2026 — "Failed to fetch dynamically imported module"). The chunk
 // self-registers on window.__rkChunks.placement so the main bundle's ar-launcher can
 // invoke it after load.
+//
+// Filename is versioned (`-v2`) and served with `Cache-Control: immutable`. ANY content
+// change requires bumping the version — that's the contract that lets us cache forever
+// at the edge. v1 is the original-shipped version (with dom-overlay bug). v2 is the
+// dom-overlay-removed clean-AR-view fix. Old SDK loaders keep loading v1 from cache
+// until their `sdk.js` (5 min browser cache) refreshes and routes them to v2.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v1.js'),
+  outfile: join(outdir, 'placement-engine-v2.js'),
   format: 'iife',
 };
 
@@ -92,8 +98,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v1.js (lazy chunk)',
-    join(outdir, 'placement-engine-v1.js'),
+    'placement-engine-v2.js (lazy chunk)',
+    join(outdir, 'placement-engine-v2.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -110,7 +116,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v1.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v2.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));
