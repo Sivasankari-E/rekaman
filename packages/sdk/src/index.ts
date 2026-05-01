@@ -42,30 +42,46 @@ async function mount(container: HTMLElement) {
 
   initAnalytics(apiKey);
 
+  // Kick off both detection paths in parallel — but inject the button as soon
+  // as platform detection resolves (~50ms) without waiting for the product
+  // fetch (~200-500ms). Button starts disabled with a generic label and updates
+  // to the mode-specific label when product data arrives.
+  const platformPromise = detectPlatform();
+  const productPromise = fetchProduct(apiKey, productSlug);
+
   try {
-    const [platform, product] = await Promise.all([
-      detectPlatform(),
-      fetchProduct(apiKey, productSlug),
-    ]);
-
+    const platform = await platformPromise;
     instance.platform = platform;
-    instance.product = product;
-
-    track('ar_supported', {
-      productSlug,
-      arMode: product.arMode,
-      payload: { platform },
-    });
 
     if (platform === 'unsupported') {
-      // Don't show button on devices that can't do AR
+      // Don't show button on devices that can't do AR. Wait for product anyway
+      // so we can fire the ar_supported telemetry with arMode.
+      const product = await productPromise;
+      instance.product = product;
+      track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
       return;
     }
 
+    // Inject the button immediately, disabled, with a generic label.
     instance.buttonHandle = injectButton(container, {
-      label: getButtonLabel(product.arMode),
+      label: 'View in AR',
       onClick: () => handleButtonClick(instance),
     });
+    instance.buttonHandle.setEnabled(false);
+
+    // When the product fetch resolves, update label + enable. If it fails,
+    // remove the button so we don't show a non-functional control.
+    try {
+      const product = await productPromise;
+      instance.product = product;
+      track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
+      instance.buttonHandle.setLabel(getButtonLabel(product.arMode));
+      instance.buttonHandle.setEnabled(true);
+    } catch (err) {
+      instance.buttonHandle.remove();
+      instance.buttonHandle = null;
+      throw err;
+    }
   } catch (err) {
     track('ar_error', {
       productSlug,

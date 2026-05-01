@@ -59,11 +59,13 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     throw new Error('WebXR not available');
   }
 
+  // No dom-overlay — pinning document.body as overlay would render the brand's
+  // entire product page on top of the camera feed (looks broken). Without overlay,
+  // the browser presents a clean camera-only AR view, and exits via the system
+  // gesture / "End AR" button rendered by the UA.
   const session = await navigator.xr.requestSession('immersive-ar', {
     requiredFeatures: ['local-floor', 'hit-test'],
-    optionalFeatures: ['dom-overlay'],
-    domOverlay: { root: document.body },
-  } as XRSessionInit);
+  });
 
   await renderer.xr.setSession(session);
 

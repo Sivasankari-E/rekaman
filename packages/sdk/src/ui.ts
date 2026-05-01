@@ -5,10 +5,17 @@ export interface ButtonConfig {
   onClick: () => void;
 }
 
+export interface ButtonHandle {
+  setLoading: (loading: boolean) => void;
+  setLabel: (text: string) => void;
+  setEnabled: (enabled: boolean) => void;
+  remove: () => void;
+}
+
 export function injectButton(
   target: HTMLElement,
   config: ButtonConfig,
-): { setLoading: (loading: boolean) => void; remove: () => void } {
+): ButtonHandle {
   const host = document.createElement('div');
   host.className = BUTTON_HOST_CLASS;
   host.style.cssText = 'display: inline-block; margin: 8px 0;';
@@ -76,6 +83,13 @@ export function injectButton(
       // Keep aria-label stable; aria-busy signals the transient state instead
       button.setAttribute('aria-busy', loading ? 'true' : 'false');
       icon.innerHTML = loading ? '<div class="spinner"></div>' : arIcon();
+    },
+    setLabel(text: string) {
+      label.textContent = text;
+      button.setAttribute('aria-label', text);
+    },
+    setEnabled(enabled: boolean) {
+      button.disabled = !enabled;
     },
     remove() {
       host.remove();
