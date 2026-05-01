@@ -23,6 +23,78 @@
     </style>
   </head>
   <body>
+    <!-- TEMPORARY DEBUG OVERLAY — remove after diagnosis -->
+    <div id="dbg" style="position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;padding:8px;font:11px/1.35 ui-monospace,Menlo,monospace;z-index:99999;max-height:45vh;overflow-y:auto;border-bottom:2px solid #0f0;white-space:pre-wrap;word-break:break-word"></div>
+    <script>
+    (function() {
+      var dbg = document.getElementById('dbg');
+      function log(msg) {
+        var ts = new Date().toISOString().slice(11, 23);
+        var line = document.createElement('div');
+        line.textContent = ts + '  ' + msg;
+        dbg.appendChild(line);
+        dbg.scrollTop = dbg.scrollHeight;
+      }
+      window.__rkLog = log;
+      log('UA: ' + navigator.userAgent);
+      log('xr: ' + ('xr' in navigator ? 'present' : 'MISSING'));
+      log('isSecureContext: ' + window.isSecureContext);
+      if (navigator.xr) {
+        navigator.xr.isSessionSupported('immersive-ar')
+          .then(function(s) { log('immersive-ar supported: ' + s); })
+          .catch(function(e) { log('isSessionSupported err: ' + (e && e.message || e)); });
+      }
+
+      // Hook console
+      ['warn','error','log'].forEach(function(level) {
+        var orig = console[level];
+        console[level] = function() {
+          var msg = '[' + level + '] ';
+          for (var i = 0; i < arguments.length; i++) {
+            var a = arguments[i];
+            try { msg += (typeof a === 'object' ? JSON.stringify(a) : String(a)) + ' '; }
+            catch (e) { msg += '<unserializable> '; }
+          }
+          log(msg);
+          orig.apply(console, arguments);
+        };
+      });
+
+      window.addEventListener('error', function(e) {
+        log('[uncaught] ' + (e.message || 'unknown') + ' @ ' + (e.filename || '') + ':' + (e.lineno || ''));
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var r = e.reason;
+        log('[promise rejected] ' + (r && r.message ? r.message : (r && r.toString ? r.toString() : String(r))));
+      });
+
+      // Document-level click delegation (catches Shadow DOM clicks via composedPath)
+      document.addEventListener('click', function(e) {
+        try {
+          var path = (e.composedPath ? e.composedPath() : [e.target]);
+          var first = path[0];
+          var tag = first && (first.tagName || first.nodeName) || '?';
+          var cls = first && first.className || '';
+          log('[click] ' + tag + (cls ? '.' + cls : ''));
+        } catch (err) { log('[click] (path err)'); }
+      }, true);
+
+      // Periodic peek at SDK state
+      var peek = 0;
+      var iv = setInterval(function() {
+        peek++;
+        if (window.Rekaman) {
+          var inst = window.Rekaman.__instances && window.Rekaman.__instances[0];
+          var msg = 'Rekaman v' + window.Rekaman.version + ' instances=' + (window.Rekaman.__instances || []).length;
+          if (inst) msg += ' platform=' + inst.platform + ' product=' + (inst.product ? 'loaded' : 'null');
+          log(msg);
+          if (inst && inst.product) clearInterval(iv);
+        }
+        if (peek > 12) clearInterval(iv);
+      }, 500);
+    })();
+    </script>
+
     <div class="container">
       <div class="photo">[ Product photo placeholder ]</div>
 
