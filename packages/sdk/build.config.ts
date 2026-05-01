@@ -31,21 +31,30 @@ const sharedConfig: esbuild.BuildOptions = {
   },
 };
 
-// Main IIFE bundle — runs synchronously on every product page that includes <script src="sdk.js">
+// Main IIFE bundle — runs synchronously on every product page that includes <script src="sdk.js">.
+// We deliberately DO NOT set `globalName` here. With globalName, esbuild emits
+// `var Rekaman = (()=>{...})()` at top level which (in a non-module script)
+// becomes window.Rekaman = exports, overwriting our manual `window.Rekaman = Rekaman`
+// assignment in src/index.ts. Without globalName, the IIFE just runs side-effects
+// and our manual assignment is the source of truth for the public API.
 const mainBundle: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/index.ts'],
   outfile: join(outdir, 'sdk.js'),
   format: 'iife',
-  globalName: 'Rekaman',
 };
 
-// Placement chunk — lazy-loaded on AR button tap (Phase 1)
+// Placement chunk — lazy-loaded via <script> tag injection on AR button tap.
+// Format MUST be `iife` (not `esm`) so it can be loaded with a regular <script src=...>
+// — bypasses the cross-origin module-fetch CORS quirks that caused production failures
+// (Sentry incident May 2026 — "Failed to fetch dynamically imported module"). The chunk
+// self-registers on window.__rkChunks.placement so the main bundle's ar-launcher can
+// invoke it after load.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
   outfile: join(outdir, 'placement-engine-v1.js'),
-  format: 'esm',
+  format: 'iife',
 };
 
 // FUTURE — when Phase 3 lands, append:

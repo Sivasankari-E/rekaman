@@ -142,6 +142,6 @@ if (document.readyState === 'loading') {
 }
 window.addEventListener('load', scan);
 
+// Public API — the SDK's IIFE format in build.config.ts has no `globalName`,
+// so this manual assignment is the ONLY source of window.Rekaman.
 (window as unknown as { Rekaman: typeof Rekaman }).Rekaman = Rekaman;
-
-export default Rekaman;

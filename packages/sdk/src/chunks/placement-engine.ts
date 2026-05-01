@@ -3,7 +3,11 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { track } from '../analytics.js';
 import type { ProductData } from '../api-client.js';
 
-export async function startPlacementAR(product: ProductData): Promise<void> {
+// Chunks self-register on window.__rkChunks (set up below at the bottom of this file).
+// We DON'T use ESM `export` because the chunk is loaded via a regular <script> tag
+// in the main bundle, which can't access ES module exports.
+
+async function startPlacementAR(product: ProductData): Promise<void> {
   if (!product.glbUrl) {
     throw new Error('Product has no GLB URL for placement AR');
   }
@@ -131,3 +135,11 @@ export async function startPlacementAR(product: ProductData): Promise<void> {
     renderer.dispose();
   });
 }
+
+// Register on window so the main SDK bundle can find this entry-point after
+// it loads us via <script src="...">.
+// Idempotent: nullish-coalescing assignment keeps any prior `__rkChunks` (e.g.
+// face-tryon registered before us) intact.
+const w = window as unknown as { __rkChunks?: Record<string, unknown> };
+w.__rkChunks ??= {};
+(w.__rkChunks as Record<string, unknown>).placement = { startPlacementAR };

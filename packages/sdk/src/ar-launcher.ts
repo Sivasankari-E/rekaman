@@ -2,6 +2,21 @@ import type { ProductData } from './api-client.js';
 
 // __CDN_BASE__ is declared globally in src/globals.d.ts.
 
+// Chunks register themselves on this object when loaded via <script> tag.
+// Using script-tag injection instead of dynamic import() because cross-origin
+// module imports from third-party brand sites hit CORS quirks across browsers
+// (especially Brave, mobile webviews, and CDNs missing OPTIONS preflight).
+// Regular script tags are exempt from CORS — they just work everywhere.
+declare global {
+  interface Window {
+    __rkChunks?: {
+      placement?: { startPlacementAR: (product: ProductData) => Promise<void> };
+      // Future:
+      // tryonFace?: { startFaceTryOn: (product: ProductData) => Promise<void> };
+    };
+  }
+}
+
 export function launchIosQuickLook(product: ProductData): void {
   if (!product.glbUrl) {
     throw new Error('No GLB URL available for AR Quick Look');
@@ -21,28 +36,58 @@ export function launchIosQuickLook(product: ProductData): void {
   setTimeout(() => link.remove(), 100);
 }
 
+const loadingChunks = new Map<string, Promise<void>>();
+
+/**
+ * Load a chunk via <script> tag injection. Idempotent — if the chunk is already
+ * loading, returns the same in-flight promise. If already loaded, returns a
+ * resolved promise.
+ */
+function loadChunk(filename: string): Promise<void> {
+  const existing = loadingChunks.get(filename);
+  if (existing) return existing;
+
+  const url = `${__CDN_BASE__}/v1/${filename}`;
+  const promise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      loadingChunks.delete(filename); // allow retry on next attempt
+      reject(new Error(`Failed to load chunk: ${url}`));
+    };
+    document.head.appendChild(script);
+  });
+  loadingChunks.set(filename, promise);
+  return promise;
+}
+
 /**
  * Lazy-load the right engine chunk based on product.arMode.
  * Each chunk is a separate file at cdn.rekaman.io/v1/<chunk>-v1.js.
  *
- * This is the ONE place that knows the mapping from arMode → chunk URL.
- * Adding a new mode in Phase 3+ = adding one case here.
+ * This is the ONE place that knows the mapping from arMode → chunk filename.
+ * Adding a new mode in Phase 3+ = adding one case here + shipping a new chunk.
  */
 export async function launchArExperience(product: ProductData): Promise<void> {
   switch (product.arMode) {
     case 'placement': {
-      const chunkUrl = `${__CDN_BASE__}/v1/placement-engine-v1.js`;
-      const mod = (await import(/* @vite-ignore */ chunkUrl)) as {
-        startPlacementAR: (product: ProductData) => Promise<void>;
-      };
-      await mod.startPlacementAR(product);
+      await loadChunk('placement-engine-v1.js');
+      const api = window.__rkChunks?.placement;
+      if (!api?.startPlacementAR) {
+        throw new Error('placement chunk did not register on window.__rkChunks.placement');
+      }
+      await api.startPlacementAR(product);
       break;
     }
 
     // FUTURE — Phase 3:
     // case 'tryon-face': {
-    //   const mod = await import(`${__CDN_BASE__}/v1/face-tryon-engine-v1.js`);
-    //   await mod.startFaceTryOn(product);
+    //   await loadChunk('face-tryon-engine-v1.js');
+    //   const api = window.__rkChunks?.tryonFace;
+    //   if (!api?.startFaceTryOn) throw new Error('face-tryon chunk did not register');
+    //   await api.startFaceTryOn(product);
     //   break;
     // }
 
