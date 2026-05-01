@@ -4,8 +4,20 @@ import type { Prisma } from '@prisma/client';
 
 export const arSessionsRepository = {
   /**
-   * Idempotent session upsert — if sessionId already exists, no-op.
-   * SDK may send the same start event multiple times on retry.
+   * Idempotent session create — race-safe under concurrent batches with the same sessionId.
+   *
+   * Why createMany + skipDuplicates instead of upsert:
+   *   `upsert({ ... update: {} })` is NOT atomic in Prisma — under concurrent calls
+   *   with the same sessionId, both can pass the find-existing check, both attempt
+   *   INSERT, and one throws P2002. This rejects the whole event batch with 500
+   *   and silently drops the events (the SDK uses sendBeacon and never sees the failure).
+   *
+   *   `createMany({ skipDuplicates: true })` compiles to `INSERT ... ON CONFLICT DO NOTHING`
+   *   which IS atomic at the DB level. Re-runs are guaranteed no-ops. This is the
+   *   standard Postgres-compatible idempotent-insert pattern.
+   *
+   * Reference incident: Sentry issue 2d26c02a (2026-05-01) — every batch after the
+   * first one for the same session crashed, dropping ar_button_tapped and downstream events.
    */
   upsertSession: (data: {
     sessionId: string;
@@ -19,10 +31,9 @@ export const arSessionsRepository = {
     userAgent?: string;
     referrer?: string;
   }) =>
-    prisma.aRSession.upsert({
-      where: { sessionId: data.sessionId },
-      create: data,
-      update: {}, // existing session — don't overwrite
+    prisma.aRSession.createMany({
+      data: [data],
+      skipDuplicates: true,
     }),
 
   appendEvents: (data: Prisma.AREventCreateManyInput[]) =>

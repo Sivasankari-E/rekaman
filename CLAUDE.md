@@ -318,6 +318,8 @@ try {
 
 Without the catch, two simultaneous creates that both pass the pre-check would surface as `500 INTERNAL_ERROR` (P2002 leaking from Prisma) instead of our `409 SLUG_EXISTS`. Reference: `modules/products/products.service.ts`.
 
+**For idempotent-insert (no error desired)**, prefer `createMany({ data: [row], skipDuplicates: true })` over `upsert({ ..., update: {} })`. The former compiles to atomic Postgres `INSERT ... ON CONFLICT DO NOTHING`; the latter does NOT atomically check-and-insert and **will** throw P2002 under concurrent batches. We hit this in Sentry issue `2d26c02a` (May 2026) — concurrent SDK event batches with the same sessionId crashed the second batch's upsert, dropping all `ar_button_tapped` / `ar_session_started` events. Reference: `modules/arSessions/arSessions.repository.ts upsertSession`.
+
 ### Path-aware CORS for the Public SDK Endpoints
 
 The SDK runs on **arbitrary brand websites** — `hometown.co.in`, `urbanladder.com`, etc. — none of which are in our dashboard CORS whitelist. To support this without weakening dashboard security:

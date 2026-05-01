@@ -5,3 +5,4 @@ node_modules
 public/sdk.js
 public/sdk.js.map
 public/v1/
+.vercel
