@@ -51,15 +51,19 @@ const mainBundle: esbuild.BuildOptions = {
 // self-registers on window.__rkChunks.placement so the main bundle's ar-launcher can
 // invoke it after load.
 //
-// Filename is versioned (`-v2`) and served with `Cache-Control: immutable`. ANY content
+// Filename is versioned (`-v3`) and served with `Cache-Control: immutable`. ANY content
 // change requires bumping the version — that's the contract that lets us cache forever
-// at the edge. v1 is the original-shipped version (with dom-overlay bug). v2 is the
-// dom-overlay-removed clean-AR-view fix. Old SDK loaders keep loading v1 from cache
-// until their `sdk.js` (5 min browser cache) refreshes and routes them to v2.
+// at the edge. Version history:
+//   v1: original ship (had dom-overlay bug — page text overlaid AR view)
+//   v2: dom-overlay removed (clean camera-only AR view)
+//   v3: API base baked in changed from `api-production-0a54.up.railway.app` to
+//       `api.rekaman.io` (Week 5 custom domain). No semantic change.
+// Old SDK loaders keep loading the prior version from cache until their `sdk.js`
+// (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v2.js'),
+  outfile: join(outdir, 'placement-engine-v3.js'),
   format: 'iife',
 };
 
@@ -98,8 +102,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v2.js (lazy chunk)',
-    join(outdir, 'placement-engine-v2.js'),
+    'placement-engine-v3.js (lazy chunk)',
+    join(outdir, 'placement-engine-v3.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -116,7 +120,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v2.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v3.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));

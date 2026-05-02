@@ -1341,12 +1341,12 @@ rekaman/
 - **Current MRR:** ₹0
 - **Paying clients:** 0
 - **Deployed URLs:**
-  - API: https://api-production-0a54.up.railway.app (Railway, custom domain `api.rekaman.io` deferred)
+  - API: https://api.rekaman.io ✅ (Railway, custom domain live since Week 5; old `api-production-0a54.up.railway.app` still routes for backward compat)
   - Worker: deployed on Railway (no public URL — internal only, idle until Week 5 Meshy work)
-  - SDK CDN: https://d3ens3al2ub47k.cloudfront.net (CloudFront → S3 ap-south-1; custom domain `cdn.rekaman.io` deferred)
+  - SDK CDN: https://cdn.rekaman.io ✅ (CloudFront → S3 ap-south-1, ACM wildcard cert `*.rekaman.io`; old `d3ens3al2ub47k.cloudfront.net` still routes for backward compat)
     - `/v1/sdk.js` — main bundle, 7.1 KB raw / 3.0 KB gzipped (loads chunks via `<script>` tag injection)
-    - `/v1/placement-engine-v2.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped (current). v1 was deprecated when `dom-overlay` was removed; some edge nodes may still cache v1, but no live SDK references it.
-  - Demo: https://rekaman-demo.vercel.app (Vercel, auto-deploys from `main` via git integration). Live AR demo: `/oslo-sofa`.
+    - `/v1/placement-engine-v3.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped (current). v1 deprecated (dom-overlay bug), v2 deprecated (Railway URL baked in). Older versions remain in S3 as fallbacks for SDKs still in browser cache.
+  - Demo: https://rekaman-demo.vercel.app (Vercel, auto-deploys from `main` via git integration). Live AR demo: `/oslo-sofa`. Custom domain `demo.rekaman.io` pending.
   - Dashboard: not live (Week 7)
   - Landing: not live
 
@@ -1354,11 +1354,11 @@ rekaman/
 
 ## 🌐 Live URLs
 
-- Landing: `rekaman.io`
+- Landing: `rekaman.io` (Week 7+)
 - Dashboard: `dashboard.rekaman.io` (Week 7+)
-- API: `api.rekaman.io` (Railway live, custom domain Week 4-5)
-- CDN: `cdn.rekaman.io` (Week 4)
-- Demo: `demo.rekaman.io` (Week 4)
+- API: `api.rekaman.io` ✅ live (Railway, TLS via Let's Encrypt)
+- CDN: `cdn.rekaman.io` ✅ live (CloudFront, TLS via ACM `*.rekaman.io` cert)
+- Demo: `demo.rekaman.io` (Vercel, Week 5 — currently still on `rekaman-demo.vercel.app`)
 - Status: `status.rekaman.io` (Phase 2 / Month 5)
 - Docs: `docs.rekaman.io` (Phase 2 / Month 5)
 - SDK global: `window.Rekaman`
@@ -1433,3 +1433,4 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 *Last updated: May 2026 | Version 5.1*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
+*v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*

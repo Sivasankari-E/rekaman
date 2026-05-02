@@ -73,10 +73,11 @@ function loadChunk(filename: string): Promise<void> {
 export async function launchArExperience(product: ProductData): Promise<void> {
   switch (product.arMode) {
     case 'placement': {
-      // v2 — dom-overlay removed (May 2026). v1 left in S3 as a working
-      // fallback for any SDK still cached on a brand site that hasn't
-      // refreshed its sdk.js yet (5-min browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v2.js');
+      // v3 — API base updated to api.rekaman.io (Week 5 custom domain).
+      // Older versions (v1, v2) left in S3 as fallbacks for any SDK still
+      // cached on a brand site that hasn't refreshed its sdk.js yet
+      // (5-min browser cache, 24-hr edge cache).
+      await loadChunk('placement-engine-v3.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');
