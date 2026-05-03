@@ -17,6 +17,8 @@ Solo software engineer based in **Chennai, Tamil Nadu, India**. Full-time at a C
 
 **Hardware for testing:** Android phone with Chrome (primary). iPhone (borrowed from brother now; refurbished iPhone 12/13 base purchase by Week 8 — ~₹25-35K business expense).
 
+**Business identity:** Google Workspace at `rekaman.io` is set up. Primary mailbox is `founder@rekaman.io` (admin). Aliases: `support@`, `billing@`, `hello@`, `sivasankari@` — all routing to the founder@ inbox. As of Week 5, all vendor accounts (AWS, Railway, Vercel, Neon, Sentry, Google Cloud / OAuth) have been migrated from `ekaramansivasankari@gmail.com` to `founder@rekaman.io`. GitHub and Namecheap stay on the personal account intentionally.
+
 ---
 
 ## 🚀 The Product — Rekaman
