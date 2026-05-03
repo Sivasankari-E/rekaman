@@ -1,5 +1,5 @@
 # Rekaman — Spatial Commerce AR Platform
-## Project Context for Claude (v5.1)
+## Project Context for Claude (v5.3)
 
 > **Single source of truth.** This file is loaded into every Claude conversation about Rekaman. Update at the end of each sprint and after every major strategic shift. Companion document: `REKAMAN_ROADMAP.md` (long-horizon vision).
 
@@ -401,6 +401,131 @@ Examples:
 - `shiva | docs: update CLAUDE.md to v5 with full feature catalog and roadmap`
 
 Every Claude-authored commit must use the `shiva | …` prefix.
+
+---
+
+## 🚦 Operational Runbooks
+
+These encode "how we operate the live system" — separate from "how we write code." Hard-won during Weeks 3–5; capturing so future you / future Claude doesn't repeat them.
+
+### Secrets & Env Var Locations
+
+Every secret has exactly TWO copies (production + local dev). One is gitignored, one is on the vendor's servers. **Never commit either.** `.env.example` carries the schema (var names) but no values.
+
+| Secret | Production location | Local-dev location | In git? |
+|---|---|---|---|
+| `DATABASE_URL` (Neon) | Railway → `api` + `worker` Variables | `server/.env` | No (gitignored) |
+| `JWT_SECRET` | Railway → `api` Variables | `server/.env` | No |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Railway → `api` + `worker` Variables | `server/.env` | No |
+| `GOOGLE_REDIRECT_URI` | Railway → `api` Variables | `server/.env` | No |
+| `SENTRY_DSN` | Railway → `api` + `worker` Variables | `server/.env` | No |
+| `MESHY_API_KEY` (Week 5+) | Railway → `worker` Variables | `server/.env` | No |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (Week 5+) | Railway → `worker` Variables | `server/.env` | No |
+| `S3_BUCKET_NAME` | Railway → `worker` Variables | `server/.env` | No |
+| Razorpay keys (Week 10+) | Railway → `api` Variables | `server/.env` | No |
+| Test DB URL | n/a | `server/.env.test` (different file) | No |
+| Schema/var names only | n/a | `server/.env.example` | **Yes** (committed) |
+
+**When you rotate a secret, update BOTH places** (Railway + local `.env`). Rotating only one leads to "works locally, broken in prod" or vice versa. Skipping the worker service is a footgun if any future code change makes the worker import that env var.
+
+When adding a new env var:
+1. Add to `server/src/shared/env.ts` Zod schema (with `.optional()` if not yet used)
+2. Add to `server/.env.example` (commit) — no value, just `KEY=`
+3. Set value in Railway api + worker (both, even if only api needs it now — saves work later)
+4. Set value in `server/.env` for local dev
+5. If sensitive, store in password manager too
+
+### Deployment Ownership
+
+What auto-deploys on `git push origin main`, what doesn't:
+
+| Surface | Triggered by | How long | Notes |
+|---|---|---|---|
+| Railway `api` service | Git push to `main` | ~2 min | Auto-redeploys on env var changes too |
+| Railway `worker` service | Git push to `main` | ~2 min | Same as api |
+| Vercel demo | Git push to `main` | ~30 sec | **Requires Settings → Git → Production Branch = `main`.** First-time CLI deploys without git connection don't auto-deploy on push — explicit setup needed. |
+| CloudFront / S3 SDK | **MANUAL** | 5 min upload + 3 min invalidation | `pnpm build:prod` → S3 console drag-drop → CloudFront invalidate `/v1/sdk.js` (chunk URLs are versioned, no invalidation needed) |
+| Neon schema | **MANUAL** | seconds | `pnpm exec prisma migrate dev --name <slug>` locally → committing the migration file → deploys via `prisma migrate deploy` step in CI (or run manually for first-time prod) |
+| DNS / domain | **MANUAL** | 5–30 min | Namecheap → Advanced DNS. Wait for propagation. |
+
+Future Claude must NOT assume "git push deploys SDK" — that's the trap that cost us a debug session. SDK is always manual S3 upload.
+
+### SDK Release Workflow
+
+The exact sequence when shipping new SDK code. Skipping a step = stale clients OR broken AR.
+
+1. **Decide if chunk content changes.** If you edit `src/chunks/*.ts` AT ALL — even a comment — the bundled chunk content changes. **Bump the chunk filename version** (`-vN` → `-vN+1`) in `build.config.ts` AND `ar-launcher.ts`. The "immutable" cache header forbids editing content at an existing URL. Rule of thumb: any time `pnpm build` produces different bytes for the chunk, the filename must change.
+2. **Build:** `SDK_API_BASE=https://api.rekaman.io SDK_CDN_BASE=https://cdn.rekaman.io NODE_ENV=production pnpm build` from `packages/sdk/`. Verify URL substitution in `dist/sdk.js` (`grep -o 'https://(api|cdn)\.rekaman\.io[^"]*'`).
+3. **Verify size budget:** main bundle output should print `≤ 50 KB gzipped`. If it warns, move feature code into a chunk before shipping.
+4. **Upload to S3:**
+   - `dist/sdk.js` → replace existing → Cache-Control: `public, max-age=300, s-maxage=86400, stale-while-revalidate=86400`
+   - `dist/placement-engine-vN.js` (NEW filename if bumped) → upload as new file → Cache-Control: `public, max-age=31536000, immutable`
+   - DON'T delete older chunk versions — they're fallbacks for clients with cached older `sdk.js`.
+5. **CloudFront invalidate ONLY `/v1/sdk.js`** — chunk URLs are versioned, never need invalidation.
+6. **Verify served bytes match local:**
+   ```bash
+   diff <(curl -s https://cdn.rekaman.io/v1/sdk.js) packages/sdk/dist/sdk.js
+   curl -sI https://cdn.rekaman.io/v1/placement-engine-vN.js | grep -i cache-control
+   ```
+7. **Commit:** `pnpm build` outputs are gitignored, so the commit only includes source changes (chunk version bump in build.config.ts + ar-launcher.ts).
+
+### Production Data Hygiene
+
+The prod DB is shared with dev (Week 5 design). Two consequences:
+
+- **Test signups accumulate in prod.** Manual smoke tests, cleanup needed monthly. Use the email-pattern allowlist approach:
+  ```ts
+  const KEEP_PATTERNS = [
+    /^sdk-demo\+/,                    // SDK Demo Brand
+    /^founder@rekaman\.io$/,          // founder ops
+    /^sivasankari@rekaman\.io$/,      // founder personal alias
+  ];
+  // Delete every brand whose owner does NOT match → cascades clear sessions/events/products
+  ```
+  Reference: ad-hoc script we ran in Week 5 (cleanup pattern documented in chat history; not committed because production-only).
+
+- **Never seed test data into prod.** The `prisma/seed.ts` only seeds `PricingPlan` rows (3 of them). If you add seed data, scope by `NODE_ENV` so it never runs in production.
+
+When real customers exist (Week 6+), splitting dev and prod DBs becomes mandatory — make this a Week 6 milestone.
+
+### Cross-Service Health Check (one-shot)
+
+```bash
+# Run this any time to verify the whole stack:
+echo '─── api ───';   curl -sI https://api.rekaman.io/health | head -1
+echo '─── cdn ───';   curl -sI https://cdn.rekaman.io/v1/sdk.js | head -1
+echo '─── demo ───';  curl -sI https://rekaman-demo.vercel.app/oslo-sofa | head -1
+echo '─── db (via api/metrics) ───'; curl -s https://api.rekaman.io/metrics | python3 -m json.tool | grep -E '"db"|"env"'
+echo '─── google oauth wired ───'; \
+  curl -s -X POST https://api.rekaman.io/v1/auth/google -H 'Content-Type: application/json' \
+    -d '{"idToken":"fake-but-long-enough"}' | python3 -c "import json,sys;d=json.load(sys.stdin);print('OK' if 'Google ID token' in (d.get('message') or '') else 'CHECK ENV VARS')"
+```
+
+If all five are green, the system is healthy. If any fails, the failing line tells you which layer to investigate.
+
+### Rollback Mechanics
+
+| What broke | How to roll back | Notes |
+|---|---|---|
+| Server code regression | `git revert <sha> && git push` → Railway auto-deploys old version (~2 min) | Don't `git push --force` — leaves an audit trail |
+| SDK bundle regression | Re-upload the previous `sdk.js` from a prior `git checkout <sha>` build → invalidate `/v1/sdk.js` | Keep `dist/` of last good build in a backup folder before risky changes |
+| Schema regression | **Don't auto-rollback.** Apply a compensating migration that reverts the change. `prisma migrate resolve --rolled-back` only marks status, doesn't undo SQL. | Always test schema changes against a Neon branch first |
+| Env var change broke prod | Railway → service → Variables → revert the value → save (auto-redeploys) | Railway shows variable history |
+| OAuth client misconfigured | Old client kept active for 7 days post-rotation as fallback (per Account Ownership notes) — switch Railway env back to old `CLIENT_ID`/`SECRET` | Why we don't delete old OAuth client immediately |
+| Demo (Vercel) regression | Vercel dashboard → Deployments → find last good → "Promote to Production" | One-click rollback, doesn't require git revert |
+
+**Note on AWS:** S3 + CloudFront have no native rollback. SDK rollback strategy = always keep the last 2–3 builds backed up locally before publishing a new version.
+
+### Production-Touching Action Checklist
+
+Before any action that hits production data or services, ask:
+
+1. Does this affect rows in the prod Neon DB? → backup or scope to soft-delete first
+2. Does this change a public CDN URL? → versioned filename, not in-place edit
+3. Does this rotate a secret? → update Railway api + worker + local `.env` (3 places)
+4. Does this change DNS? → DNS propagation is 5-30 min; schedule for low-traffic hours when real customers exist
+
+If the answer to any is yes and you're operating without a co-founder review, double-check before pressing the button.
 
 ---
 
@@ -1432,7 +1557,8 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 
 ---
 
-*Last updated: May 2026 | Version 5.1*
+*Last updated: May 2026 | Version 5.3*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
 *v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*
+*v5.3 (Week 5 — operational discipline): Account Ownership section added — all 6 vendor accounts migrated to `founder@rekaman.io` (Sentry, Neon, Vercel, Railway, AWS, Google OAuth). Operational Runbooks section added: secrets/env-var locations table (3-place rule for OAuth + others), deployment ownership matrix (auto vs manual), SDK release workflow (chunk version bump discipline), production data hygiene (cleanup pattern), cross-service health check one-liner, rollback mechanics per failure mode.*
