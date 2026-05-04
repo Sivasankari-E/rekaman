@@ -1,5 +1,5 @@
 # Rekaman — Spatial Commerce AR Platform
-## Project Context for Claude (v5.3)
+## Project Context for Claude (v5.4)
 
 > **Single source of truth.** This file is loaded into every Claude conversation about Rekaman. Update at the end of each sprint and after every major strategic shift. Companion document: `REKAMAN_ROADMAP.md` (long-horizon vision).
 
@@ -18,6 +18,8 @@ Solo software engineer based in **Chennai, Tamil Nadu, India**. Full-time at a C
 **Hardware for testing:** Android phone with Chrome (primary). iPhone (borrowed from brother now; refurbished iPhone 12/13 base purchase by Week 8 — ~₹25-35K business expense).
 
 **Business identity:** Google Workspace at `rekaman.io` is set up. Primary mailbox is `founder@rekaman.io` (admin). Aliases: `support@`, `billing@`, `hello@`, `sivasankari@` — all routing to the founder@ inbox. As of Week 5, all vendor accounts (AWS, Railway, Vercel, Neon, Sentry, Google Cloud / OAuth) have been migrated from `ekaramansivasankari@gmail.com` to `founder@rekaman.io`. GitHub and Namecheap stay on the personal account intentionally.
+
+**AWS access discipline:** As of Week 5 Day 2, AWS daily operations flow through scoped IAM users (`rekaman-deploy-cli` for laptop, `rekaman-server` for Railway). Root account (founder@rekaman.io) is used ONLY for billing changes, account email changes, and IAM user management — never for deploys or daily ops. See **Operational Runbooks → AWS IAM Identity & Access Pattern** for full details.
 
 ---
 
@@ -420,8 +422,9 @@ Every secret has exactly TWO copies (production + local dev). One is gitignored,
 | `GOOGLE_REDIRECT_URI` | Railway → `api` Variables | `server/.env` | No |
 | `SENTRY_DSN` | Railway → `api` + `worker` Variables | `server/.env` | No |
 | `MESHY_API_KEY` (Week 5+) | Railway → `worker` Variables | `server/.env` | No |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (Week 5+) | Railway → `worker` Variables | `server/.env` | No |
-| `S3_BUCKET_NAME` | Railway → `worker` Variables | `server/.env` | No |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (from `rekaman-server` IAM user; Week 5 Day 3+) | Railway → `api` + `worker` Variables | `server/.env` | No |
+| `S3_REGION` (`ap-south-1`) | Railway → `api` + `worker` Variables | `server/.env` | No |
+| `AWS_S3_BUCKET_PRODUCTS` (`rekaman-products-prod-975050270919-ap-south-1-an`) | Railway → `api` + `worker` Variables | `server/.env` | No |
 | Razorpay keys (Week 10+) | Railway → `api` Variables | `server/.env` | No |
 | Test DB URL | n/a | `server/.env.test` (different file) | No |
 | Schema/var names only | n/a | `server/.env.example` | **Yes** (committed) |
@@ -434,6 +437,80 @@ When adding a new env var:
 3. Set value in Railway api + worker (both, even if only api needs it now — saves work later)
 4. Set value in `server/.env` for local dev
 5. If sensitive, store in password manager too
+
+### AWS IAM Identity & Access Pattern
+
+**Established Week 5 Day 2 (May 4, 2026).** AWS access flows through scoped IAM users — root account is locked out of daily operations.
+
+**The three identities:**
+
+| Identity | Type | Used by | Used for | Where credentials live |
+|---|---|---|---|---|
+| Root user (founder@rekaman.io) | AWS root | Human (founder only) | Billing changes, account email, account closure | Password manager + MFA on phone (Authy/Google Authenticator). NEVER in any code, env var, or laptop config. |
+| `rekaman-deploy-cli` | IAM user | Laptop AWS CLI | SDK builds → S3 uploads → CloudFront cache invalidation | `~/.aws/credentials` profile `rekaman` on founder's laptop |
+| `rekaman-server` | IAM user | Railway api + worker (deferred to Week 5 Day 3) | Server-side uploads of Meshy-generated GLBs to products S3 bucket | Railway env vars `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` (BOTH services) + local `server/.env` |
+
+**Custom IAM policies (NOT AWS-managed `*FullAccess`):**
+
+`rekaman-deploy-cli-policy` grants:
+- `s3:ListBucket`, `s3:GetBucketLocation` on the SDK bucket only
+- `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:GetObjectAcl`, `s3:PutObjectAcl` on `rekaman-sdk-prod-975050270919-ap-south-1-an/*`
+- `cloudfront:CreateInvalidation`, `cloudfront:GetInvalidation`, `cloudfront:ListInvalidations`, `cloudfront:GetDistribution` on distribution `E1L37VUXZMO4QV` only
+
+`rekaman-server-policy` grants (smaller, tighter):
+- `s3:ListBucket`, `s3:GetBucketLocation` on the products bucket only
+- `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:GetObjectAcl`, `s3:PutObjectAcl` on `rekaman-products-prod-975050270919-ap-south-1-an/*`
+- NO CloudFront access (server doesn't manage cache; new files = new keys, no invalidation needed)
+
+**Defense-in-depth verification (run periodically to confirm scoping):**
+
+```bash
+# What the laptop user CAN do (positive tests)
+aws s3 ls s3://rekaman-sdk-prod-975050270919-ap-south-1-an/v1/ --profile rekaman   # ✅ list
+aws cloudfront list-distributions --profile rekaman                                # ✅ list
+
+# What the laptop user CANNOT do (negative tests — should ALL fail with AccessDenied)
+aws s3 ls s3://rekaman-products-prod-975050270919-ap-south-1-an --profile rekaman  # ❌ denied
+aws s3api list-buckets --profile rekaman                                           # ❌ denied
+aws iam list-users --profile rekaman                                               # ❌ denied
+```
+
+If any negative test SUCCEEDS, the policy is too broad — fix immediately.
+
+**Access key rotation:**
+
+- Rotation cadence: every **90 days** (calendar reminder May 4 → August 2 → November 1)
+- Rotation procedure for `rekaman-deploy-cli`:
+  1. IAM Console → user → Security credentials → Create access key (gives you a SECOND active key)
+  2. Update `~/.aws/credentials` profile `rekaman` with new keys
+  3. Test: `aws sts get-caller-identity --profile rekaman` → confirm new ARN matches
+  4. Test: SDK deploy with new keys
+  5. After 24 hours of confirmed working: deactivate old key (don't delete yet — keeps audit trail)
+  6. After 7 days: delete old key
+  7. Update password manager + CSV backup with new keys
+
+- Rotation procedure for `rekaman-server`: same pattern, but update Railway env vars (BOTH api + worker) + local `.env` instead of `~/.aws/credentials`
+
+**Compromise response:**
+
+- If `rekaman-deploy-cli` keys leak (laptop stolen, accidental git commit): IAM Console → user → Security credentials → Deactivate old key → create new → update `~/.aws/credentials`. Blast radius: SDK bucket + CloudFront invalidation only. Cleanup: `aws s3 ls` to check no foreign uploads, CloudFront audit log.
+- If `rekaman-server` keys leak (Railway compromise, env var leak): IAM Console → deactivate → create new → update Railway env vars (both services) + local `.env`. Blast radius: products bucket only. Cleanup: list products bucket for unexpected files.
+- If root credentials leak: AWS Support ticket immediately. Reset password, re-issue MFA, audit IAM users for unauthorized changes.
+
+**The root account discipline:**
+
+- Sign in as root only when you MUST: billing changes, account email change, account closure, IAM user creation/deletion
+- Daily operations (deploys, S3 work, CloudFront invalidations, monitoring) ALWAYS via IAM user
+- If Claude or any tutorial says "sign in to AWS Console" for daily work, mentally reroute: "use IAM user via CLI" instead
+- `aws configure` on a fresh laptop should NEVER use root credentials. Ever.
+
+**Why we chose access keys (not IAM Roles Anywhere):**
+
+AWS recommends IAM Roles Anywhere for non-AWS workloads (temporary credentials via X.509 certs). We deferred this because:
+- Solo founder, small bucket, pre-PMF
+- Roles Anywhere requires PKI setup (5-10x more complexity)
+- Standard SaaS pattern: access keys + 90-day rotation + scoped permissions
+- Revisit at Phase 4 (Months 13-18) when SOC 2 prep makes it worthwhile
 
 ### Deployment Ownership
 
@@ -454,20 +531,63 @@ Future Claude must NOT assume "git push deploys SDK" — that's the trap that co
 
 The exact sequence when shipping new SDK code. Skipping a step = stale clients OR broken AR.
 
+**Pre-flight: confirm IAM profile is active.** Every AWS command in this workflow uses `--profile rekaman` (the `rekaman-deploy-cli` IAM user). Verify with `aws sts get-caller-identity --profile rekaman` — ARN should end in `user/rekaman-deploy-cli`. If you ever see ARN ending in `root`, STOP — root must NOT do deploys.
+
 1. **Decide if chunk content changes.** If you edit `src/chunks/*.ts` AT ALL — even a comment — the bundled chunk content changes. **Bump the chunk filename version** (`-vN` → `-vN+1`) in `build.config.ts` AND `ar-launcher.ts`. The "immutable" cache header forbids editing content at an existing URL. Rule of thumb: any time `pnpm build` produces different bytes for the chunk, the filename must change.
-2. **Build:** `SDK_API_BASE=https://api.rekaman.io SDK_CDN_BASE=https://cdn.rekaman.io NODE_ENV=production pnpm build` from `packages/sdk/`. Verify URL substitution in `dist/sdk.js` (`grep -o 'https://(api|cdn)\.rekaman\.io[^"]*'`).
+
+2. **Build:** From `packages/sdk/`:
+   ```bash
+   SDK_API_BASE=https://api.rekaman.io \
+   SDK_CDN_BASE=https://cdn.rekaman.io \
+   NODE_ENV=production \
+   pnpm build
+   ```
+   Verify URL substitution: `grep -o 'https://api\.rekaman\.io' dist/sdk.js | head -1` and same for `cdn.rekaman.io`.
+
 3. **Verify size budget:** main bundle output should print `≤ 50 KB gzipped`. If it warns, move feature code into a chunk before shipping.
-4. **Upload to S3:**
-   - `dist/sdk.js` → replace existing → Cache-Control: `public, max-age=300, s-maxage=86400, stale-while-revalidate=86400`
-   - `dist/placement-engine-vN.js` (NEW filename if bumped) → upload as new file → Cache-Control: `public, max-age=31536000, immutable`
+
+4. **Upload to S3** (via `rekaman-deploy-cli` IAM user, not Console drag-drop):
+
+   ```bash
+   # Main bundle (stable filename, short cache + stale-while-revalidate)
+   aws s3 cp dist/sdk.js \
+     s3://rekaman-sdk-prod-975050270919-ap-south-1-an/v1/sdk.js \
+     --cache-control "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400" \
+     --content-type "application/javascript" \
+     --profile rekaman
+
+   # New versioned chunk (immutable cache — only when chunk content changed + filename bumped)
+   aws s3 cp dist/placement-engine-vN.js \
+     s3://rekaman-sdk-prod-975050270919-ap-south-1-an/v1/placement-engine-vN.js \
+     --cache-control "public, max-age=31536000, immutable" \
+     --content-type "application/javascript" \
+     --profile rekaman
+   ```
+
    - DON'T delete older chunk versions — they're fallbacks for clients with cached older `sdk.js`.
-5. **CloudFront invalidate ONLY `/v1/sdk.js`** — chunk URLs are versioned, never need invalidation.
+
+5. **CloudFront invalidate ONLY `/v1/sdk.js`** — chunk URLs are versioned, never need invalidation:
+
+   ```bash
+   aws cloudfront create-invalidation \
+     --distribution-id E1L37VUXZMO4QV \
+     --paths "/v1/sdk.js" \
+     --profile rekaman
+   ```
+
+   Wait ~60s for edge nodes to drop old cache.
+
 6. **Verify served bytes match local:**
    ```bash
    diff <(curl -s https://cdn.rekaman.io/v1/sdk.js) packages/sdk/dist/sdk.js
    curl -sI https://cdn.rekaman.io/v1/placement-engine-vN.js | grep -i cache-control
+   curl -sI https://cdn.rekaman.io/v1/sdk.js | grep -iE 'x-cache|age|last-modified'
    ```
+   Look for `x-cache: Miss from cloudfront` and `age: 0` after invalidation propagates.
+
 7. **Commit:** `pnpm build` outputs are gitignored, so the commit only includes source changes (chunk version bump in build.config.ts + ar-launcher.ts).
+
+**Historical note:** Week 4 deploys went via AWS Console drag-drop using root credentials. From Week 5 Day 2 onwards, all deploys go via `--profile rekaman` (IAM user). If you find yourself opening S3 Console to drag a file, STOP — use the CLI commands above instead.
 
 ### Production Data Hygiene
 
@@ -508,7 +628,7 @@ If all five are green, the system is healthy. If any fails, the failing line tel
 | What broke | How to roll back | Notes |
 |---|---|---|
 | Server code regression | `git revert <sha> && git push` → Railway auto-deploys old version (~2 min) | Don't `git push --force` — leaves an audit trail |
-| SDK bundle regression | Re-upload the previous `sdk.js` from a prior `git checkout <sha>` build → invalidate `/v1/sdk.js` | Keep `dist/` of last good build in a backup folder before risky changes |
+| SDK bundle regression | Re-upload previous `sdk.js` from a prior `git checkout <sha>` build using `aws s3 cp ... --profile rekaman` → invalidate `/v1/sdk.js` via `aws cloudfront create-invalidation ... --profile rekaman` | Keep `dist/` of last good build in a backup folder before risky changes. NEVER use root credentials for rollback. |
 | Schema regression | **Don't auto-rollback.** Apply a compensating migration that reverts the change. `prisma migrate resolve --rolled-back` only marks status, doesn't undo SQL. | Always test schema changes against a Neon branch first |
 | Env var change broke prod | Railway → service → Variables → revert the value → save (auto-redeploys) | Railway shows variable history |
 | OAuth client misconfigured | Old client kept active for 7 days post-rotation as fallback (per Account Ownership notes) — switch Railway env back to old `CLIENT_ID`/`SECRET` | Why we don't delete old OAuth client immediately |
@@ -1557,8 +1677,9 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 
 ---
 
-*Last updated: May 2026 | Version 5.3*
+*Last updated: May 4, 2026 | Version 5.4*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
 *v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*
 *v5.3 (Week 5 — operational discipline): Account Ownership section added — all 6 vendor accounts migrated to `founder@rekaman.io` (Sentry, Neon, Vercel, Railway, AWS, Google OAuth). Operational Runbooks section added: secrets/env-var locations table (3-place rule for OAuth + others), deployment ownership matrix (auto vs manual), SDK release workflow (chunk version bump discipline), production data hygiene (cleanup pattern), cross-service health check one-liner, rollback mechanics per failure mode.*
+*v5.4 (Week 5 Day 2 — IAM hygiene, May 4 2026): AWS daily ops migrated from root user to scoped IAM users. Two IAM users created with custom policies (NOT AWS-managed `*FullAccess`): `rekaman-deploy-cli` for laptop AWS CLI (S3 r/w on SDK bucket + CloudFront invalidation on distribution `E1L37VUXZMO4QV`); `rekaman-server` for Railway api+worker server-side uploads to products bucket (deferred to Week 5 Day 3 deployment, credentials currently dormant in password manager). Defense-in-depth verification: positive tests confirm scoped access, negative tests confirm `AccessDenied` on out-of-scope resources (other buckets, IAM, list-all). 90-day rotation policy established (next rotation: August 2, 2026). SDK Release Workflow updated to use `--profile rekaman` for all `aws s3` and `aws cloudfront` commands — no more Console drag-drop. Root account now reserved for billing changes / account email changes / IAM management only. Decision documented for choosing access keys over IAM Roles Anywhere (revisit at Phase 4 SOC 2 prep). Real production deploy executed via IAM user to verify end-to-end (build → s3 cp → CloudFront invalidation → curl verify) — production stack healthy throughout.*
