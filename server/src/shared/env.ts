@@ -19,13 +19,38 @@ const EnvSchema = z.object({
   SENTRY_DSN: z.string().url().optional(),
   DASHBOARD_URL: z.string().url().default('http://localhost:5173'),
 
-  // Future weeks
-  REDIS_URL: z.string().optional(),
+  // ── Generation pipeline (Week 5+) ──
+  // Optional at the schema level so CI / dev environments without Meshy / Redis
+  // don't fail to boot. Code that USES these checks `if (!env.X) throw …` per
+  // the External API Boundaries pattern in CLAUDE.md.
+  MESHY_API_KEY: z
+    .string()
+    .startsWith('msy', 'Meshy API key must start with "msy"')
+    .optional(),
+  MESHY_API_BASE: z.string().url().default('https://api.meshy.ai'),
+  MESHY_WEBHOOK_SECRET: z
+    .string()
+    .min(32, 'Webhook secret must be ≥32 chars')
+    .optional(),
+
+  REDIS_URL: z
+    .string()
+    .regex(/^rediss?:\/\//, 'REDIS_URL must start with redis:// or rediss://')
+    .optional(),
+
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_REGION: z.string().default('ap-south-1'),
-  S3_BUCKET_NAME: z.string().optional(),
-  MESHY_API_KEY: z.string().optional(),
+  S3_REGION: z.string().default('ap-south-1'),
+  S3_BUCKET_NAME: z.string().optional(), // legacy — prefer AWS_S3_BUCKET_PRODUCTS
+  AWS_S3_BUCKET_PRODUCTS: z.string().optional(),
+
+  // Worker tuning knobs — defaulted, override per environment if needed.
+  GENERATION_POLL_INTERVAL_MS: z.coerce.number().int().min(1000).max(30000).default(5000),
+  GENERATION_MAX_DURATION_MS: z.coerce.number().int().min(60000).max(900000).default(300000),
+  GENERATION_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(3),
+
+  // ── Phase 1+ (placeholders, wired later) ──
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
