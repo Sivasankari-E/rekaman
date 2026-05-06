@@ -14,8 +14,12 @@
 # `KEEP_PATTERNS` cleanup script (see CLAUDE.md → Production Data Hygiene)
 # or delete manually after verifying.
 #
+# Auth (provide ONE of):
+#   FOUNDER_PASSWORD   — log in via /v1/auth/login (email + password)
+#   AUTH_TOKEN         — a pre-minted JWT (e.g. from scripts/mint-jwt.mjs).
+#                        Use this when the account is Google-OAuth-only.
+#
 # Required env (export before running):
-#   FOUNDER_PASSWORD   — your founder@rekaman.io login password
 #   PHOTO_URL          — public HTTPS URL of a real product photo
 #                        (single object, clean background, ≥512px)
 # Optional:
@@ -26,8 +30,11 @@ set -euo pipefail
 
 API_BASE="${API_BASE:-https://api.rekaman.io}"
 FOUNDER_EMAIL="${FOUNDER_EMAIL:-founder@rekaman.io}"
-: "${FOUNDER_PASSWORD:?FOUNDER_PASSWORD must be exported}"
 : "${PHOTO_URL:?PHOTO_URL must be exported}"
+if [ -z "${AUTH_TOKEN:-}" ] && [ -z "${FOUNDER_PASSWORD:-}" ]; then
+  echo >&2 'error: export AUTH_TOKEN (preferred) OR FOUNDER_PASSWORD before running.'
+  exit 2
+fi
 
 require() {
   command -v "$1" >/dev/null 2>&1 || { echo >&2 "missing required tool: $1"; exit 1; }
@@ -38,13 +45,18 @@ require jq
 ts="$(date +%s)"
 slug="e2e-test-$ts"
 
-echo "─── 1/4 login ───"
-TOKEN=$(curl -fsS -X POST "$API_BASE/v1/auth/login" \
-  -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$FOUNDER_EMAIL\",\"password\":\"$FOUNDER_PASSWORD\"}" \
-  | jq -r '.token')
-[ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo 'login failed'; exit 1; }
-echo "logged in as $FOUNDER_EMAIL"
+echo "─── 1/4 auth ───"
+if [ -n "${AUTH_TOKEN:-}" ]; then
+  TOKEN="$AUTH_TOKEN"
+  echo "using pre-minted AUTH_TOKEN"
+else
+  TOKEN=$(curl -fsS -X POST "$API_BASE/v1/auth/login" \
+    -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$FOUNDER_EMAIL\",\"password\":\"$FOUNDER_PASSWORD\"}" \
+    | jq -r '.token')
+  [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo 'login failed'; exit 1; }
+  echo "logged in as $FOUNDER_EMAIL"
+fi
 
 echo "─── 2/4 create test product (slug=$slug) ───"
 PRODUCT_ID=$(curl -fsS -X POST "$API_BASE/v1/products" \

@@ -444,16 +444,35 @@ let cached: Worker<GenerationJobData> | undefined;
 export function startGenerationWorker(): Worker<GenerationJobData> {
   if (cached) return cached;
 
+  // BullMQ holds a per-job lock for `lockDuration` ms; an internal renewer
+  // refreshes it every `lockDuration / 2`. If a job's processing time exceeds
+  // the lock and renewal fails (worker crash, blocked event loop, network
+  // blip to Redis), BullMQ marks the job stalled and another worker can pick
+  // it up — risking double-processing.
+  //
+  // Default is 30 s; our jobs poll Meshy for up to GENERATION_MAX_DURATION_MS
+  // (5 min default). 30 s is dangerously short — proven by the May 2026
+  // incident: a worker killed mid-poll left a stale lock that surfaced as
+  // "Missing lock for job ... moveToFinished" + "job stalled more than
+  // allowable limit", causing the job to fail even after the fix landed.
+  //
+  // Set to GENERATION_MAX_DURATION_MS + 60 s headroom so even a job that
+  // saturates its full polling budget keeps its lock through completion.
+  const env = getEnv();
+  const lockDurationMs = env.GENERATION_MAX_DURATION_MS + 60_000;
+
   const worker = new Worker<GenerationJobData>(
     GENERATION_QUEUE_NAME,
     processGenerationJob,
     {
       connection: getWorkerRedis(),
       concurrency: 3,
+      lockDuration: lockDurationMs,
       // Stall detection: if a job stops reporting progress for `stalledInterval`
-      // ms BullMQ assumes the worker died and reschedules. Our 5s polling +
-      // `job.updateProgress(...)` keeps us under this comfortably.
-      stalledInterval: 60_000,
+      // ms BullMQ assumes the worker died and reschedules. Bumped above the
+      // default 30s for the same reason as `lockDuration` — long polls must
+      // not look like stalls.
+      stalledInterval: 120_000,
       maxStalledCount: 1,
     },
   );

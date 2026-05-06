@@ -84,34 +84,43 @@ const meshyCreateResponseSchema = z.object({
   result: z.string().min(1),
 });
 
+// Meshy is generous with `null`-vs-omitted: a SUCCEEDED task returns
+// `task_error: null` (not omitted), texture maps may be null per material,
+// and `consumed_credits` is the v1 field (older docs say `credits_used`).
+// Use `.nullish()` everywhere null-or-undefined is possible — `.optional()`
+// alone fails on null and crashes the worker mid-poll.
 const meshyTaskResponseSchema = z.object({
   id: z.string(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'SUCCEEDED', 'FAILED', 'CANCELED']),
   progress: z.number().min(0).max(100),
   model_urls: z
     .object({
-      glb: z.string().url().optional(),
-      fbx: z.string().url().optional(),
-      usdz: z.string().url().optional(),
-      obj: z.string().url().optional(),
+      glb: z.string().url().nullish(),
+      fbx: z.string().url().nullish(),
+      usdz: z.string().url().nullish(),
+      obj: z.string().url().nullish(),
     })
-    .default({}),
-  thumbnail_url: z.string().url().optional(),
+    .nullish(),
+  thumbnail_url: z.string().url().nullish(),
   texture_urls: z
     .array(
       z.object({
         base_color: z.string().url(),
-        metallic: z.string().url().optional(),
-        normal: z.string().url().optional(),
-        roughness: z.string().url().optional(),
+        metallic: z.string().url().nullish(),
+        normal: z.string().url().nullish(),
+        roughness: z.string().url().nullish(),
+        emission: z.string().url().nullish(),
       }),
     )
-    .optional(),
-  task_error: z.object({ message: z.string() }).optional(),
+    .nullish(),
+  task_error: z.object({ message: z.string() }).nullish(),
   started_at: z.number().int().nonnegative(),
   finished_at: z.number().int().nonnegative(),
   created_at: z.number().int().nonnegative(),
-  credits_used: z.number().int().nonnegative().optional(),
+  // Meshy v1 returns `consumed_credits`; older payloads sometimes had
+  // `credits_used`. Accept both — we read whichever is present.
+  consumed_credits: z.number().int().nonnegative().nullish(),
+  credits_used: z.number().int().nonnegative().nullish(),
 });
 
 // ── CLIENT ──
@@ -224,19 +233,28 @@ class MeshyClient {
       id: data.id,
       status: data.status,
       progress: data.progress,
-      modelUrls: data.model_urls,
-      thumbnailUrl: data.thumbnail_url,
-      textureUrls: data.texture_urls?.map((t) => ({
-        baseColor: t.base_color,
-        metallic: t.metallic,
-        normal: t.normal,
-        roughness: t.roughness,
-      })),
-      taskError: data.task_error,
+      // `.nullish()` lets `model_urls` be null/undefined; collapse to {}
+      // so callers can always do `task.modelUrls.glb`.
+      modelUrls: {
+        glb: data.model_urls?.glb ?? undefined,
+        fbx: data.model_urls?.fbx ?? undefined,
+        usdz: data.model_urls?.usdz ?? undefined,
+        obj: data.model_urls?.obj ?? undefined,
+      },
+      thumbnailUrl: data.thumbnail_url ?? undefined,
+      textureUrls:
+        data.texture_urls?.map((t) => ({
+          baseColor: t.base_color,
+          metallic: t.metallic ?? undefined,
+          normal: t.normal ?? undefined,
+          roughness: t.roughness ?? undefined,
+        })) ?? undefined,
+      taskError: data.task_error ?? undefined,
       startedAt: data.started_at,
       finishedAt: data.finished_at,
       createdAt: data.created_at,
-      creditsUsed: data.credits_used,
+      // Prefer the v1 field; fall back for older payloads.
+      creditsUsed: data.consumed_credits ?? data.credits_used ?? undefined,
     };
   }
 
