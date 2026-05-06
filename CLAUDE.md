@@ -1715,4 +1715,27 @@ Deviations from the day-6 spec, all production-grade — (1) **Raw body via `exp
 - `server/scripts/presign-glb.mjs` — generates a 1-hr presigned URL for a product GLB key. For QA before bucket policy is set up.
 - `server/scripts/list-users.mjs` — diagnostic: lists prod users + their auth modes + memberships.
 
-**The early Day-7 trap (founder@rekaman.io 401 on login):** When you set up vendor accounts at `founder@rekaman.io` (Sentry / Railway / Vercel / etc — see Account Ownership table), it's tempting to assume that email is also your Rekaman account. **It is not.** Rekaman has its own auth and `founder@rekaman.io` only exists in the Rekaman DB if you've explicitly run signup. The fix: `curl POST /v1/auth/signup` with the email + chosen password — creates the user, the brand (`Rekaman`, slug `rekaman-bxxx`), and returns a JWT. Save the password in your password manager. The legacy `sdk-demo+1777499799@rekaman.io` user is the seed account from the Week 4 demo brand and is fine to leave in place.*
+**The early Day-7 trap (founder@rekaman.io 401 on login):** When you set up vendor accounts at `founder@rekaman.io` (Sentry / Railway / Vercel / etc — see Account Ownership table), it's tempting to assume that email is also your Rekaman account. **It is not.** Rekaman has its own auth and `founder@rekaman.io` only exists in the Rekaman DB if you've explicitly run signup. The fix: `curl POST /v1/auth/signup` with the email + chosen password — creates the user, the brand (`Rekaman`, slug `rekaman-bxxx`), and returns a JWT. Save the password in your password manager. The legacy `sdk-demo+1777499799@rekaman.io` user is the seed account from the Week 4 demo brand and is fine to leave in place.
+
+**Products S3 bucket — public-read decision (Phase 1).** The products bucket (`rekaman-products-prod-975050270919-ap-south-1-an`) holds GLBs + product photos that shoppers' phones must fetch to render AR. Two access models considered:
+
+| Path | Setup | Bucket | Access | Egress cost | When right |
+|---|---|---|---|---|---|
+| **A. Public bucket policy** *(chosen for Phase 1)* | 5 min | Direct S3 + CORS | `Allow s3:GetObject Principal:*` | $0.10/GB direct from S3 | Pre-PMF, low traffic, fast iteration |
+| **B. CloudFront + OAC at `products.rekaman.io`** *(Phase 2)* | 30-60 min | Stays private | Bucket policy allows only the CloudFront distribution | $0.10/GB (similar) but cached at edge → 10-50× cheaper at scale + low latency for global shoppers | Real shopper traffic, multi-region, pre-SOC 2 |
+
+Path A applied because: (1) keys are unguessable cuids (`brands/{cuid}/products/{cuid}/v{n}/model.glb`), no list-bucket permission for the public, so enumeration risk is nil; (2) the data is intentionally public (shoppers' SDK fetches GLBs unauthenticated, same as Shopify product images); (3) same pattern as the SDK bucket; (4) reversible — A → B is one afternoon's work with no data migration (set up CloudFront → swap `publicProductUrl()` in `s3.client.ts` to return `https://products.rekaman.io/...` → tighten bucket policy to the OAC principal).
+
+**Migration triggers — switch to Path B when ANY fires:**
+- Total products-bucket egress > 50 GB/month (real shopper traffic; CloudFront edge cache pays back)
+- Any single GLB > 1 GB egress in 24h (viral product; CloudFront prevents cost spike)
+- A brand asks for a private/B2B catalog (need access control beyond public)
+- SOC 2 / DPDP audit requires "single ingress point" for asset delivery
+- Razorpay billing live + we add a `rekaman-billing-prod` private bucket (good time to architect both buckets properly)
+
+**Guardrails for Path A (do these alongside applying the policy):**
+- AWS Budgets daily alert at ₹2,000 scoped to S3 ap-south-1 → email founder@rekaman.io at 80%/100%
+- **Strict rule:** products bucket holds GLBs + product photos ONLY. Billing PDFs / KYC docs / contracts go in a SEPARATE private bucket (`rekaman-billing-prod`, Phase 2). The cuid-key safety argument breaks down for sensitive data — never put PII in this bucket.
+- CORS already configured (AllowedOrigins:*, methods GET+HEAD, ExposeHeaders ETag/Content-Length/Content-Type, MaxAgeSeconds 86400) — sufficient for shopper SDK + 3D viewers.
+
+**Why not at bucket creation?** AWS's default since April 2023 is "Block Public Access: ON" — making a bucket public is an explicit, deliberate decision (AWS forces typing "confirm"). Day 3 (May 5) we created the bucket and deferred the access decision until we knew what would live in it. Day 7 (May 9) we have a real GLB and the answer: public, with brand-scoped cuid keys + bucket-policy gate + budget alert. The CloudFront migration is documented as Phase 2 in `s3.client.ts publicProductUrl()` comment.*
