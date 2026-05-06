@@ -1,5 +1,5 @@
 # Rekaman — Spatial Commerce AR Platform
-## Project Context for Claude (v5.9)
+## Project Context for Claude (v5.10)
 
 > **Single source of truth.** This file is loaded into every Claude conversation about Rekaman. Update at the end of each sprint and after every major strategic shift. Companion document: `REKAMAN_ROADMAP.md` (long-horizon vision).
 
@@ -652,6 +652,130 @@ Before any action that hits production data or services, ask:
 4. Does this change DNS? → DNS propagation is 5-30 min; schedule for low-traffic hours when real customers exist
 
 If the answer to any is yes and you're operating without a co-founder review, double-check before pressing the button.
+
+### Generation Pipeline Runbook (Week 5 close — May 9 2026)
+
+This subsection captures the operational reality of the Meshy → S3 → READY pipeline as proven end-to-end against prod. Read this before touching the generation flow or onboarding the first paying brand.
+
+#### Live Production Identifiers (cuids — DO NOT regenerate; copy these)
+
+| Resource | Value | Notes |
+|---|---|---|
+| Founder Rekaman account email | `founder@rekaman.io` | **Different from vendor account at the same email.** This is a Rekaman-DB user, password-auth, created via `POST /v1/auth/signup` on May 9 2026. Password lives in password manager. NOT Google-OAuth-only. |
+| Founder user.id | `cmotyhdkj0001uig5onuktwq0` | Use for JWT minting / DB lookups |
+| Founder brand.id | `cmotyhdv20002uig5vxldw4g8` | Brand: "Rekaman", role OWNER |
+| Founder brand.slug | `rekaman-b943` | Auto-generated from companyName "Rekaman" |
+| Legacy demo user | `sdk-demo+1777499799@rekaman.io` | Week 4 demo brand `sdk-demo-brand-3722` (oslo-sofa). Leave in place. |
+| Products S3 bucket | `rekaman-products-prod-975050270919-ap-south-1-an` | **Public-readable** as of May 9 2026 (Phase 1 Path A). CORS allow `*`. |
+| SDK S3 bucket | `rekaman-sdk-prod-975050270919-ap-south-1-an` | Public via CloudFront `cdn.rekaman.io`. |
+| Railway services | `api`, `worker` (project `romantic-heart`, env `production`) | api.rekaman.io is `api`; `worker` is internal-only (no public URL). |
+| First successful prod GLB (e2e test product) | `cmou3lwe9000337mk8223jby3` (founder brand, May 9, 2-min Railway-only run) | Public URL: `https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/brands/cmotyhdv20002uig5vxldw4g8/products/cmou3lwe9000337mk8223jby3/v1/model.glb` — use this for cold emails / demo links. |
+
+#### Pipeline Lifecycle (what happens when a brand triggers generation)
+
+```
+Brand              Rekaman api          BullMQ (Upstash)    Worker (Railway)    Meshy.ai             S3 (products)        DB (Neon)
+  │                     │                       │                  │                  │                     │                    │
+  │── POST /v1/products ┼>─ create row ─────────┼──────────────────┼──────────────────┼─────────────────────┼─── INSERT product ─>│
+  │                     │                       │                  │                  │                     │                    │
+  │── POST .../generate ┼>─ POST meshy task ────┼──────────────────┼─────────────────>│                     │                    │
+  │                     │<── { taskId } ────────┼──────────────────┼──────────────────┤                     │                    │
+  │                     │── markProductProcessing ──────────────────────────────────────────────────────────┼─── UPDATE → PROCESSING + meshyTaskId
+  │                     │── enqueue ──────────> bull:generation:delayed                                     │                    │
+  │<── 202 Accepted ────┤                       │                  │                  │ (running AI ~60-180s)                   │
+  │                     │                       │ (5s delay)       │                  │                     │                    │
+  │                     │                       └────> wait ──────>│                  │                     │                    │
+  │                     │                                          │── poll every 5s ─>│                     │                    │
+  │── poll status ──────┼──────────────────────────────────────────┼────── status === SUCCEEDED ◄──┐         │                    │
+  │<── PROCESSING ──────┤                                          │                              │         │                    │
+  │   (repeat ~60-180s) │                                          │── GET model_urls.glb ───────>│         │                    │
+  │                     │                                          │<── GLB bytes (Meshy CDN) ────┤         │                    │
+  │                     │                                          │── PutObject (versioned key) ─┼────────>│                    │
+  │                     │                                          │── markProductReady ──────────┼─────────┼─── UPDATE → READY + glbUrl + glbSizeKb
+  │                     │                                          │                              │         │                    │
+  │── poll status ──────┤                                                                         │         │                    │
+  │<── READY + glbUrl ──┤                                                                         │         │                    │
+  │                     │                                                                         │         │                    │
+  │── GET <glbUrl> ─────┼─────────────────────────────────────────────────────────────────────────┼────────>│                    │
+  │<── GLB bytes ───────┤                                                                         │         │                    │
+```
+
+**Latency budget:** typical ~90-180 s end-to-end (Meshy = 60-150 s, our pipeline overhead = 5-15 s). Worker `GENERATION_MAX_DURATION_MS=300000` (5 min) is the hard cap; jobs over that get `markProductFailed isTransient=true`.
+
+**Cost per generation (verified May 9):** 30 Meshy credits = ~₹40-80 / ~$0.50.
+
+**Scope of one job:** ONE photo → ONE GLB. Multi-photo image-to-3D is Phase 2 (Meshy v2 endpoint). Re-running generation on the same product creates `attemptNumber+1` and uploads to a new versioned S3 key (e.g. `v2/model.glb`); the prior `v1/` is left in place as historical record.
+
+#### Tool Cookbook (`server/scripts/*.mjs` — when to run which)
+
+All scripts live under `server/scripts/` and are run as `node --env-file=.env scripts/<name>.mjs ...` from the `server/` directory (Node ESM resolves `@prisma/client` from there).
+
+| Script | When to use | Example |
+|---|---|---|
+| `mint-jwt.mjs <email>` | Local `JWT_SECRET` differs from Railway's, OR account is Google-OAuth-only and `/v1/auth/login` rejects. **Note:** the JWT is signed with whatever `JWT_SECRET` is in your local `.env` — if that doesn't match Railway, prod will reject the token. Better fix is to sync local `.env` to Railway's value. | `node --env-file=.env scripts/mint-jwt.mjs founder@rekaman.io` |
+| `recover-stuck-generation.mjs <productId>` | Worker bug fix landed; existing in-flight job is stuck in BullMQ (delayed/active/failed). Re-enqueues against the SAME `meshyTaskId` already in product metadata — **no fresh Meshy charge**. | `node --env-file=.env scripts/recover-stuck-generation.mjs cmou3lwe9000337mk8223jby3` |
+| `presign-glb.mjs <s3-key>` | QA needs to view a GLB BEFORE the products bucket has a public-read policy (Day 7 era). 1-hr expiry. Stop using once Path A bucket policy is live and bare S3 URLs return 200. | `node --env-file=.env scripts/presign-glb.mjs 'brands/.../v1/model.glb'` |
+| `list-users.mjs` | Diagnostic: who's in the prod DB, what auth modes they have, what brands they own. Used early-Day-7 to discover `founder@rekaman.io` didn't exist yet. | `node --env-file=.env scripts/list-users.mjs` |
+
+The repo-root `scripts/e2e-generation.sh` is the smoke-test driver. Accepts either `FOUNDER_PASSWORD` (prod login) OR `AUTH_TOKEN` (pre-minted JWT). With Path A bucket policy live and Railway worker active, a successful run prints a bare-S3 `glbUrl` you can paste into 3dviewer.net or use directly in cold emails.
+
+#### Common Gotchas (real failures we hit + their fixes)
+
+These are not theoretical — every one of these blocked Day 7 progress until we worked around it. Keep this list handy.
+
+1. **`founder@rekaman.io` 401 on `/v1/auth/login`.** That email is a vendor account label (Sentry/AWS/Railway/etc) — Rekaman has its own auth. **Fix:** sign up via prod `POST /v1/auth/signup` to create the user + brand. Save the password immediately; there's no password-reset endpoint until Week 8.
+
+2. **`mint-jwt.mjs` token rejected by prod with 401.** Local `.env` `JWT_SECRET` drifted from Railway's. JWT is signed correctly but with the wrong key. **Fix:** copy `JWT_SECRET` from Railway → `api` service → Variables → paste into local `server/.env`. Day-7 workaround was `/v1/auth/signup` instead (returns a Railway-signed JWT directly).
+
+3. **S3 bucket policy save fails: "conflicts with your Block Public Access settings".** AWS forces a 2-step unblock-then-policy order. **Critical sub-gotcha:** the four BPA checkboxes have INVERTED meaning that's easy to confuse:
+   - Boxes 1+2 (ACLs) — **keep CHECKED** (defense in depth; ACLs are disabled at Object Ownership level anyway)
+   - Boxes 3+4 (public bucket policies) — **UNCHECK these** to allow our policy
+   
+   We hit this exact reversal on Day 7. If your save still fails after unblocking, you uncheckmarked the wrong pair. The four-box correct state for a public-read products bucket:
+   ```
+   ☑ Block public access ... new ACLs
+   ☑ Block public access ... any ACLs
+   ☐ Block public access ... new public bucket or access point policies
+   ☐ Block public and cross-account ... any public bucket or access point policies
+   ```
+
+4. **Railway worker first deploy crashes "Can't reach database server" (Prisma).** Neon scales to zero after ~5 min idle. When Railway boots a new worker container, the first `prisma.$queryRaw\`SELECT 1\`` fires before Neon wakes. **Fix:** Railway auto-retries within ~30 s; the second attempt succeeds. If it doesn't, hit `https://api.rekaman.io/metrics` from your laptop to wake Neon, then redeploy.
+
+5. **Railway worker silent — jobs stuck in `bull:generation:delayed`.** Either the worker service has a wrong `Start Command` (must be `pnpm --filter @rekaman/server start:worker`, not `pnpm start`), OR `REDIS_URL` is missing/wrong in worker Variables (must match api's exactly). **Fix:** Settings → Custom Start Command, then Variables → confirm REDIS_URL value matches api's. Logs should show `generation worker subscribed`.
+
+6. **BullMQ "Missing lock for job" + "job stalled more than allowable limit".** Default `lockDuration: 30000` (30 s) is far less than our 5-min poll budget. Lock expires mid-poll, job marked stalled. Fixed in worker code (`lockDuration: GENERATION_MAX_DURATION_MS + 60_000`). **If you see this error in logs**, check `GENERATION_MAX_DURATION_MS` env var hasn't been bumped past `lockDuration` (keep the `+ 60_000` invariant).
+
+7. **Meshy poll fails with "response shape unexpected".** Meshy v1 image-to-3d returns `task_error: null` (not undefined), `consumed_credits` (not `credits_used`), `texture_urls[].emission` (extra field). Schema fix landed May 9 in `meshy.client.ts` — uses `.nullish()` everywhere. **If a future Meshy API version adds new nullable fields**, extend the schema with `.nullish()` (NOT `.optional()`).
+
+8. **`gltf-viewer.donmccurdy.com` no longer has a URL input box.** As of May 2026 it's drag-drop / file-picker only. **Workarounds:**
+   - **3dviewer.net** — has URL input, paste the bare S3 URL there
+   - **Download + drag** — `curl -sS -o /tmp/model.glb '<url>' && file /tmp/model.glb` then drag `/tmp/model.glb` into gltf-viewer
+   - **modelviewer.dev/editor/** — Google's tool, also accepts URLs
+
+9. **AWS Console S3 → Bucket policy editor: "you don't have permissions to edit".** This message is misleading — usually the actual cause is "your policy conflicts with BPA settings", not an IAM permission issue. Check BPA first (gotcha #3) before debugging IAM.
+
+10. **The first Day-7 e2e run completed locally (not Railway), then reproduced on Railway after fixing.** When validating an end-to-end flow, ALWAYS verify against Railway-only run: kill all `pnpm dev:worker` processes locally, then run e2e. If status reaches READY without local processes, the prod stack is truly self-serve. Otherwise you're masking a Railway-side problem.
+
+#### Recovery Procedure: stuck product
+
+If a brand's product is stuck in `PROCESSING` for >10 min:
+
+1. Check Meshy status directly: `curl -H "Authorization: Bearer $MESHY_API_KEY" https://api.meshy.ai/openapi/v1/image-to-3d/<taskId>` (taskId from `metadata.generation.meshyTaskId`).
+2. **If Meshy says SUCCEEDED:** the GLB is sitting waiting; our worker just isn't picking up. Run `recover-stuck-generation.mjs <productId>` — re-enqueues the SAME meshyTaskId, no charge.
+3. **If Meshy says IN_PROGRESS:** wait. Meshy occasionally takes 5+ min on complex inputs.
+4. **If Meshy says FAILED/CANCELED:** the worker should have already marked the product FAILED. If it hasn't, our worker is dead — restart Railway `worker` service.
+5. **If Meshy returns 404 (taskId unknown):** task expired (3-day window) or never existed. Mark product FAILED manually + offer brand a free retry.
+
+#### Phase 2 Migration Trigger (recap)
+
+Move products bucket from public-read (Path A) to CloudFront + OAC at `products.rekaman.io` when ANY fires:
+- Total products-bucket egress > 50 GB/month
+- Any single GLB > 1 GB egress in 24 h (viral product)
+- A brand asks for a private/B2B catalog
+- SOC 2 / DPDP audit requires single ingress point
+- We provision `rekaman-billing-prod` (good time to architect both buckets properly)
+
+Migration is one afternoon: set up CloudFront → swap `publicProductUrl()` in `s3.client.ts` → tighten bucket policy to OAC. **No data migration required** — keys stay the same.
 
 ---
 
@@ -1588,7 +1712,7 @@ rekaman/
 
 - **Week/Month:** Week 5, Month 2
 - **Last completed:** Week 4 — Full production stack live and verified end-to-end on Android Chrome + iOS Safari. SDK ships from CloudFront (one `<script>` + one `<div>` integration), public AR endpoint on Railway, events ingestion via sendBeacon, demo on Vercel. v3 schema hooks (arMode, ProductAsset, ConversionEvent, OutboundWebhook tables, /v1/ versioning).
-- **Currently working on:** Week 5 Day 7 — pipeline proven end-to-end against PROD (Meshy → S3 → READY in 93s, 30 credits, 13.6 MB GLB), 2 prod-only bugs fixed (Meshy v1 response shape + BullMQ lockDuration), 2 ops items deferred (products bucket public-read policy + Railway worker not picking up jobs). Founder account `founder@rekaman.io` created on prod (brand `rekaman-b943`). Day 6 (May 8) closed: Meshy webhook endpoint live, full Sentry instrumentation, 5-path local webhook test green.
+- **Currently working on:** Week 5 closed — pipeline fully self-serve on prod. Both deferred ops items resolved May 9: Railway worker subscribed (after Start Command fix `pnpm --filter @rekaman/server start:worker`), products S3 bucket public-readable (Phase 1 Path A bucket policy applied + CORS allow `*` already configured + AWS Budgets `Rekaman monthly` $5/mo @ 85%/100% alert active). Final e2e ran 100% on prod with zero local processes — `cmou3lwe9000337mk8223jby3` reached READY in ~3 min, 30 Meshy credits, 13.5 MB GLB at a permanent public URL. Razorpay sole-prop signup started (KYC pending). Now in Day 7 sales execution: demo video, one-pager PDF, 50-brand outreach list, 30 cold emails. Goal: 1 verbal commit before Week 6.
 - **Blocked on:** Nothing
 - **Next milestone:** Week 6 — first ₹3,999/mo paying brand
 - **Current MRR:** ₹0
@@ -1683,7 +1807,7 @@ Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registr
 
 ---
 
-*Last updated: May 9, 2026 | Version 5.9*
+*Last updated: May 9, 2026 | Version 5.10*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
 *v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*
@@ -1739,3 +1863,34 @@ Path A applied because: (1) keys are unguessable cuids (`brands/{cuid}/products/
 - CORS already configured (AllowedOrigins:*, methods GET+HEAD, ExposeHeaders ETag/Content-Length/Content-Type, MaxAgeSeconds 86400) — sufficient for shopper SDK + 3D viewers.
 
 **Why not at bucket creation?** AWS's default since April 2023 is "Block Public Access: ON" — making a bucket public is an explicit, deliberate decision (AWS forces typing "confirm"). Day 3 (May 5) we created the bucket and deferred the access decision until we knew what would live in it. Day 7 (May 9) we have a real GLB and the answer: public, with brand-scoped cuid keys + bucket-policy gate + budget alert. The CloudFront migration is documented as Phase 2 in `s3.client.ts publicProductUrl()` comment.*
+*v5.10 (Week 5 close — Day 7 final state, May 9 2026): Both v5.9-deferred ops items resolved; pipeline fully self-serve on prod with zero local processes. New top-level Operational Runbook subsection added: **Generation Pipeline Runbook** — Live Production Identifiers table (founder account/brand cuids, S3 bucket names, Railway service names, the canonical demo GLB URL), pipeline lifecycle diagram, tool cookbook for `server/scripts/*.mjs`, ten real Day-7 gotchas with confirmed fixes, recovery procedure for stuck products, Phase 2 migration triggers recap.
+
+**Operational items resolved Day 7:**
+1. **Railway `worker` service subscribed.** Root cause: Start Command was `pnpm --filter @rekaman/server start` (no script) instead of `pnpm --filter @rekaman/server start:worker`. After fix, first deploy crashed on Neon scale-to-zero (Prisma "Can't reach database server"); Railway auto-retried within 30 s and the second deploy succeeded with logs showing `worker DB connection verified` → `generation worker subscribed` → `worker process ready` → `redis connected`. Pattern documented as Gotcha #4 in the runbook.
+2. **Products S3 bucket public-readable.** Path A applied: edited Block Public Access (kept ACL boxes 1+2 checked, unchecked policy boxes 3+4), saved with "confirm", then saved the `RekamanProductsPublicRead` bucket policy. CORS was already configured (AllowedOrigins `*`, GET+HEAD). User initially hit Gotcha #3 (BPA inversion — checked the wrong pair) and resolved by re-reading the box labels carefully. AWS Budgets `Rekaman monthly` $5/mo at 85%/100% email-only alerts to founder@rekaman.io was already in place — confirmed free (under the 2-budget free tier with no SNS/Chatbot actions).
+
+**Final prod e2e run (the canonical proof):**
+- AUTH: pre-minted JWT for founder@rekaman.io (account created via `POST /v1/auth/signup` since the email is a vendor label, not a Rekaman user — see Gotcha #1)
+- INPUT: `https://images.pexels.com/photos/447592/pexels-photo-447592.jpeg` (Pexels armchair, white background)
+- PRODUCT: `cmou3lwe9000337mk8223jby3` (founder brand `cmotyhdv20002uig5vxldw4g8`)
+- TIMELINE: 19:04:05 first PROCESSING → 19:07:44 READY (~3 min 39 s wall-clock; Meshy ran ~2 min, our pipeline overhead ~5-10 s, plus a Neon-cold-start delay on the very first poll)
+- OUTPUT: 13,474 KB (13.5 MB) GLB at the canonical public URL `https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/brands/cmotyhdv20002uig5vxldw4g8/products/cmou3lwe9000337mk8223jby3/v1/model.glb`
+- COST: 30 Meshy credits (~₹40-80 / ~$0.50)
+- ZERO local processes ran during this test — Railway `worker` service drained the queue autonomously. `ps aux | grep tsx.*worker` returned 0 before the test started.
+
+**Verified asset:** the GLB renders cleanly in 3dviewer.net (paste bare S3 URL — gltf-viewer.donmccurdy.com no longer has a URL input box, see Gotcha #8 for workarounds). 24,867 vertices, 29,903 triangles, ~76 cm cube — proper sofa-side proportions.
+
+**The two `founder@rekaman.io` identities (don't conflate them):**
+- **Vendor account label** (Sentry, AWS root, Railway, Vercel, Neon, Google Cloud OAuth) — set up Week 5 Days 1-2 during account migration. Login depends on each vendor.
+- **Rekaman DB user** (`user.id = cmotyhdkj0001uig5onuktwq0`, password-auth) — created May 9 via `POST /v1/auth/signup` against `https://api.rekaman.io`. Auto-created brand `rekaman-b943`. Password lives in password manager.
+These are SEPARATE accounts that share an email — entirely different auth systems, different databases. Future-Claude must NOT assume "the founder logged in as founder@rekaman.io" maps to "found it in the Rekaman DB."
+
+**Local `JWT_SECRET` drift detected (action item for future-Claude):** the local `server/.env` `JWT_SECRET` value differs from Railway api's. Detected when `mint-jwt.mjs` produced a token Railway rejected with 401 on `/v1/auth/me`. Fix path: copy Railway → api → Variables → `JWT_SECRET` value into local `.env`. Until then: use `/v1/auth/login` or `/v1/auth/signup` to obtain a Railway-signed JWT for scripted ops (the Day-7 workaround).
+
+**Week 5 closeout commit + tag pending** (user manually does at end of Day 7 sales work):
+```bash
+git tag -a week5-complete -m "Week 5: custom domains, vendor migration, IAM hygiene, Meshy generation pipeline live + first prod GLB"
+git push --tags
+```
+
+**What changes after Week 5:** the technical pipeline is feature-complete for Phase 1 MVP. From Week 6 onward, code work centers on the brand dashboard (Next.js on Vercel, Week 7+) and Razorpay subscription billing (Week 10+). Until then, brand onboarding is **Concierge MVP**: founder personally runs the API on a brand's behalf for their first 5 products. The technical pipeline that just shipped is the engine that makes Concierge MVP viable.*
