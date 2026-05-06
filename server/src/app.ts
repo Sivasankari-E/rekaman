@@ -1,4 +1,5 @@
 import express, { type Express, type Request } from 'express';
+import type { IncomingMessage } from 'http';
 import cors, { type CorsOptions, type CorsOptionsDelegate } from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -13,8 +14,23 @@ import { apiKeysRoutes } from './modules/apiKeys/apiKeys.routes.js';
 import { publicArRoutes } from './modules/publicAr/publicAr.routes.js';
 import { arSessionsRoutes } from './modules/arSessions/arSessions.routes.js';
 import { generationRoutes } from './modules/generation/generation.routes.js';
+import { meshyWebhookRoutes } from './modules/webhooks/meshy.webhook.js';
 import { prisma } from './shared/db.js';
 import { NotFoundError } from './shared/errors.js';
+
+// Inbound webhooks (Meshy, Razorpay) need the *raw* request bytes for HMAC
+// signature verification. Capturing via `express.json`'s `verify` hook lets
+// us keep a single global JSON parser AND preserve the raw buffer on
+// `req.rawBody` for routes that need it. No special middleware ordering
+// required.
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      rawBody?: Buffer;
+    }
+  }
+}
 
 export function createApp(): Express {
   const env = getEnv();
@@ -63,7 +79,19 @@ export function createApp(): Express {
   // sendBeacon may post events as Content-Type: text/plain; capture as string,
   // route-level middleware in arSessions parses it to JSON.
   app.use(express.text({ type: 'text/plain', limit: '500kb' }));
-  app.use(express.json({ limit: '1mb' }));
+  app.use(
+    express.json({
+      limit: '1mb',
+      // `verify` runs once per parsed JSON body and gives us the raw bytes
+      // before parsing. Webhook handlers (Meshy today, Razorpay later) read
+      // `req.rawBody` to compute the HMAC over the exact bytes Meshy signed
+      // — re-stringifying req.body would change whitespace/key-order and
+      // break the signature.
+      verify: (req: IncomingMessage, _res, buf: Buffer) => {
+        (req as Request).rawBody = Buffer.from(buf);
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(cookieParser());
 
@@ -94,6 +122,11 @@ export function createApp(): Express {
   // pre-empt these endpoints' own higher limits; SDK is on every shopper page) ──
   app.use('/v1/ar', publicArRoutes);
   app.use('/v1/events', arSessionsRoutes);
+
+  // ── Inbound webhooks (HMAC-signed, no JWT) ──
+  // Mounted before apiRateLimit so a slow Meshy retry storm can't get
+  // throttled — verification + idempotency log absorb duplicates safely.
+  app.use('/v1/webhooks', meshyWebhookRoutes);
 
   // ── Authenticated API routes ──
   app.use(apiRateLimit);

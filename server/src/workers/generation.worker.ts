@@ -1,4 +1,5 @@
 import { Worker, UnrecoverableError, type Job } from 'bullmq';
+import * as Sentry from '@sentry/node';
 import { getWorkerRedis } from '../shared/queue/connection.js';
 import {
   GENERATION_JOB_NAME,
@@ -21,6 +22,25 @@ import {
   ExternalServiceError,
   NotFoundError,
 } from '../shared/errors.js';
+
+/**
+ * Sentry scope helper. Generation failures need to group by brand + product
+ * (not lumped into one giant "generation failed" issue), and the Sentry-side
+ * grouping rules use tags. Calling this inside `Sentry.withScope` keeps the
+ * tags isolated to the current job — no cross-job leakage between concurrent
+ * workers.
+ */
+function tagGenerationScope(scope: Sentry.Scope, data: GenerationJobData, jobId: string | undefined) {
+  scope.setTag('brand_id', data.brandId);
+  scope.setTag('product_id', data.productId);
+  scope.setTag('attempt', String(data.attemptNumber));
+  scope.setContext('generation', {
+    jobId,
+    photoCount: data.photoUrls.length,
+    aiModel: data.config.aiModel,
+    targetPolycount: data.config.targetPolycount,
+  });
+}
 
 /**
  * Generation worker — Meshy poll → GLB download → S3 upload → mark READY.
@@ -69,6 +89,17 @@ const DOWNLOAD_TIMEOUT_MS = 60_000;
 const RATE_LIMIT_BACKOFF_MS = 30_000;
 
 async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> {
+  // Wrap the whole job in an isolated Sentry scope so that any
+  // captureException / captureMessage / addBreadcrumb call inside this
+  // function inherits the tags below. Concurrency-safe: each scope is local
+  // to its callback and disposed when the callback completes.
+  return Sentry.withScope(async (scope) => {
+    tagGenerationScope(scope, job.data, job.id);
+    return processGenerationJobInner(job);
+  });
+}
+
+async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<void> {
   const env = getEnv();
   const POLL_INTERVAL_MS = env.GENERATION_POLL_INTERVAL_MS;
   const MAX_DURATION_MS = env.GENERATION_MAX_DURATION_MS;
@@ -82,6 +113,13 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
   });
 
   log.info('generation job started');
+  Sentry.addBreadcrumb({
+    category: 'generation',
+    type: 'info',
+    message: 'job started',
+    level: 'info',
+    data: { jobId: job.id },
+  });
 
   // ── Step 1 — load metadata.generation.meshyTaskId ──
   const product = await generationRepository.findProductForJob(brandId, productId);
@@ -119,6 +157,10 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
     const elapsed = Date.now() - startTime;
     if (elapsed > MAX_DURATION_MS) {
       log.warn({ meshyTaskId, elapsedMs: elapsed }, 'generation timeout');
+      Sentry.captureMessage('Generation timed out', {
+        level: 'warning',
+        tags: { failure_class: 'timeout', is_transient: 'true' },
+      });
       await generationRepository.markProductFailed(
         brandId,
         productId,
@@ -134,6 +176,10 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
       // ── Permanent (don't keep polling) ──
       if (err instanceof PaymentRequiredError) {
         log.error({ meshyTaskId }, 'meshy credits exhausted — escalate to billing');
+        Sentry.captureException(err, {
+          level: 'error',
+          tags: { failure_class: 'payment_required', is_transient: 'false' },
+        });
         await generationRepository.markProductFailed(
           brandId,
           productId,
@@ -181,6 +227,10 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
         { meshyTaskId, err: (err as Error).message },
         'unknown error polling meshy',
       );
+      Sentry.captureException(err, {
+        level: 'error',
+        tags: { failure_class: 'unknown', is_transient: 'false' },
+      });
       await generationRepository.markProductFailed(
         brandId,
         productId,
@@ -197,10 +247,28 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
     // Surfaces in BullMQ job inspector / dashboards.
     await job.updateProgress(task.progress);
 
-    if (task.status === 'SUCCEEDED') break;
+    if (task.status === 'SUCCEEDED') {
+      Sentry.addBreadcrumb({
+        category: 'generation',
+        type: 'info',
+        message: 'meshy task succeeded',
+        level: 'info',
+        data: { meshyTaskId, durationMs: Date.now() - startTime },
+      });
+      break;
+    }
     if (task.status === 'FAILED' || task.status === 'CANCELED') {
       const reason = task.taskError?.message ?? `Meshy task ${task.status}`;
       log.warn({ meshyTaskId, reason }, 'meshy task did not succeed');
+      Sentry.captureMessage(`Meshy task ${task.status}`, {
+        level: 'warning',
+        tags: {
+          failure_class: 'meshy_terminal',
+          meshy_status: task.status,
+          is_transient: 'false',
+        },
+        extra: { reason, meshyTaskId },
+      });
       await generationRepository.markProductFailed(brandId, productId, reason, false);
       return;
     }
@@ -215,6 +283,11 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
       { meshyTaskId, modelUrls: task.modelUrls },
       'meshy reported SUCCEEDED but returned no GLB URL',
     );
+    Sentry.captureMessage('Meshy SUCCEEDED with no GLB URL', {
+      level: 'error',
+      tags: { failure_class: 'meshy_missing_glb', is_transient: 'false' },
+      extra: { meshyTaskId, modelUrls: task.modelUrls },
+    });
     await generationRepository.markProductFailed(
       brandId,
       productId,
@@ -229,6 +302,10 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
     glbBuffer = await downloadToBuffer(glbSourceUrl);
   } catch (err) {
     log.error({ err: (err as Error).message }, 'glb download failed');
+    Sentry.captureException(err, {
+      level: 'error',
+      tags: { failure_class: 'glb_download', is_transient: 'true' },
+    });
     await generationRepository.markProductFailed(
       brandId,
       productId,
@@ -239,6 +316,13 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
   }
   const glbSizeKb = Math.round(glbBuffer.length / 1024);
   log.info({ sizeKb: glbSizeKb }, 'glb downloaded');
+  Sentry.addBreadcrumb({
+    category: 'generation',
+    type: 'info',
+    message: 'glb downloaded',
+    level: 'info',
+    data: { sizeKb: glbSizeKb },
+  });
 
   // ── Step 4 — upload GLB (and best-effort thumbnail) to S3 ──
   const version = attemptNumber;
@@ -254,6 +338,11 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
     );
   } catch (err) {
     log.error({ err: (err as Error).message }, 's3 glb upload failed');
+    Sentry.captureException(err, {
+      level: 'error',
+      tags: { failure_class: 's3_upload', is_transient: 'true' },
+      extra: { glbKey },
+    });
     await generationRepository.markProductFailed(
       brandId,
       productId,
@@ -314,6 +403,17 @@ async function processGenerationJob(job: Job<GenerationJobData>): Promise<void> 
     },
     'generation complete',
   );
+  Sentry.addBreadcrumb({
+    category: 'generation',
+    type: 'info',
+    message: 'generation complete',
+    level: 'info',
+    data: {
+      sizeKb: glbSizeKb,
+      creditsUsed: task.creditsUsed,
+      durationMs: Date.now() - startTime,
+    },
+  });
 }
 
 // ── helpers ──
@@ -374,6 +474,11 @@ export function startGenerationWorker(): Worker<GenerationJobData> {
       { jobId: job?.id, name: job?.name, err: err.message },
       'bullmq job failed',
     );
+    Sentry.withScope((scope) => {
+      if (job) tagGenerationScope(scope, job.data, job.id);
+      scope.setTag('failure_class', 'bullmq_thrown');
+      Sentry.captureException(err);
+    });
   });
 
   worker.on('error', (err) => {
