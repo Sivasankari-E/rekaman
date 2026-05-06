@@ -74,6 +74,21 @@ export function getRedis(): Redis {
 }
 
 /**
+ * Build a separate Redis connection for a BullMQ Worker.
+ *
+ * Workers issue blocking commands (BLPOP, BRPOPLPUSH) to wait for new jobs.
+ * Sharing the same connection between a Queue (publisher) and a Worker (blocking
+ * consumer) can starve Queue ops while a BLPOP is in flight. BullMQ's official
+ * guidance is one connection per Worker.
+ *
+ * `duplicate()` inherits the `maxRetriesPerRequest: null` + retryStrategy from
+ * the primary connection — required by BullMQ.
+ */
+export function getWorkerRedis(): Redis {
+  return getRedis().duplicate();
+}
+
+/**
  * Gracefully close the Redis connection. Safe to call multiple times.
  * Server / worker entry points invoke this from their SIGTERM handlers
  * after `server.close()` / worker `close()` finishes draining.

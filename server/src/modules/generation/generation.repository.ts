@@ -169,6 +169,18 @@ export const generationRepository = {
   },
 
   /**
+   * Worker-only projection: just the fields the BullMQ job needs to make
+   * decisions (status + meshyTaskId stashed in metadata.generation).
+   * Smaller than `findProductForGeneration` because the worker doesn't
+   * need name/slug/photoUrls/glbUrl.
+   */
+  findProductForJob: (brandId: string, productId: string) =>
+    prisma.product.findFirst({
+      where: { id: productId, brandId, deletedAt: null },
+      select: { id: true, status: true, metadata: true },
+    }),
+
+  /**
    * Lightweight projection for the GET /generation-status endpoint.
    */
   getGenerationStatus: (brandId: string, productId: string) =>

@@ -136,4 +136,40 @@ describe('Tenant Isolation (CRITICAL)', () => {
       .set('Authorization', `Bearer ${tampered}`)
       .expect(401);
   });
+
+  // Generation routes (Week 5 Day 5+) — service throws NotFoundError BEFORE
+  // any external call (Meshy / Redis / S3), so these tests run cleanly in CI
+  // without external services configured.
+  it('Brand B cannot trigger generation for Brand A’s product', async () => {
+    const created = await request(app)
+      .post('/v1/products')
+      .set('Authorization', `Bearer ${brandA.token}`)
+      .send({ name: 'Madrid Lamp', slug: 'madrid-lamp' });
+
+    const productId = created.body.product.id;
+
+    const res = await request(app)
+      .post(`/v1/products/${productId}/generate`)
+      .set('Authorization', `Bearer ${brandB.token}`)
+      .send({ photoUrls: ['https://example.com/madrid-lamp.jpg'] })
+      .expect(404);
+
+    expect(res.body.error).toBe('NOT_FOUND');
+  });
+
+  it('Brand B cannot read Brand A’s generation status', async () => {
+    const created = await request(app)
+      .post('/v1/products')
+      .set('Authorization', `Bearer ${brandA.token}`)
+      .send({ name: 'Athens Chair', slug: 'athens-chair' });
+
+    const productId = created.body.product.id;
+
+    const res = await request(app)
+      .get(`/v1/products/${productId}/generation-status`)
+      .set('Authorization', `Bearer ${brandB.token}`)
+      .expect(404);
+
+    expect(res.body.error).toBe('NOT_FOUND');
+  });
 });
