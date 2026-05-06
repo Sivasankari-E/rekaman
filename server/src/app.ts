@@ -12,6 +12,7 @@ import { productsRoutes } from './modules/products/products.routes.js';
 import { apiKeysRoutes } from './modules/apiKeys/apiKeys.routes.js';
 import { publicArRoutes } from './modules/publicAr/publicAr.routes.js';
 import { arSessionsRoutes } from './modules/arSessions/arSessions.routes.js';
+import { generationRoutes } from './modules/generation/generation.routes.js';
 import { prisma } from './shared/db.js';
 import { NotFoundError } from './shared/errors.js';
 
@@ -99,6 +100,11 @@ export function createApp(): Express {
   app.use('/v1/auth', authRoutes);
   app.use('/v1/products', productsRoutes);
   app.use('/v1/api-keys', apiKeysRoutes);
+  // Generation routes share the `/v1/products/:productId/...` prefix with
+  // productsRoutes but live in their own module — mount at `/v1` so the
+  // router's internal paths (e.g. `/products/:productId/generate`) compose
+  // cleanly without coupling the two modules.
+  app.use('/v1', generationRoutes);
 
   // 404 for unmatched routes
   app.use((_req, _res, next) => {

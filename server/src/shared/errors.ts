@@ -107,6 +107,13 @@ export class SlugAlreadyExistsError extends DomainError {
   }
 }
 
+// ── 402 Payment Required ──
+
+export class PaymentRequiredError extends DomainError {
+  readonly code = 'PAYMENT_REQUIRED' as const;
+  readonly status = 402;
+}
+
 // ── 429 Rate Limit ──
 
 export class RateLimitExceededError extends DomainError {
@@ -115,5 +122,29 @@ export class RateLimitExceededError extends DomainError {
 
   constructor() {
     super('Too many requests, please try again later');
+  }
+}
+
+// ── 502 External Service ──
+
+/**
+ * Raised when an upstream service (Meshy, S3, Razorpay, Replicate) fails for
+ * any reason: network error, malformed response, server-side 5xx, etc.
+ *
+ * The `service` tag allows the error handler / Sentry to group failures by
+ * upstream rather than burying them all under "EXTERNAL_SERVICE_ERROR".
+ *
+ * Per CLAUDE.md → External API Boundaries: client modules must catch
+ * underlying SDK/fetch errors and rethrow as this typed error so the public
+ * HTTP surface stays clean (no 500 leaks from third-party SDKs).
+ */
+export class ExternalServiceError extends DomainError {
+  readonly code = 'EXTERNAL_SERVICE_ERROR' as const;
+  readonly status = 502;
+  readonly service: string;
+
+  constructor(service: string, message: string, details?: Record<string, unknown>) {
+    super(`[${service}] ${message}`, details);
+    this.service = service;
   }
 }
