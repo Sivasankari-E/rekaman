@@ -1,5 +1,5 @@
 # Rekaman — Spatial Commerce AR Platform
-## Project Context for Claude (v5.10)
+## Project Context for Claude (v5.12)
 
 > **Single source of truth.** This file is loaded into every Claude conversation about Rekaman. Update at the end of each sprint and after every major strategic shift. Companion document: `REKAMAN_ROADMAP.md` (long-horizon vision).
 
@@ -1710,65 +1710,92 @@ rekaman/
 
 *Update every Sunday and after every major milestone.*
 
-- **Week/Month:** Week 5, Month 2
-- **Last completed:** Week 4 — Full production stack live and verified end-to-end on Android Chrome + iOS Safari. SDK ships from CloudFront (one `<script>` + one `<div>` integration), public AR endpoint on Railway, events ingestion via sendBeacon, demo on Vercel. v3 schema hooks (arMode, ProductAsset, ConversionEvent, OutboundWebhook tables, /v1/ versioning).
-- **Currently working on:** Week 5 closed — pipeline fully self-serve on prod. Both deferred ops items resolved May 9: Railway worker subscribed (after Start Command fix `pnpm --filter @rekaman/server start:worker`), products S3 bucket public-readable (Phase 1 Path A bucket policy applied + CORS allow `*` already configured + AWS Budgets `Rekaman monthly` $5/mo @ 85%/100% alert active). Final e2e ran 100% on prod with zero local processes — `cmou3lwe9000337mk8223jby3` reached READY in ~3 min, 30 Meshy credits, 13.5 MB GLB at a permanent public URL. Razorpay sole-prop signup started (KYC pending). Now in Day 7 sales execution: demo video, one-pager PDF, 50-brand outreach list, 30 cold emails. Goal: 1 verbal commit before Week 6.
+- **Week/Month:** Entering Week 6, Month 2 (May 12-18, 2026)
+- **Last completed:** Week 5 — Full Phase 1 technical pipeline live and proven end-to-end on prod (May 9 e2e: photo → Meshy → S3 → READY in 93s, 30 credits, canonical 13.5 MB armchair GLB shipped). All operational items resolved: Railway worker subscribed, products S3 public-read, AWS Budgets alert live, IAM hygiene migrated to scoped users, custom domains for `api.rekaman.io` + `cdn.rekaman.io`. Day 7 strategic shift confirmed (May 7): **Plan A locked** — hybrid ship-now / polish-in-parallel approach. Pvt Ltd structure decided (founder + mother as 2nd director, 99/1% shareholding, Razorpay Rize as service partner, Rekaman Spatial Private Limited as primary name). GST registration deferred to Month 4-5 (Phase 2 trigger). Brand identity decisions made (wordmark logo, Fraunces+Inter typography, Rekaman purple `#5A4FCF` accent, social handles to reserve). Demo helmet bug identified — fix scheduled Week 6 Day 1.
+- **Currently working on:** Week 6 Foundations sprint — (1) demo fix to point at real Meshy armchair GLB, (2) ultra-minimal `rekaman.io` for Razorpay website verification, (3) Razorpay Rize Pvt Ltd registration started, (4) brand identity assets (logo SVG files, LinkedIn page, social handles), (5) `server/scripts/onboard-brand.mjs` for Concierge MVP, (6) 50-brand outreach list + 30 cold emails. Goal: first paying brand by end of Week 7.
 - **Blocked on:** Nothing
-- **Next milestone:** Week 6 — first ₹3,999/mo paying brand
+- **Next milestone:** Week 7 — first ₹3,999/mo paying brand onboarded via Concierge MVP
 - **Current MRR:** ₹0
 - **Paying clients:** 0
 - **Deployed URLs:**
   - API: https://api.rekaman.io ✅ (Railway, custom domain live since Week 5; old `api-production-0a54.up.railway.app` still routes for backward compat)
-  - Worker: deployed on Railway (no public URL — internal only, idle until Week 5 Meshy work)
+  - Worker: deployed on Railway (no public URL — internal only, queue-driven). Subscribed to `bull:generation` since Week 5 close.
   - SDK CDN: https://cdn.rekaman.io ✅ (CloudFront → S3 ap-south-1, ACM wildcard cert `*.rekaman.io`; old `d3ens3al2ub47k.cloudfront.net` still routes for backward compat)
     - `/v1/sdk.js` — main bundle, 7.1 KB raw / 3.0 KB gzipped (loads chunks via `<script>` tag injection)
-    - `/v1/placement-engine-v3.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped (current). v1 deprecated (dom-overlay bug), v2 deprecated (Railway URL baked in). Older versions remain in S3 as fallbacks for SDKs still in browser cache.
-  - Demo: https://rekaman-demo.vercel.app (Vercel, auto-deploys from `main` via git integration). Live AR demo: `/oslo-sofa`. Custom domain `demo.rekaman.io` pending.
-  - Dashboard: not live (Week 7)
-  - Landing: not live
+    - `/v1/placement-engine-v4.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped (current). v1 deprecated (dom-overlay bug), v2 deprecated (Railway URL baked in), v3 deprecated (Week 6 Day 1: model floated below floor + followed camera). Older versions remain in S3 as fallbacks for SDKs still in browser cache.
+  - Products S3: `rekaman-products-prod-975050270919-ap-south-1-an` ✅ public-read (Phase 1 Path A); canonical demo GLB at `cmou3lwe9000337mk8223jby3/v1/model.glb`
+  - Demo: https://rekaman-demo.vercel.app/oslo-sofa ✅ shows real Meshy armchair AR (Week 6 Day 1 fix shipped May 7 evening). Custom domain `demo.rekaman.io` pending DNS.
+  - Dashboard: not live (Week 7-12 Plan A buildout)
+  - Landing: not live (Week 6 ultra-minimal version)
+  - Razorpay (test): https://dashboard.razorpay.com — sole-prop merchant `SIzmIUZLAwBxmz`, test keys active, live mode locked pending website verification (Week 6 unblocker)
 
 ---
 
 ## 🌐 Live URLs
 
-- Landing: `rekaman.io` (Week 7+)
-- Dashboard: `dashboard.rekaman.io` (Week 7+)
+- Landing: `rekaman.io` (Week 6 ultra-minimal launch — 6 sections + 4 compliance pages)
+- Dashboard: `dashboard.rekaman.io` (Week 7+ Plan A)
 - API: `api.rekaman.io` ✅ live (Railway, TLS via Let's Encrypt)
 - CDN: `cdn.rekaman.io` ✅ live (CloudFront, TLS via ACM `*.rekaman.io` cert)
-- Demo: `demo.rekaman.io` (Vercel, Week 5 — currently still on `rekaman-demo.vercel.app`)
+- Demo: `demo.rekaman.io` (Vercel, Week 6 — currently still on `rekaman-demo.vercel.app`)
 - Status: `status.rekaman.io` (Phase 2 / Month 5)
 - Docs: `docs.rekaman.io` (Phase 2 / Month 5)
 - SDK global: `window.Rekaman`
-- GitHub: private monorepo
+- GitHub: private monorepo at `github.com/rekaman` (org reserved Week 6)
 
 ---
 
-## ✅ Immediate Next Actions (Week 4)
+## ✅ Immediate Next Actions (Week 6 — May 12-18, 2026)
 
-1. **Add 5 schema hooks** before SDK code (~70 min):
-   - `arMode` and `category` columns on Product
-   - `ProductAsset` table
-   - `ConversionEvent` table
-   - Restructure routes to `/v1/` prefix
-   - `OutboundWebhook` + `OutboundWebhookDelivery` tables
+### Day 1 (Mon May 12) — Unblock everything
 
-2. **Build API Keys module** (~60 min)
+1. **Razorpay Rize signup** (~15 min) — visit `razorpay.com/rize/company-registration/private-limited/`, fill inquiry form, choose "Private Limited" + "₹10,000 paid-up capital", submit 4 name preferences (Rekaman Spatial / Commerce / Technologies / Innovations). Their team calls within 24 hrs.
+2. **Demo fix** ✅ **DONE May 7 evening** (~2.5 hrs actual). Five bugs fixed in one shot — see v5.12 footer for full root-cause analysis. Shipped: (a) `apps/demo/public/oslo-sofa.html` polished with real Pexels armchair photo + brand bar + thumbnails + EMI/strikethrough price + trust badges + "Powered by Rekaman" attribution, (b) `server/scripts/update-demo-product.mjs` ran clean — demo brand's `oslo-sofa` product now points at canonical Meshy armchair GLB with name="Oslo Lounge Chair" + dimensions=76×78×86 cm, (c) SDK button-flicker fix in `index.ts` (defer button injection until product fetch resolves), (d) placement-engine bumped v3 → v4 with two AR fixes (model now sits on the floor via Group-wrapper preserving ground-correction; model no longer follows camera via `setReferenceSpaceType('local-floor')`). SDK rebuilt + deployed to S3 + CloudFront invalidated under `--profile rekaman`. Phone verification by founder on Android Chrome pending.
+3. **Mother's documents** (~30 min) — collect PAN, Aadhaar, recent photo, address proof (her bank statement or utility bill). Scan to PDF, store in password manager.
+4. **Logo selection** (10 min) — pick from 4 wordmark options (recommended: Spatial Cube). Generate SVG files at all sizes.
 
-3. **Build Public AR endpoint** (~45 min)
+### Day 2-3 (Tue-Wed May 13-14) — Marketing site
 
-4. **Build Events ingestion endpoint** (~30 min)
+5. **Marketing site `rekaman.io`** (~6-8 hours total across 2 days):
+   - Single-page Next.js on Vercel (extend existing demo project OR new Next.js app)
+   - 7 sections per spec (Nav/Hero/Problem/Solution/How-it-works/Pricing/Trust/Footer)
+   - 4 compliance pages (Privacy/Terms/Refund/Contact via Termly templates)
+   - Apply chosen logo + Fraunces+Inter typography + Rekaman purple `#5A4FCF` accent
+   - Deploy to `rekaman.io` apex domain (DNS already wired)
+6. **Razorpay website verification** (~5 min) — once site is live, submit `https://rekaman.io` in Razorpay Dashboard → Account & Settings → Business website details. 24-48 hr review.
 
-5. **Create SDK package** with esbuild config (~45 min)
+### Day 3-4 (Wed-Thu May 14-15) — Brand identity
 
-6. **Write SDK source code** — main bundle + placement chunk (~90 min)
+7. **LinkedIn Company Page** (~15 min) — create page, upload logo, write description, add founder profile. Cover image: clean AR demo screenshot (real armchair, NOT helmet).
+8. **Reserve social handles** (~30 min) — X (`@rekaman_io`), GitHub org (`github.com/rekaman`), YouTube channel (`@rekaman`). Even dormant — prevents squatters.
+9. **`server/scripts/onboard-brand.mjs`** (~3-4 hours) — YAML-driven brand provisioning script per Concierge MVP playbook. Test against staging brand. Output: brand summary, API key, integration snippet email.
+10. **`onboarding-intake-form.html`** OR Google Form (~30 min) — 6-question form for brands to fill before founder runs onboard-brand.mjs.
 
-7. **Set up CloudFront + S3** (~90 min)
+### Day 5-7 (Fri-Sun May 16-18) — Sales execution
 
-8. **Deploy demo HTML page** (~30 min)
+11. **50-brand outreach list** (~3 hours) — Indian e-commerce brands in furniture, decor, eyewear, jewelry. Chennai/Bangalore/Mumbai focus. Spreadsheet with: brand name, owner email, LinkedIn, "why I picked them" column.
+12. **Demo video recording** (~2 hours) — 60-90s walkthrough on Android phone showing real armchair AR. Upload to YouTube unlisted.
+13. **30 cold emails sent** (~3 hours) — personalized, demo URL + YouTube link, founder voice (no marketing speak). Track replies in spreadsheet.
+14. **15 LinkedIn DMs** (~1 hour) — founder-to-founder tone, link to demo + YouTube.
+15. **Book 3-5 demo calls for Week 7** — even if 1 reply, that's a win for Week 6.
 
-9. **Test end-to-end** on Android Chrome + iOS Safari
+### Background (in flight, no founder action this week)
 
-10. **Update CLAUDE.md** with Week 4 completion status
+- Razorpay Rize files DSC for both directors (Day 3-5)
+- Razorpay Rize files SPICe+ Part A for name approval (Day 5-7)
+- Razorpay reviews `rekaman.io` for verification (Day 3-4 after submission)
+
+### Week 6 success criteria
+
+- [ ] Demo page shows real armchair (no helmet)
+- [ ] `rekaman.io` is live and looks credible
+- [ ] Razorpay live mode unlocked (live keys received)
+- [ ] Pvt Ltd name approval received (Razorpay Rize confirms)
+- [ ] LinkedIn Company Page live with founder profile
+- [ ] 30+ cold emails sent
+- [ ] 3-5 demo calls booked for Week 7
+
+If 5 of 7 criteria are met by Sunday May 18, Week 6 is a win. Plan A stays on track.
 
 ---
 
@@ -1795,19 +1822,529 @@ rekaman/
 
 ---
 
-## 🏢 Company Registration Status
+## 🏢 Company Registration — Plan A (locked May 7, 2026)
 
-Currently a **sole proprietor by default** (automatic in India). Pvt Ltd registration deferred to Week 6-8 when first paying customer is closing.
+Currently a **sole proprietor by default** (auto in India). Razorpay merchant account is registered as `SIVASANKARI E` with merchant ID `SIzmIUZLAwBxmz`. Test keys live (`rzp_test_Sm9b5evZZn5mWD`); live mode is gated on website verification (Razorpay won't issue live keys until `rekaman.io` is approved — Week 6).
 
-**Registration plan:**
-- **Week 6-8:** Incorporate Pvt Ltd in Tamil Nadu (~₹15-25K, 5-7 days)
-- **Immediately after:** Apply for DPIIT Startup India recognition (free, 1-3 days)
-- **Week 10-12:** Open Razorpay business account, file trademark for "Rekaman"
-- **No international entity** for Year 1 — Indian Pvt Ltd is correct starting structure
+### Structure decision: **Pvt Ltd with mother as 2nd director**
+
+| Field | Value |
+|---|---|
+| Entity type | Private Limited Company |
+| Director 1 | Sivasankari E (founder, 99% shareholding) |
+| Director 2 | Mother (1% shareholding, passive role) |
+| Registered office | Chennai home address |
+| Authorised capital | ₹1,00,000 |
+| Paid-up capital | ₹10,000 (₹9,900 founder + ₹100 mother) |
+| Service partner | **Razorpay Rize** (chosen over Vakilsearch) |
+| Total cost | ~₹6,500 - ₹8,500 (₹1,499 + Govt fee + stamps) |
+| Timeline | 12-18 days from form submission to bank current account |
+
+**Why Pvt Ltd over OPC:** investors prefer it; mother as passive 2nd director adds zero ongoing complexity (signs 2-3 docs at incorporation, no quarterly involvement).
+
+**Why Razorpay Rize over Vakilsearch:** (1) automatic Razorpay merchant migration sole-prop → Pvt Ltd (no manual support tickets), (2) ~$11K cloud credits perk (AWS/GCP/Azure/OpenAI), (3) better post-incorporation handholding, (4) Vakilsearch has reputation issues with aggressive upselling per Quora/Reddit. The ₹500-1,500 savings with Vakilsearch isn't worth the friction.
+
+### Name preferences (in order — submit all 4 to MCA)
+
+1. **Rekaman Spatial Private Limited** (top pick — distinctive, ties to "Spatial Commerce" tagline)
+2. Rekaman Commerce Private Limited
+3. Rekaman Technologies Private Limited
+4. Rekaman Innovations Private Limited (backup)
+
+**Brand name stays "Rekaman"** everywhere customer-facing — only legal docs / invoices / Razorpay checkout show "Rekaman Spatial Private Limited."
+
+### GST decision: **DEFER to Month 4-5 (Phase 2 start)**
+
+Skipping GST in Phase 1 by deliberate choice, NOT oversight. Rationale:
+- TN service threshold is ₹20L turnover — months away even at best case
+- Registering early = ~₹30-50K/year in compliance overhead (monthly GSTR-1, GSTR-3B, late penalties of ₹50-100/day per missed return) for Input Tax Credit savings of ~₹3-5K/month that only become meaningful at Phase 2 infra spend
+- Customers (early Indian SMB e-commerce brands) don't require GST-registered vendors at ₹3,999 ticket size
+- **Trigger to register:** ~₹15L turnover (~Phase 2, Month 4-5) or first inter-state enterprise customer
+
+Razorpay Rize can add GST registration later for ₹1,500-2,000 when needed.
+
+### Post-incorporation timeline (what happens automatically)
+
+| Day | Event | Owner |
+|---|---|---|
+| Day 0 | Sign up + pay Razorpay Rize | Founder |
+| Day 1-2 | Submit docs (PAN, Aadhaar, mother's PAN/Aadhaar, photos, address proof) | Founder + mother |
+| Day 3-5 | DSC (Digital Signature Certificate) for both directors via Aadhaar e-KYC | Razorpay Rize files; founder + mother sign OTPs |
+| Day 5-7 | SPICe+ Part A (name approval) filed at MCA | Razorpay Rize |
+| Day 8-12 | SPICe+ Part B + MOA + AOA filed; DIN allocated; PAN + TAN applied | Razorpay Rize |
+| Day 10-15 | Certificate of Incorporation (COI) issued by MCA | Issued via email |
+| Day 13-18 | Open ICICI/HDFC current account in company name (video KYC) | Founder |
+| Day 15-20 | Subscription money deposited (₹9,900 founder + ₹100 mother → company current account) | Founder transfers from savings |
+| Day 20-25 | Auditor signs INC-20A confirming receipt of subscription | Razorpay Rize coordinates with bundled CA |
+| Day 25-30 | INC-20A filed at MCA (Commencement of Business declaration) | Razorpay Rize |
+| Day 30+ | Statutory auditor formally appointed via Board Resolution | Razorpay Rize compliance bundle (₹6-9K/year) |
+| Post-COI | Razorpay merchant account migrated sole-prop → Pvt Ltd | Razorpay Rize emails Razorpay support; brand label changes from `SIVASANKARI E` to `REKAMAN PRIVATE LIMITED` |
+
+**Travel required: zero.** Entire process is 100% online including bank account video KYC. ROC Chennai handles the filing locally (no out-of-state coordination).
+
+### What INC-20A is (and why it doesn't matter day-to-day)
+
+INC-20A is a one-time MCA declaration that the company has actually started operating (subscription money received in current account). Without it filed within 180 days of COI, the company can't legally raise loans / sign contracts / issue invoices. **Razorpay Rize includes INC-20A in their package** — founder signs once with DSC, no manual portal work. Late penalty if missed: ₹50,000 + ₹1,000/day.
+
+### What the Statutory Auditor does (and what to give them when)
+
+A Pvt Ltd legally requires an appointed auditor (CA firm) within 30 days of incorporation. For pre-revenue startups in Year 1, their workload is light: sign INC-20A once at start, then once a year (March-September 2027) they verify books, sign annual filings (AOC-4, MGT-7), prepare Income Tax Return (ITR-6). Bundle cost: **₹6,000-9,000/year** (Razorpay Rize compliance plan, recommended for minimum-hassle path).
+
+**Founder responsibility per FY:** maintain a Google Drive folder `Rekaman/Finance/FY-2026-27/` and dump every bill, invoice, bank statement, Razorpay payout report into it as it comes in. In April 2027, the auditor accesses the folder and prepares everything. No active monthly engagement needed.
+
+### Phase 1.5: post-COI items (Months 2-3, after Pvt Ltd is live)
+
+- Apply for **DPIIT Startup India recognition** (free online, 1-3 days, gives tax benefits + faster GST registration when needed)
+- Apply for **MSME / Udyam registration** (free online, ~10 min, priority bank loans + govt subsidies)
+- File **trademark for "Rekaman"** wordmark (Razorpay Rize add-on or via local TM agent ~₹6,500)
+
+**No international entity** for Year 1 — Indian Pvt Ltd is the correct starting structure. International expansion (Stripe + multi-currency + UK/US/UAE customers) is a Phase 4 problem (Months 13-18).
 
 ---
 
-*Last updated: May 9, 2026 | Version 5.10*
+## 🎨 Brand Identity (locked May 7, 2026)
+
+### Logo direction
+
+**Wordmark approach** — full custom design deferred to Phase 2-3 when revenue justifies a real designer (₹15-50K). For Phase 1, distinctive wordmark in a free Google Font is significantly better than mediocre custom logo.
+
+Four candidate wordmarks designed (Claude-generated SVG, May 7 2026):
+1. **Minimalist** — `rekaman` Inter Medium + small purple dot accent (`#5A4FCF`). Linear/Vercel feel.
+2. **Bold Square** — `rekaman` + small electric-blue square (`#2563EB`). Confident SaaS look.
+3. **Spatial Cube** — isometric cube outline + `rekaman` wordmark, purple `#5A4FCF`. AR-native, doubles as app icon for `dashboard.rekaman.io`.
+4. **Slash Mono** — `rekaman/` JetBrains Mono with teal slash `#14B8A6`. Developer / API-first feel.
+
+**Selected: TBD (Spatial Cube recommended — strongest brand-product fit for AR/3D platform; cube alone works as favicon/social avatar).**
+
+When chosen, generate SVG files at multiple sizes:
+- `rekaman-wordmark.svg` (full logo, light bg)
+- `rekaman-wordmark-dark.svg` (full logo, dark bg)
+- `rekaman-icon.svg` (cube only, 64×64 / 256×256)
+- `rekaman-favicon.svg` (cube only, 32×32 simplified)
+- `rekaman-favicon.ico` (legacy 16×16 fallback)
+
+### Colour system
+
+- **Primary text**: `#0F0F0F` (near-black, not pure black — softer)
+- **Secondary text**: `#6B6B6B`
+- **Faint text**: `#A0A0A0`
+- **Background light**: `#FAFAF7` (warm white) or `#FFFFFF`
+- **Background dark**: `#0F0F0F`
+- **Accent (Rekaman purple)**: `#5A4FCF` (light bg) / `#8B7FFF` (dark bg)
+- **Success**: `#2F7D4F`
+- **Warning**: `#E0A030`
+- **Danger**: `#D4493B`
+
+### Typography system
+
+- **Display / headlines**: Fraunces (serif, free Google Font, 9-144 optical sizing) — for marketing site H1/H2 and editorial moments
+- **UI / body**: Inter (sans, free Google Font, 400/500/600 weights only) — for dashboard, body text, buttons
+- **Mono / code**: JetBrains Mono — for code samples, API docs, dev-facing surfaces
+
+### Social handles to reserve (Week 6 — even if dormant)
+
+| Platform | Handle | Status | Priority |
+|---|---|---|---|
+| LinkedIn Company Page | `linkedin.com/company/rekaman` | TBD | ✅ Week 6 — set up properly with logo, description, founder profile |
+| X / Twitter | `@rekaman_io` (fallback `@rekamanhq`, `@getrekaman`) | TBD | ✅ Week 6 — reserve handle, post later |
+| GitHub Org | `github.com/rekaman` | TBD | ✅ Week 6 — even if all repos stay private, prevents squatters |
+| YouTube channel | `@rekaman` | TBD | ✅ Week 6 — for unlisted demo videos initially |
+| Instagram | `@rekaman.io` | Skip Phase 1 | ⏸️ Phase 3+ if consumer-facing AR launches |
+| Facebook Page | n/a | Skip permanently | ❌ Wrong audience for B2B SaaS |
+| Product Hunt profile | `rekaman` | Reserve only | ⏸️ Big launch lever for Month 5-6 (Phase 2) |
+
+LinkedIn page setup (15 min, free):
+- Page name: **Rekaman** (brand name, not legal name)
+- URL: `linkedin.com/company/rekaman`
+- Industry: Software Development
+- Company size: 1-10 employees
+- Tagline: "Capture products. Place them anywhere."
+- Description: 2 paragraphs from `rekaman.io` hero copy
+- Logo: chosen wordmark
+- Cover: clean screenshot of AR demo (real Meshy armchair, NOT helmet)
+- Add founder@rekaman.io profile as employee → instant credibility signal
+- Posting cadence: 1×/week minimum (build-in-public tone)
+
+---
+
+## 📝 Marketing Site (`rekaman.io`) — Week 6 Spec
+
+Single-page Next.js on Vercel, ultra-minimal but proper compliance pages. Goal: pass Razorpay website verification + look credible enough for cold-emailed brands to take seriously. Time budget: ~6-8 hours total.
+
+### Page structure
+
+| Section | Content | Approx height |
+|---|---|---|
+| **Nav** | Logo (chosen wordmark) · Pricing · Demo · Login (placeholder for Week 7) | 64px |
+| **Hero** | "Capture products. Place them anywhere." subhead "AR for any e-commerce store. Works on Shopify, WooCommerce, custom — one line of code." CTA: "See live demo" → links to demo URL | 600px |
+| **Problem** | "25-30% of online orders are returned because shoppers can't tell if a product fits." with the ₹2,000-5,000 per-return cost stat | 400px |
+| **Solution** | 3-column: 📸 Upload photo · 🤖 AI generates 3D model · 🛍️ Shoppers see it in their room | 400px |
+| **How it works** | One `<script>` tag + one `<div>` per product page · Live code snippet | 500px |
+| **Pricing** | 3-tier table (Starter ₹3,999 · Pro ₹12,999 · Enterprise custom) | 500px |
+| **Trust** | "Built in Chennai · Open APIs · DPDP-compliant" — small "founder@rekaman.io · WhatsApp +91 8248 524449" | 200px |
+| **Footer** | Privacy · Terms · Refund Policy · Contact · © 2026 Rekaman Private Limited | 60px |
+
+### Compliance pages (mandatory for Razorpay verification)
+
+| Page | Path | Source |
+|---|---|---|
+| Privacy Policy | `/privacy` | Termly free template, customize for SaaS B2B |
+| Terms of Service | `/terms` | Termly free template, customize for SaaS subscription |
+| Refund Policy | `/refund` | Custom — pro-rata refund within 7 days, no refund after AR sessions consumed |
+| Contact | `/contact` | Email + WhatsApp + registered business address (post-COI) |
+
+Each ~15-20 min to draft. No legal review needed for MVP — these are standard SaaS templates. Re-review with CA in Phase 2 when first enterprise deal needs vetted contracts.
+
+### Razorpay website verification submission
+
+After deploying `rekaman.io`:
+- Razorpay Dashboard → Account & Settings → Business website details → Add website
+- Submit: `https://rekaman.io`
+- Razorpay reviews 24-48 hr, checks for: (a) clear product/service description, (b) pricing visible, (c) contact info, (d) Terms + Privacy + Refund Policy live, (e) HTTPS enabled
+- On approval → live keys issued automatically → can collect real money via Razorpay Subscriptions / Payment Links
+
+---
+
+## 🎬 Demo Strategy — fix before any sales outreach
+
+### Current state (broken)
+
+`rekaman-demo.vercel.app/oslo-sofa` exists but loads the **Week 1-2 helmet WebXR test asset**, NOT a real product. This is unshippable to brands. Fix is mandatory before any cold email.
+
+### Target state (Week 6 Day 1)
+
+A polished Shopify-Plus-style product page at `demo.rekaman.io/oslo-lounge-chair` (or kept at `/oslo-sofa` URL for backwards compat) showing:
+- Real product photography (Pexels armchair `https://images.pexels.com/photos/447592/...` — same source the Meshy GLB was generated from)
+- Premium e-commerce styling (Fraunces serif headline + Inter body, warm white background, proper price block, swatches, trust badges)
+- Embedded Rekaman SDK button — taps open AR with the **real Meshy-generated armchair GLB** (`cmou3lwe9000337mk8223jby3`)
+- Subtle "Powered by Rekaman" attribution at bottom
+
+Reference HTML written: `rekaman-demo-product-page.html` (May 7, 2026 deliverable). Aesthetic target: Urban Ladder / Pepperfry premium product pages — familiar to Indian brand owners, not weird/experimental.
+
+### Deployment + DB swap procedure
+
+1. **Replace existing `apps/demo/oslo-sofa/page.html`** (or whatever path the demo project uses) with the new HTML
+2. **Update product slug + name** to `oslo-lounge-chair` (matching the actual armchair GLB — current `oslo-sofa` is misleading because the model is an armchair, not a sofa)
+3. **Update DB**: in the demo brand `sdk-demo-brand-3722`, either:
+   - Option A (simple): UPDATE the existing `oslo-sofa` product → set `glbUrl` to the real Meshy URL (`https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/brands/cmotyhdv20002uig5vxldw4g8/products/cmou3lwe9000337mk8223jby3/v1/model.glb`), set `name` to "Oslo Lounge Chair"
+   - Option B (cleaner): create new product with slug `oslo-lounge-chair`, point to real GLB, deprecate old `oslo-sofa` row
+4. **Update demo HTML** `data-rk-key` to the demo brand's API key (already deployed) and `data-rk-product` to match the slug from step 3
+5. **Deploy to Vercel** via existing demo project (auto-deploys on `git push`)
+6. **Verify on real device**: open `demo.rekaman.io/oslo-lounge-chair` on Android Chrome → tap "View in your room" → confirm the AR shows the real armchair (not helmet)
+
+### Demo video (Week 6 deliverable)
+
+After demo page is fixed, record 60-90 second walkthrough on Android phone:
+- 0-10s: open `demo.rekaman.io/oslo-lounge-chair` in Chrome — show product page looks like a real e-commerce store
+- 10-30s: tap "View in your room" → camera opens → tap-to-place → armchair appears at real scale
+- 30-50s: walk around it in real room — show realism + scale
+- 50-80s: cut to terminal showing the integration code (`<script>` + `<div>`) — emphasize "this is everything brands add"
+- 80-90s: founder voiceover: "Built by Sivasankari from Chennai. Want this on your store? `founder@rekaman.io`"
+
+Upload to YouTube (unlisted), embed link in cold emails + LinkedIn posts. Don't make it public yet.
+
+---
+
+## 🤝 Concierge MVP — Onboarding Playbook (Week 6-8)
+
+The technical pipeline (auth, products, generation, SDK, public AR endpoint, S3 GLB hosting) is feature-complete for Phase 1. Brand dashboard ships Week 7-8. Until then, founder personally onboards each brand using existing API endpoints. This IS the bug-handling strategy: brands never see the half-built dashboard.
+
+### The 5-step process
+
+#### Step 1 — Onboarding intake (Google Form, 15 min)
+
+Send brand a Google Form collecting:
+- Brand name (legal/registered)
+- Brand slug (auto-suggested, e.g. `woodcraft-chennai`)
+- Website URL
+- Owner email (for billing)
+- Preferred plan (Starter ₹3,999 / Pro ₹12,999)
+- Top 5 products with names + 1-3 photo URLs each
+
+#### Step 2 — Manual brand provisioning (founder, 10 min)
+
+New script to write Week 6: `server/scripts/onboard-brand.mjs`. YAML-driven, idempotent, uses prod API endpoints (no direct DB writes — proves API surface works for future dashboard).
+
+```yaml
+# brand-onboarding/woodcraft-chennai.yaml
+brand:
+  name: "Woodcraft Chennai"
+  slug: "woodcraft-chennai"
+  ownerEmail: "owner@woodcraftchennai.com"
+  ownerPassword: "<generate temp password — they reset on first login>"
+  website: "woodcraftchennai.com"
+  plan: "starter"  # informational only until subscription module ships Week 10
+products:
+  - name: "Royal Sheesham Coffee Table"
+    slug: "royal-sheesham-coffee-table"
+    arMode: "placement"
+    category: "furniture"
+    photoUrl: "https://woodcraftchennai.com/cdn/sheesham-table.jpg"
+  - name: "Solid Teak 3-Seater Sofa"
+    slug: "solid-teak-sofa"
+    arMode: "placement"
+    category: "furniture"
+    photoUrl: "https://woodcraftchennai.com/cdn/teak-sofa.jpg"
+  # ... up to 5
+```
+
+Script execution:
+```bash
+node --env-file=.env server/scripts/onboard-brand.mjs brand-onboarding/woodcraft-chennai.yaml
+```
+
+Script flow:
+1. `POST /v1/auth/signup` → create owner user + brand
+2. `POST /v1/api-keys` (with admin JWT) → create live API key, save in output
+3. For each product: `POST /v1/products` (creates row) → `POST /v1/products/:id/generate` (queues Meshy job with photo URL)
+4. Poll `GET /v1/products/:id/generation-status` every 10s until all READY (timeout 5 min × N products)
+5. Output: brand summary, API key, integration snippet for email
+
+#### Step 3 — Send integration snippet (5 min, email)
+
+Email template (HTML email or plain text):
+
+```
+Subject: Your AR is ready — 2-line install for [Brand Name]
+
+Hi [Owner],
+
+Your 5 products are now AR-ready. Add these 2 lines to your store
+to enable "View in your room" on every product page:
+
+1) Add this ONCE to theme.liquid (Shopify) / footer.php (WooCommerce) /
+   layout file (custom site), just before </body>:
+
+   <script src="https://cdn.rekaman.io/v1/sdk.js" defer></script>
+
+2) Add this WHERE you want the AR button to appear in your product
+   page template (use your platform's product slug variable):
+
+   Shopify:    <div data-rk-product="{{ product.handle }}"
+                    data-rk-key="rk_live_woodcraft_xxxxx"></div>
+
+   WooCommerce: <div data-rk-product="<?php echo $product->get_slug(); ?>"
+                    data-rk-key="rk_live_woodcraft_xxxxx"></div>
+
+   Custom:     <div data-rk-product={product.slug}
+                    data-rk-key="rk_live_woodcraft_xxxxx"></div>
+
+That's it. The SDK auto-fetches the right 3D model for whichever
+product page the shopper is on.
+
+Want me to install it for you on a Zoom call? Reply with a 30-min
+slot and I'll do it live. — Sivasankari
+```
+
+#### Step 4 — Install help (Zoom screenshare, 30-60 min)
+
+For brand's first install, founder schedules a screenshare:
+1. Walk through theme code editor (Shopify) / theme PHP files (WooCommerce) / page template (custom)
+2. Paste the snippets in correct locations
+3. Test on staging URL first (verify SDK loads, button appears)
+4. Verify on phone: tap → AR opens → real product GLB renders
+5. Push to production
+6. Final phone verification on production URL
+
+This is the "concierge" part. After brand 2-3, this becomes a written runbook + recorded video walkthrough. After brand 5, the dashboard from Week 7 replaces this entirely.
+
+#### Step 5 — Collect payment
+
+**Phase 1 (until Razorpay live mode unlocks ~Week 6):**
+- Direct UPI / bank transfer to founder's current account
+- Founder issues PDF invoice via Zoho Invoice (free tier)
+- Founder manually marks brand as `ACTIVE` in DB (Subscription table)
+- Friction: ~15 min per brand per month (acceptable up to ~5 brands)
+
+**Phase 2 (Razorpay live, before subscription module ships ~Week 10):**
+- Razorpay Dashboard → Payment Links → Create monthly recurring link (₹3,999 / ₹12,999)
+- Email link to brand
+- Razorpay handles payment + invoice + tax calculation
+- Webhook fires on payment → Week 10 subscription module (when ready) marks brand ACTIVE; until then, founder marks manually
+- Friction: ~5 min per brand per month
+
+**Phase 3 (subscription module live, ~Week 10+):**
+- Brand self-serve subscribes via dashboard
+- Razorpay subscription auto-renews monthly
+- Plan-gating middleware enforces session/product limits
+- Friction: zero
+
+---
+
+## 🗺️ Plan A — Weekly Breakdown (Week 6-12)
+
+Plan A locked May 7, 2026. Hybrid approach: ship now via Concierge MVP, polish dashboard in parallel with growing revenue. Target: ₹20-40K MRR by end of Phase 1 with 5 paying brands and self-serve dashboard live.
+
+### Week 6 (May 12-18, 2026) — Foundations + first outreach
+
+**Engineering**
+- Demo fix deployed — `demo.rekaman.io/oslo-lounge-chair` shows real Meshy armchair (not helmet)
+- Marketing site `rekaman.io` shipped (Hero, Problem, Solution, How-it-works, Pricing, Trust, Footer + 4 compliance pages)
+- `server/scripts/onboard-brand.mjs` written + tested against staging brand
+- Logo SVG files generated (chosen wordmark, all sizes)
+
+**Business**
+- Razorpay Rize signup completed Day 1 (this week) — registration in flight
+- Mother's documents collected (PAN, Aadhaar, photo, address proof)
+- LinkedIn Company Page live with logo + cover + founder profile
+- Social handles reserved (X, GitHub org, YouTube)
+- Termly compliance pages drafted (Privacy / Terms / Refund / Contact)
+- `rekaman.io` submitted to Razorpay for website verification
+
+**Sales**
+- 50 Indian e-commerce brand outreach list compiled (furniture, decor, eyewear focus — Chennai/Bangalore/Mumbai)
+- 30 cold emails sent (personalized, demo URL + 60s YouTube link)
+- 15 LinkedIn DMs sent (founder-to-founder tone)
+- 3-5 demo calls booked for Week 7
+
+### Week 7 (May 19-25) — First customer + dashboard scaffold
+
+**Engineering**
+- `dashboard.rekaman.io` Next.js 14 App Router skeleton up on Vercel
+- Auth pages (signup, login, forgot-password) — uses existing `/v1/auth/*` endpoints
+- Onboarding wizard (3-step: brand details, plan select, first product)
+- Tailwind + shadcn/ui design system locked in (matches brand colour system above)
+- Multi-brand switcher in navbar (Slack-style, even though most users have 1 brand)
+
+**Business**
+- Razorpay live mode unlocks (post website verification)
+- Test plan IDs created in Razorpay Dashboard (Starter/Pro/Enterprise)
+- Pvt Ltd registration progressing — name approval likely received
+
+**Sales**
+- 3-5 demo calls held (each ~30 min)
+- **First brand says "yes"** → onboard via Concierge MVP playbook
+- Collect first ₹3,999 via Razorpay Payment Link
+- Brand goes live with Rekaman SDK on their store
+- Daily monitoring (you check Sentry + Railway + brand's site once/day for first week)
+
+### Week 8 (May 26 - Jun 1) — Products module + COI
+
+**Engineering**
+- Dashboard products list page (table with status badges: PENDING / PROCESSING / READY / FAILED)
+- Product creation form (name, slug, category, AR mode, photo upload via S3 presigned URL)
+- Product detail page (preview, regenerate, embed code, status timeline)
+- Real-time generation status (polling, upgrade to SSE later if needed)
+
+**Business**
+- Pvt Ltd Certificate of Incorporation received from MCA
+- Mother's DSC + DIN allocated
+- ICICI/HDFC current account opened via video KYC
+- Subscription money deposited (₹10,000 total)
+- Auditor signs INC-20A (within 25 days of COI)
+- INC-20A filed at MCA
+- Razorpay account migration request emailed (sole-prop → Pvt Ltd)
+
+**Sales**
+- Continue outreach (50 more brands)
+- 2nd brand onboarded
+- First demo testimonial captured (LinkedIn post)
+
+### Week 9 (Jun 2-8) — API keys + analytics
+
+**Engineering**
+- API keys page (list, create, revoke, regenerate, last-used timestamp, usage stats)
+- Embed code generator with platform tabs (Shopify / WooCommerce / Custom)
+- Basic analytics dashboard:
+  - Sessions/day chart (last 30 days)
+  - Top products by AR engagement
+  - Placement rate (% of opens that resulted in tap-to-place)
+  - Device breakdown (Android / iOS / desktop)
+- Filtering: date range, product, device
+
+**Business**
+- Razorpay merchant account migrated to Pvt Ltd (brand label → `REKAMAN PRIVATE LIMITED` on shopper checkouts)
+- Settlement bank account switched to company current account
+- Apply for **DPIIT Startup India recognition** (free)
+- Apply for **MSME / Udyam registration** (free)
+
+**Sales**
+- 3rd brand onboarded
+- Concierge process documented as written runbook (handoff-ready when scaling)
+
+### Week 10 (Jun 9-15) — Razorpay subscriptions + plan gating
+
+**Engineering**
+- Razorpay Subscriptions API integration
+- Plan creation in Razorpay (Starter/Pro/Enterprise — recurring monthly + annual variants)
+- Subscribe flow in dashboard:
+  - Plan selection page
+  - Razorpay Checkout integration (payment method capture)
+  - Subscription created → `subscription.id` stored in `Subscription` table
+- Webhook handler for `subscription.activated`, `subscription.charged`, `subscription.cancelled`, `payment.failed`
+  - All idempotent via `InboundWebhookEvent` dedup log
+  - HMAC signature verification (hex encoding, lesson learned May 8 from Meshy webhook)
+- Plan gating middleware:
+  - `/v1/products` enforces `productLimit` from Subscription.pricingPlan
+  - SDK public endpoint `/v1/ar/...` enforces `sessionLimit` per month, returns 402 with `PaymentRequiredError` when exceeded
+- Failed payment dunning emails (Resend) — Day 1, Day 3, Day 7, then suspend brand
+
+**Business**
+- 4th brand onboarded — first one via dashboard, Concierge optional
+- First payment via Razorpay Subscriptions (not Payment Link) goes through
+
+### Week 11 (Jun 16-22) — Team + admin + audit
+
+**Engineering**
+- Team page (list members, invite via email)
+- Roles: OWNER / ADMIN / MEMBER with permission gates on routes
+- Audit log viewer (read-only, filtered by entity + action)
+- Account deletion flow (DPDP-compliant: 30-day soft delete + hard delete)
+- Data export (DPDP-compliant: JSON dump of brand's data)
+- Settings page (billing email, notification preferences, brand profile)
+
+**Business**
+- 5th brand onboarded
+- **MRR check: ₹20,000-25,000** — Phase 1 target met
+- Begin Phase 2 strategic planning (multilingual UI, WhatsApp, Indian features)
+
+### Week 12 (Jun 23-30) — Polish + Phase 1 close
+
+**Engineering**
+- E2E QA on all 7-10 user journeys (signup → onboard → product create → AR works on real device)
+- Lighthouse > 90 on all pages
+- Error states for every API failure
+- Empty states for every list (no products / no analytics / no team)
+- Loading skeletons everywhere
+- Mobile responsive pass (dashboard is desktop-first but should not break on phone)
+- Sentry source maps uploaded for dashboard
+- Final security audit (SQL injection, XSS, CSRF, JWT replay, IDOR)
+- Self-serve signup flow tested by 2-3 friendly external testers
+
+**Business**
+- Statutory auditor formally retained (Razorpay Rize compliance bundle ₹6-9K/year OR local Chennai CA ₹4-8K/year)
+- First trademark filing for "Rekaman" wordmark started
+- Phase 2 roadmap drafted (multilingual UI, WhatsApp, low-end Android fallback, festival templates)
+
+**Sales**
+- 6th-8th brand onboarded (cumulative)
+- **Phase 1 close: ~₹30-40K MRR, 6-8 paying brands, dashboard self-serve live**
+
+---
+
+## 📌 Key Production Identifiers (for Plan A operations)
+
+Captured here so future-Claude doesn't have to grep through `Generation Pipeline Runbook → Live Production Identifiers`.
+
+- **Founder Rekaman DB user.id:** `cmotyhdkj0001uig5onuktwq0`
+- **Founder brand.id:** `cmotyhdv20002uig5vxldw4g8` (slug `rekaman-b943`)
+- **Razorpay merchant ID:** `SIzmIUZLAwBxmz` (sole-prop, will migrate to Pvt Ltd post-COI)
+- **Razorpay test key (Day 6 active):** `rzp_test_Sm9b5evZZn5mWD`
+- **Demo canonical GLB (May 9 e2e proof):** `https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/brands/cmotyhdv20002uig5vxldw4g8/products/cmou3lwe9000337mk8223jby3/v1/model.glb` (13.5 MB, 24,867 vertices, ~76cm armchair)
+- **Demo brand (Week 4):** `sdk-demo-brand-3722` with product `oslo-sofa` (currently helmet, needs swap to real armchair GLB Week 6 Day 1)
+- **AWS Account:** `975050270919` (founder@rekaman.io)
+- **CloudFront Distribution:** `E1L37VUXZMO4QV` (cdn.rekaman.io)
+- **S3 SDK bucket:** `rekaman-sdk-prod-975050270919-ap-south-1-an` (public via CloudFront)
+- **S3 Products bucket:** `rekaman-products-prod-975050270919-ap-south-1-an` (public-read Phase 1 Path A; CloudFront migration deferred to Phase 2)
+- **Upstash Redis:** `real-lemur-97925.upstash.io` (Mumbai, free tier, eviction disabled)
+- **Meshy API key (masked):** `msy_****qe4O` (Pro plan, 1600 credits/month)
+- **Founder phone:** `+91 8248 524449` (for cold email signature, Razorpay account, bank KYC)
+
+---
+
+---
+
+*Last updated: May 7, 2026 | Version 5.12*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
 *v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*
@@ -1894,3 +2431,43 @@ git push --tags
 ```
 
 **What changes after Week 5:** the technical pipeline is feature-complete for Phase 1 MVP. From Week 6 onward, code work centers on the brand dashboard (Next.js on Vercel, Week 7+) and Razorpay subscription billing (Week 10+). Until then, brand onboarding is **Concierge MVP**: founder personally runs the API on a brand's behalf for their first 5 products. The technical pipeline that just shipped is the engine that makes Concierge MVP viable.*
+
+*v5.11 (Week 5 Day 7 close → Week 6 Plan A kickoff, May 7 2026): Strategic shift from "ship-now-only" to **Plan A: hybrid** — Concierge MVP first paying brand by Week 7, brand dashboard built in parallel during Weeks 7-12, ₹20-40K MRR + 5-8 paying brands by Phase 1 close (~Jun 30). Founder explicitly considered Plan B (polish-first, 9-12 weeks heads-down build, no customers until July-August) and rejected it on three grounds: (a) wrong-feature risk without customer feedback over 9-12 weeks is the #1 cause of failed solo SaaS, (b) ₹35-70K personal cash burn during stealth period with zero validation, (c) feature-parity trap — arriving July with a "polished" product that looks like Threekit/Zakeke evaporates the 20-min-setup differentiation. Concierge MVP IS the bug-handling strategy: 1-5 brands × ~30 min/week = 1 hr/week support load, leaving 99% of time for code; brands never see the half-built dashboard.
+
+**Company structure decisions locked:** Pvt Ltd over OPC (investor-friendly, mother as 2nd director with 1% shareholding solves the 2-director Companies Act 2013 minimum). Razorpay Rize over Vakilsearch (₹1,499 + Govt fee = ~₹6,500-8,500 total; automatic Razorpay merchant migration sole-prop → Pvt Ltd post-COI; ~$11K cloud credits perk; Vakilsearch ruled out on reputation/upsell concerns despite ₹500-1,500 cheaper base). Name preferences (4 for MCA): Rekaman Spatial Private Limited (top — distinctive, ties to "Spatial Commerce" tagline) → Commerce → Technologies → Innovations. Authorised capital ₹1,00,000, paid-up ₹10,000 (₹9,900 founder + ₹100 mother). Registered office Chennai home address. Total registration timeline 12-18 days, 100% online, zero travel including video-KYC bank account opening at ICICI/HDFC.
+
+**GST registration deferred to Month 4-5 (Phase 2 trigger):** TN service threshold is ₹20L turnover, months away even at best case. Voluntary registration NOW would cost ~₹30-50K/year compliance overhead (monthly GSTR-1 + GSTR-3B filings, ₹50-100/day late penalties per missed return) for ~₹3-5K/month ITC savings that don't justify until infra spend hits Phase 2 levels. SMB e-commerce brands paying ₹3,999/month don't require GST-registered vendors. Trigger to register: ~₹15L turnover or first inter-state enterprise customer. Razorpay Rize can add GST registration later for ₹1,500-2,000.
+
+**Auditor + INC-20A demystified:** Statutory auditor legally required within 30 days of COI (Companies Act 2013). For pre-revenue Year 1 startup, workload is light: signs INC-20A once at start, then annually March-September prepares audit report + AOC-4 + MGT-7 + ITR-6 (Income Tax Return for company). Bundle cost ₹6,000-9,000/year (Razorpay Rize compliance plan, recommended for minimum-hassle path) OR local Chennai CA at ₹4,000-8,000/year. Founder responsibility per FY: maintain `Rekaman/Finance/FY-2026-27/` Google Drive folder, dump every bill/invoice/bank statement as it comes in. April 2027 auditor accesses folder, prepares everything. INC-20A is one-time MCA declaration that subscription money was received in current account — Razorpay Rize bundles it, founder signs once with DSC, no manual portal work. Late penalty if missed: ₹50,000 + ₹1,000/day. 180-day deadline from COI.
+
+**Brand identity locked:** Wordmark logo approach for Phase 1 (custom design ₹15-50K deferred to Phase 2-3 when revenue justifies). Four wordmark candidates designed (Claude-generated SVG, May 7): Minimalist (Inter Medium + purple dot), Bold Square (Inter + electric blue square mark), Spatial Cube (isometric cube outline + Inter wordmark, doubles as app icon — recommended), Slash Mono (JetBrains Mono `rekaman/` with teal slash). Selection pending founder decision; Spatial Cube has strongest brand-product fit for AR/3D platform. Color system locked: primary text `#0F0F0F`, secondary `#6B6B6B`, faint `#A0A0A0`, light bg `#FAFAF7` warm white, dark bg `#0F0F0F`, accent Rekaman purple `#5A4FCF` (light) / `#8B7FFF` (dark), success `#2F7D4F`, warning `#E0A030`, danger `#D4493B`. Typography: Fraunces (serif, free Google Font) for display/headlines, Inter (sans, free Google Font) for UI/body, JetBrains Mono for code. Social handles to reserve in Week 6 (LinkedIn page priority + reserve X / GitHub org / YouTube — Instagram + Facebook + Product Hunt deferred per founder-attention budget).
+
+**Concierge MVP onboarding playbook locked (5 steps):** (1) Google Form intake collecting brand name, slug, owner email, plan, top 5 products with photo URLs (15 min); (2) `server/scripts/onboard-brand.mjs` YAML-driven brand provisioning script — uses prod API endpoints (no direct DB writes, proves API surface is dashboard-ready), creates brand + user + API key + 5 products + queues all generation jobs, polls until READY (~10 min); (3) email integration snippet to brand with platform-specific examples (Shopify Liquid / WooCommerce PHP / custom React); (4) Zoom screenshare for first install — walk through theme code editor, paste snippets, test on staging then push live (~30-60 min, becomes written runbook + recorded video after brand 2-3); (5) collect payment via UPI/bank transfer (Phase 1 pre-Razorpay-live), then Razorpay Payment Links (Week 6-9 post-live), then Razorpay Subscriptions (Week 10+ post-subscription-module). Friction declines from ~15 min/brand/month → 5 min → zero across these phases.
+
+**Marketing site `rekaman.io` spec finalized:** Single-page Next.js on Vercel, 6-8 hours total build, 7 sections (Nav/Hero/Problem/Solution/How-it-works/Pricing/Trust/Footer) + 4 mandatory compliance pages for Razorpay verification (Privacy/Terms/Refund/Contact via Termly templates). Hero copy: "Capture products. Place them anywhere." subhead "AR for any e-commerce store. Works on Shopify, WooCommerce, custom — one line of code." 3-tier pricing visible (Starter ₹3,999, Pro ₹12,999, Enterprise custom). Trust section: "Built in Chennai · Open APIs · DPDP-compliant" + founder@rekaman.io + WhatsApp +91 8248 524449. Submit to Razorpay Dashboard → Account & Settings → Business website details → 24-48 hr verification → live keys auto-issued.
+
+**Demo strategy:** current `rekaman-demo.vercel.app/oslo-sofa` loads Week 1-2 helmet WebXR test asset (NOT a real product, unshippable to brands). Fix is Week 6 Day 1 mandatory before any cold email. Reference HTML written and committed: `rekaman-demo-product-page.html` (May 7 deliverable) — Shopify-Plus-style premium e-commerce aesthetic (Fraunces serif headline + Inter body, warm white `#FAFAF7` bg, real Pexels armchair photography matching the Meshy-generated GLB, proper price block with strikethrough + EMI, swatches for wood finish, trust badges, "Powered by Rekaman" attribution). Deploy: replace existing demo path, UPDATE the demo brand's `oslo-sofa` product (or new `oslo-lounge-chair` slug) → set `glbUrl` to canonical `cmou3lwe9000337mk8223jby3/v1/model.glb`, set `name` to "Oslo Lounge Chair" (the GLB is an armchair, not a sofa — the misnomer was Week 4 placeholder), verify on Android phone end-to-end. Demo video Week 6 deliverable: 60-90s walkthrough on Android phone, upload YouTube unlisted, embed in cold emails + LinkedIn.
+
+**Plan A weekly breakdown (Week 6-12):** Week 6 = Foundations (demo fix, marketing site, Razorpay Rize signup, social handles, 30 cold emails). Week 7 = First customer + dashboard scaffold (auth pages, onboarding wizard, multi-brand switcher, Tailwind+shadcn locked). Week 8 = Products module + COI received (products list, photo upload, generation status, current account opened, INC-20A filed). Week 9 = API keys + analytics (dashboard sessions chart, placement rate, device breakdown; Razorpay merchant migrated to Pvt Ltd post-COI; DPIIT + MSME applications filed). Week 10 = Razorpay Subscriptions + plan gating (plan creation, subscribe flow, webhook handlers idempotent via `InboundWebhookEvent`, plan gating middleware enforces session/product limits, dunning emails). Week 11 = Team + admin + audit (members + roles + permissions, audit log viewer, account deletion flow DPDP-compliant, data export, settings; 5th brand onboarded, MRR ₹20-25K = Phase 1 target met). Week 12 = Polish + Phase 1 close (E2E QA, Lighthouse > 90, error states, empty states, loading skeletons, mobile responsive, security audit, friendly external testers; statutory auditor formally retained, trademark filing started, Phase 2 roadmap drafted; cumulative 6-8 paying brands, ~₹30-40K MRR, dashboard self-serve live).
+
+**No technical changes in v5.11** — this is a strategic / brand / business-process update. Code changes resume Week 6 Day 1 with the demo fix + marketing site build. The technical pipeline shipped through Week 5 is feature-complete for Phase 1 MVP and stays untouched until dashboard work begins Week 7.*
+*v5.12 (Week 6 Day 1 demo fix shipped — May 7 2026 evening): Founder reported five customer-visible bugs while testing the demo on Android Chrome. All five root-caused + fixed in one push. **Critical:** the demo URL `rekaman-demo.vercel.app/oslo-sofa.html` now renders a real polished e-commerce page and launches AR with the actual Meshy armchair sitting correctly on the floor. This is the asset cold emails will link to.
+
+**Bug 1 — mobile shows blank product image.** Root cause: `apps/demo/public/oslo-sofa.html` used a CSS gradient placeholder div (`linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)`) with the literal string "[ Product photo placeholder ]". Fix: replaced with a real Pexels armchair photo (the SAME image used to generate the canonical Meshy GLB so the 2D and 3D match), wrapped in a brand bar (HomeTown), thumbnail row (4 alternates with click-to-swap), trust badges row (Free delivery / 7-day returns / 3-year warranty), and a footer disclaimer noting it's a Rekaman demo (legal-safety for using the HomeTown name). File grew from ~2 KB to 6.9 KB. SDK integration unchanged: still one `<script src="…/sdk.js" defer>` + one `<div data-rk-product data-rk-key>`.
+
+**Bug 2 — AR shows helmet, not armchair.** Root cause: the demo brand's `oslo-sofa` product row had `glbUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb'` — the Week 1-2 WebXR test asset, never replaced. Fix: new `server/scripts/update-demo-product.mjs` updated the product to point at the canonical Meshy armchair (`brands/cmotyhdv20002uig5vxldw4g8/products/cmou3lwe9000337mk8223jby3/v1/model.glb`), set name to "Oslo Lounge Chair", set dimensions to 76×78×86 cm (matches the Pexels photo's seller copy AND the AR engine's real-world scaling). Cross-brand GLB reference is intentional and acceptable in Phase 1 — the products bucket is public-readable, cuid keys are unguessable, and copying the GLB to a demo-brand-scoped key adds no security benefit. Verified live: `curl /v1/ar/.../oslo-sofa` returns the new name + dimensions + glbUrl.
+
+**Bug 3 — model floats below the floor.** Root cause in `placement-engine.ts` v3: the loaded model received `model.position.y = -box.min.y` to ground-correct it, but on placement the line `placed.position.setFromMatrixPosition(reticle.matrix)` OVERWROTE the entire position vector — discarding the ground correction. The mesh's geometric origin (often centre or a bone joint, not the bottom-most vertex) ended up at the reticle, so the bottom of the mesh sat below the floor. v4 fix: wrap the inner `gltf.scene` in a `THREE.Group()` and apply the centre+ground translation to the inner node only. The wrapper's local origin = bottom-centre of the model. We clone + position the wrapper at the reticle, so the bottom of the mesh always coincides with the hit point. Also re-measures the bbox AFTER scaling (v3 measured before, then scaled — slight inaccuracy when targetHeightM is set).
+
+**Bug 4 — model follows the camera.** Root cause: the WebXR session was created with `requiredFeatures: ['local-floor', 'hit-test']` and hit-test poses were read in `local-floor` reference space, but Three.js's `WebGLXRManager` defaults the renderer's scene to the `local` reference space (eye-level origin) unless told otherwise. The two reference spaces differ by ~1.6 m vertically AND can drift independently when the device tracker recalibrates — causing placed models to appear to follow the camera as the user walked around. v4 fix: call `renderer.xr.setReferenceSpaceType('local-floor')` BEFORE `setSession`. The renderer must read this property at the moment it adopts a session, so ordering matters. Now Three.js's scene + our hit-test poses share a single coordinate frame, the model anchors stay still, and the user can walk around them as expected.
+
+**Bug 5 — button label flicker.** Root cause in `index.ts`: the original design injected a disabled "View in AR" placeholder button as soon as platform detection resolved (~50 ms), then upgraded the label + enabled state when the product fetch resolved (~200-500 ms). On slow networks the user saw a faded ghost button for half a second that re-labelled itself and turned solid — perceived as broken. Fix: keep both promises racing in parallel for speed (no perf regression — total time-to-button is bounded by the slower fetch, not their sum), but defer the `injectButton` call until the product fetch resolves. Single paint with the correct label, already enabled. Trade-off accepted: button appears slightly later (≤500 ms typical) instead of earlier-but-flickering. Documented inline.
+
+**Production-grade discipline applied throughout:**
+- (a) Bumped placement chunk v3 → v4 in `build.config.ts` + `ar-launcher.ts` + the manifest output. v3 stays in S3 forever for any SDK still cached on a brand site (per the immutable-cache contract — content changed → version MUST change, never edit content at an existing -vN URL).
+- (b) Reused the SDK Release Workflow runbook to deploy: `pnpm build` with `SDK_API_BASE=https://api.rekaman.io SDK_CDN_BASE=https://cdn.rekaman.io NODE_ENV=production` → `aws s3 cp` for both files (sdk.js with `max-age=300, s-maxage=86400, stale-while-revalidate=86400`; v4 chunk with `max-age=31536000, immutable`) → `aws cloudfront create-invalidation /v1/sdk.js` (chunk URL is versioned so no invalidation needed). All AWS calls under `--profile rekaman` (the `rekaman-deploy-cli` IAM user) — verified via `aws sts get-caller-identity` before every deploy. Root account NEVER used.
+- (c) Defense-in-depth verification: `diff` of CDN bytes vs local `dist/sdk.js` to confirm propagation (matched exactly), `curl -sI` of new chunk to confirm immutable cache headers, `grep` of main bundle on CDN to confirm it references `placement-engine-v4.js` (not v3), `curl /v1/ar/.../oslo-sofa` to confirm the public endpoint returns the new GLB + dimensions. All four green.
+- (d) `update-demo-product.mjs` is idempotent (re-running re-applies same values). Lives at `server/scripts/` with the other operational tools — Node ESM resolves `@prisma/client` from server's node_modules. Pattern reused from Day 5/7 tooling.
+- (e) New SDK API surface: `injectButton` no longer needs `setEnabled(false)` initial state since the button is born enabled. The `ButtonHandle.setEnabled` and `setLabel` methods are kept for future use (e.g. a brand may want to dynamically re-label per variant).
+
+**Phone verification next.** Founder runs the e2e on their Android Chrome to confirm: (a) page renders armchair photo (no blank), (b) "View in your room" button appears solid + enabled (no flicker), (c) on tap → camera opens → tap-to-place → armchair sits exactly on the floor at the tap point, (d) model stays anchored as user walks around (camera moves but model doesn't), (e) tapping a different point moves the model to the new point. Screenshot of (c) becomes the LinkedIn cover image + cold-email demo asset. If anything regresses, file a v5.13 entry with the regression + fix.*
