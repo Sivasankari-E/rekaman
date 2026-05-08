@@ -3,44 +3,148 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>HomeTown — Oslo Sofa</title>
+    <title>HomeTown — Oslo Lounge Chair</title>
+    <meta name="description" content="See the Oslo Lounge Chair in your room with augmented reality. Powered by Rekaman." />
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font: 16px/1.6 system-ui, -apple-system, sans-serif; color: #111; background: #fafafa; }
+      body { font: 16px/1.6 system-ui, -apple-system, sans-serif; color: #111; background: #fafafa; -webkit-font-smoothing: antialiased; }
+      img { max-width: 100%; display: block; }
+      a { color: #6366f1; text-decoration: none; }
+
       .container { max-width: 800px; margin: 0 auto; padding: 32px 16px; }
-      h1 { font-size: 32px; margin-bottom: 8px; }
-      .price { font-size: 22px; color: #6366f1; margin-bottom: 16px; font-weight: 600; }
-      .photo {
-        width: 100%; aspect-ratio: 4/3; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-        border-radius: 12px; display: flex; align-items: center;
-        justify-content: center; color: #888; margin-bottom: 24px;
-        font-size: 14px;
+
+      /* Brand bar */
+      .brand-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding-bottom: 16px; margin-bottom: 24px; border-bottom: 1px solid #eee;
       }
-      .meta { color: #555; margin-bottom: 24px; line-height: 1.8; }
+      .brand-bar .logo { font-weight: 600; font-size: 20px; letter-spacing: -0.3px; }
+      .brand-bar .nav { font-size: 14px; color: #666; }
+
+      /* Hero photo — real Pexels armchair (the exact image used to generate the GLB) */
+      .photo {
+        width: 100%; aspect-ratio: 4/3; border-radius: 12px;
+        overflow: hidden; margin-bottom: 12px; background: #f3f4f6;
+      }
+      .photo img { width: 100%; height: 100%; object-fit: cover; }
+
+      .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 24px; }
+      .thumbs .t {
+        aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+        background: #f3f4f6; cursor: pointer; border: 2px solid transparent;
+        transition: border-color 0.15s;
+      }
+      .thumbs .t.active, .thumbs .t:hover { border-color: #111; }
+      .thumbs .t img { width: 100%; height: 100%; object-fit: cover; }
+
+      /* Title + price */
+      h1 { font-size: 32px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.5px; }
+      .price-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+      .price { font-size: 22px; color: #6366f1; font-weight: 600; }
+      .price-strike { color: #999; text-decoration: line-through; font-size: 16px; }
+      .price-pct { color: #16a34a; font-weight: 500; font-size: 14px; }
+      .price-tax { color: #888; font-size: 12px; margin-bottom: 20px; }
+
+      /* Meta */
+      .meta { color: #555; margin-bottom: 24px; line-height: 1.85; }
       .meta strong { color: #111; }
-      footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid #eee; color: #888; font-size: 13px; }
-      footer a { color: #6366f1; text-decoration: none; }
+
+      /* Trust badges row */
+      .badges {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+        background: #fff; border: 1px solid #eee; border-radius: 12px;
+        padding: 16px; margin-bottom: 24px;
+      }
+      .badges .b { text-align: center; font-size: 12px; color: #666; line-height: 1.4; }
+      .badges .b strong { color: #111; display: block; font-size: 13px; margin-bottom: 2px; }
+
+      /* The Rekaman AR slot — visual breathing room around the SDK button */
+      .ar-slot { padding: 8px 0 4px; }
+
+      footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid #eee; color: #888; font-size: 13px; line-height: 1.6; }
+      footer .powered { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      footer .disclaimer { margin-top: 8px; font-size: 11px; color: #aaa; }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="photo">[ Product photo placeholder ]</div>
 
-      <h1>Oslo 3-Seater Sofa</h1>
-      <div class="price">₹64,999</div>
-      <div class="meta">
-        <strong>Fabric upholstered.</strong> Solid wood frame. Available in Slate, Indigo, Cream.<br>
-        <strong>Dimensions:</strong> 220cm × 95cm × 85cm<br>
-        <strong>Free delivery & assembly</strong> across India.
+      <div class="brand-bar">
+        <div class="logo">HomeTown</div>
+        <div class="nav">Living · Bedroom · Dining</div>
       </div>
 
-      <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
-      <div data-rk-product="oslo-sofa" data-rk-key="rk_live_wW8dUxrRLB1_IOEUZj_5vZNFE95PUTGE"></div>
+      <div class="photo">
+        <img
+          src="https://images.pexels.com/photos/447592/pexels-photo-447592.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop"
+          alt="Oslo Lounge Chair — solid teak armchair"
+        />
+      </div>
+
+      <div class="thumbs">
+        <div class="t active">
+          <img src="https://images.pexels.com/photos/447592/pexels-photo-447592.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop" alt="">
+        </div>
+        <div class="t">
+          <img src="https://images.pexels.com/photos/1350789/pexels-photo-1350789.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop" alt="">
+        </div>
+        <div class="t">
+          <img src="https://images.pexels.com/photos/2762247/pexels-photo-2762247.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop" alt="">
+        </div>
+        <div class="t">
+          <img src="https://images.pexels.com/photos/943150/pexels-photo-943150.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop" alt="">
+        </div>
+      </div>
+
+      <h1>Oslo Lounge Chair</h1>
+      <div class="price-row">
+        <span class="price">₹49,999</span>
+        <span class="price-strike">₹68,500</span>
+        <span class="price-pct">27% off</span>
+      </div>
+      <div class="price-tax">Inclusive of all taxes · EMI from ₹2,381/month</div>
+
+      <div class="meta">
+        <strong>Solid teak armchair</strong> with hand-finished cushion. Crafted in Karnataka. Available in Natural Teak, Walnut, Light Oak, Ebony.<br>
+        <strong>Dimensions:</strong> 76cm × 78cm × 86cm (W × D × H) · Seat height 43cm<br>
+        <strong>Free delivery &amp; 3-year warranty</strong> across India.
+      </div>
+
+      <div class="badges">
+        <div class="b"><strong>Free delivery</strong>5–7 days · Pan India</div>
+        <div class="b"><strong>7-day returns</strong>No questions asked</div>
+        <div class="b"><strong>3-year warranty</strong>On wood frame</div>
+      </div>
+
+      <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV (UNCHANGED) -->
+      <div class="ar-slot">
+        <div data-rk-product="oslo-sofa" data-rk-key="rk_live_wW8dUxrRLB1_IOEUZj_5vZNFE95PUTGE"></div>
+      </div>
       <script src="https://cdn.rekaman.io/v1/sdk.js" defer></script>
 
       <footer>
-        Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.
+        <div class="powered">
+          <div>Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+          <a href="https://rekaman.io">See how it works →</a>
+        </div>
+        <div class="disclaimer">Demo page · Not an actual HomeTown product listing · Built to showcase Rekaman AR.</div>
       </footer>
     </div>
+
+    <script>
+      // Tiny demo-only thumbnail toggle. Has nothing to do with the SDK.
+      document.querySelectorAll('.thumbs .t').forEach(function (t) {
+        t.addEventListener('click', function () {
+          document.querySelectorAll('.thumbs .t').forEach(function (x) { x.classList.remove('active'); });
+          t.classList.add('active');
+          var heroImg = document.querySelector('.photo img');
+          var thumbImg = t.querySelector('img');
+          if (heroImg && thumbImg) {
+            // Swap to a higher-res version of the thumbnail
+            heroImg.src = thumbImg.src.replace(/w=200&h=200/, 'w=1200&h=900');
+          }
+        });
+      });
+    </script>
   </body>
 </html>

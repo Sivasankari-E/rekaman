@@ -42,10 +42,17 @@ async function mount(container: HTMLElement) {
 
   initAnalytics(apiKey);
 
-  // Kick off both detection paths in parallel — but inject the button as soon
-  // as platform detection resolves (~50ms) without waiting for the product
-  // fetch (~200-500ms). Button starts disabled with a generic label and updates
-  // to the mode-specific label when product data arrives.
+  // Kick off both detection paths in parallel for speed, but DO NOT paint the
+  // button until product data arrives. Earlier versions injected a disabled
+  // "View in AR" placeholder as soon as platform detection resolved (~50 ms)
+  // and upgraded the label + enabled state when the product fetch resolved
+  // (~200-500 ms). On slow networks this caused a visible 200-500 ms flicker
+  // — a faded ghost button that re-labelled itself and turned solid.
+  // Brand demo pages exposed the flicker badly; the perception was that the
+  // button was broken and "fixed itself". Trade-off: button appears slightly
+  // later (≤500 ms typical) but renders correct + enabled in one paint.
+  // Both promises still race in parallel so total time-to-button is bounded
+  // by the slower of the two, not their sum.
   const platformPromise = detectPlatform();
   const productPromise = fetchProduct(apiKey, productSlug);
 
@@ -54,34 +61,31 @@ async function mount(container: HTMLElement) {
     instance.platform = platform;
 
     if (platform === 'unsupported') {
-      // Don't show button on devices that can't do AR. Wait for product anyway
-      // so we can fire the ar_supported telemetry with arMode.
-      const product = await productPromise;
-      instance.product = product;
-      track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
+      // Don't show button on devices that can't do AR. Still await the product
+      // so we can fire ar_supported telemetry with arMode (helps us understand
+      // which arModes get blocked by which platforms).
+      try {
+        const product = await productPromise;
+        instance.product = product;
+        track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
+      } catch (err) {
+        track('ar_error', {
+          productSlug,
+          payload: { message: (err as Error).message, phase: 'init' },
+        });
+      }
       return;
     }
 
-    // Inject the button immediately, disabled, with a generic label.
+    // Wait for product BEFORE injecting — fixes the flicker described above.
+    const product = await productPromise;
+    instance.product = product;
+    track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
+
     instance.buttonHandle = injectButton(container, {
-      label: 'View in AR',
+      label: getButtonLabel(product.arMode),
       onClick: () => handleButtonClick(instance),
     });
-    instance.buttonHandle.setEnabled(false);
-
-    // When the product fetch resolves, update label + enable. If it fails,
-    // remove the button so we don't show a non-functional control.
-    try {
-      const product = await productPromise;
-      instance.product = product;
-      track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
-      instance.buttonHandle.setLabel(getButtonLabel(product.arMode));
-      instance.buttonHandle.setEnabled(true);
-    } catch (err) {
-      instance.buttonHandle.remove();
-      instance.buttonHandle = null;
-      throw err;
-    }
   } catch (err) {
     track('ar_error', {
       productSlug,

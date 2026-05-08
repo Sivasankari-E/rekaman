@@ -30,29 +30,43 @@ async function startPlacementAR(product: ProductData): Promise<void> {
   sun.position.set(0.5, 1, 0.25);
   scene.add(sun);
 
-  // Preload GLB; placement only fires after this resolves
+  // Preload GLB; placement only fires after this resolves.
+  //
+  // Placement-engine v3 had two bugs that v4 fixes:
+  //
+  //   (1) Bottom not on the floor. v3 set `model.position.y = -box.min.y` to
+  //       ground-correct, but the placement step then OVERWROTE that position
+  //       via `placed.position.setFromMatrixPosition(reticle.matrix)` —
+  //       discarding the ground correction. The model sat with its geometric
+  //       origin (often the centre or a bone joint) at the reticle, so the
+  //       bottom of the mesh ended up below the floor.
+  //
+  //   The v4 fix: wrap the inner GLTF in a `THREE.Group()` and apply the
+  //   centre+ground translation to the INNER node only. The wrapper's local
+  //   origin = bottom-centre of the model. We clone + position the wrapper at
+  //   the reticle, so the model's bottom always sits exactly on the hit point.
   let loadedModel: THREE.Group | null = null;
   new GLTFLoader().load(product.glbUrl, (gltf) => {
-    const model = gltf.scene;
+    const inner = gltf.scene;
 
     // Scale to real-world height if dimensions provided
     if (product.dimensions.heightCm) {
-      const box = new THREE.Box3().setFromObject(model);
+      const box = new THREE.Box3().setFromObject(inner);
       const size = box.getSize(new THREE.Vector3());
       const targetHeightM = product.dimensions.heightCm / 100;
       if (size.y > 0) {
-        model.scale.setScalar(targetHeightM / size.y);
+        inner.scale.setScalar(targetHeightM / size.y);
       }
     }
 
-    // Center horizontally, ground vertically
-    const box2 = new THREE.Box3().setFromObject(model);
-    const center = box2.getCenter(new THREE.Vector3());
-    model.position.x = -center.x;
-    model.position.z = -center.z;
-    model.position.y = -box2.min.y;
+    // Re-measure AFTER scaling so the offset uses post-scale dimensions.
+    const box = new THREE.Box3().setFromObject(inner);
+    const centre = box.getCenter(new THREE.Vector3());
+    inner.position.set(-centre.x, -box.min.y, -centre.z);
 
-    loadedModel = model;
+    const wrapper = new THREE.Group();
+    wrapper.add(inner);
+    loadedModel = wrapper;
   });
 
   if (!navigator.xr) {
@@ -67,6 +81,18 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     requiredFeatures: ['local-floor', 'hit-test'],
   });
 
+  // (2) Reference-space mismatch (v3 bug — fixed in v4). We requested
+  //     `local-floor` from the session AND read hit-test poses in `local-floor`,
+  //     but Three.js's WebGLXRManager defaults the renderer to `local`
+  //     (eye-level origin). The two reference spaces differ by ~1.6 m vertically
+  //     AND can drift independently when the device's tracker recalibrates —
+  //     causing placed models to appear to follow the camera as the user walks
+  //     around. Telling Three.js to use the same reference space we hit-test
+  //     against keeps everything in one frame.
+  //
+  //     setReferenceSpaceType MUST be called BEFORE setSession; the manager
+  //     reads the type only when adopting a new session.
+  renderer.xr.setReferenceSpaceType('local-floor');
   await renderer.xr.setSession(session);
 
   const viewerSpace = await session.requestReferenceSpace('viewer');

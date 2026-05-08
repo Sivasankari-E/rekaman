@@ -51,19 +51,25 @@ const mainBundle: esbuild.BuildOptions = {
 // self-registers on window.__rkChunks.placement so the main bundle's ar-launcher can
 // invoke it after load.
 //
-// Filename is versioned (`-v3`) and served with `Cache-Control: immutable`. ANY content
+// Filename is versioned (`-v4`) and served with `Cache-Control: immutable`. ANY content
 // change requires bumping the version — that's the contract that lets us cache forever
 // at the edge. Version history:
 //   v1: original ship (had dom-overlay bug — page text overlaid AR view)
 //   v2: dom-overlay removed (clean camera-only AR view)
 //   v3: API base baked in changed from `api-production-0a54.up.railway.app` to
 //       `api.rekaman.io` (Week 5 custom domain). No semantic change.
+//   v4: (Week 6 Day 1) two bug fixes for the brand demo:
+//       — model now sits on the floor (wrap inner gltf.scene in a Group so the
+//         centre+ground translation survives `setFromMatrixPosition`)
+//       — model no longer follows the camera (call
+//         `renderer.xr.setReferenceSpaceType('local-floor')` before setSession
+//         so Three.js's scene uses the same reference space we hit-test in)
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v3.js'),
+  outfile: join(outdir, 'placement-engine-v4.js'),
   format: 'iife',
 };
 
@@ -102,8 +108,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v3.js (lazy chunk)',
-    join(outdir, 'placement-engine-v3.js'),
+    'placement-engine-v4.js (lazy chunk)',
+    join(outdir, 'placement-engine-v4.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -120,7 +126,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v3.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v4.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));

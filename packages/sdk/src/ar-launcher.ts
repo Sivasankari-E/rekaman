@@ -73,11 +73,16 @@ function loadChunk(filename: string): Promise<void> {
 export async function launchArExperience(product: ProductData): Promise<void> {
   switch (product.arMode) {
     case 'placement': {
-      // v3 — API base updated to api.rekaman.io (Week 5 custom domain).
-      // Older versions (v1, v2) left in S3 as fallbacks for any SDK still
-      // cached on a brand site that hasn't refreshed its sdk.js yet
+      // v4 — Week 6 Day 1 fixes for the brand demo:
+      //   • model now sits on the floor (Group-wrapper preserves the
+      //     ground-correction across `setFromMatrixPosition` placement)
+      //   • model no longer follows the camera
+      //     (`renderer.xr.setReferenceSpaceType('local-floor')` aligns
+      //     Three.js's scene frame with the hit-test reference space)
+      // Older versions (v1, v2, v3) remain in S3 as fallbacks for any SDK
+      // still cached on a brand site that hasn't refreshed its sdk.js yet
       // (5-min browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v3.js');
+      await loadChunk('placement-engine-v4.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');
