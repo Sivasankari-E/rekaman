@@ -15,9 +15,31 @@ const SlugSchema = z
   .max(100)
   .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and dashes');
 
+// `arMode` mirrors Product.arMode in the Prisma schema. Server-side default is
+// 'placement' so omitting it is safe — see `category` too which is nullable.
+// Added in Week 6 Day 2 so server/scripts/onboard-brand.mjs can persist the
+// brand-provided arMode + category instead of having Zod silently strip them.
+const ArModeSchema = z.enum([
+  'placement',
+  'tryon-face',
+  'tryon-wrist',
+  'tryon-hand',
+  'tryon-foot',
+  'tryon-photo',
+  'multi-scene',
+  'audio-preview',
+]);
+
+// Loose category — we don't want a closed enum here because brands invent
+// their own taxonomies (e.g. "home-decor", "wedding-jewelry"). 64 chars is
+// generous for slug-style + readable names.
+const CategorySchema = z.string().min(1).max(64).regex(/^[a-z0-9-]+$/i, 'category must be alphanumeric/dashes');
+
 const CreateSchema = z.object({
   name: z.string().min(1).max(200),
   slug: SlugSchema,
+  arMode: ArModeSchema.optional(),
+  category: CategorySchema.nullable().optional(),
   widthCm: z.number().positive().max(10_000).optional(),
   heightCm: z.number().positive().max(10_000).optional(),
   depthCm: z.number().positive().max(10_000).optional(),
@@ -26,6 +48,8 @@ const CreateSchema = z.object({
 const UpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   slug: SlugSchema.optional(),
+  arMode: ArModeSchema.optional(),
+  category: CategorySchema.nullable().optional(),
   status: z.enum(['PENDING', 'PROCESSING', 'READY', 'FAILED', 'ARCHIVED']).optional(),
   widthCm: z.number().positive().max(10_000).optional(),
   heightCm: z.number().positive().max(10_000).optional(),

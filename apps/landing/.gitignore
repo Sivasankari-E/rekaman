@@ -1,0 +1,16 @@
+# Next.js build output
+.next/
+out/
+
+# Tooling
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Test coverage
+coverage/
+
+# Editor
+.DS_Store

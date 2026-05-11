@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: #FAFAF7;
+    color: #0F0F0F;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  ::selection {
+    background: #5A4FCF;
+    color: #FFFFFF;
+  }
+}
+
+@layer components {
+  .container-wide {
+    @apply max-w-container mx-auto px-6 lg:px-8;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg bg-ink text-bg-alt font-medium text-[15px] transition-opacity hover:opacity-90 active:translate-y-px;
+  }
+  .btn-accent {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg bg-accent text-bg-alt font-medium text-[15px] transition-opacity hover:opacity-90 active:translate-y-px;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg border border-ink text-ink font-medium text-[15px] transition-colors hover:bg-ink hover:text-bg-alt active:translate-y-px;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 text-ink-muted font-medium text-[14px] transition-colors hover:text-ink;
+  }
+  .h-display {
+    @apply font-serif font-medium tracking-[-0.02em] leading-[1.05];
+  }
+  .h-section {
+    @apply font-serif font-medium text-[40px] md:text-[52px] tracking-[-0.02em] leading-[1.1];
+  }
+  .h-card {
+    @apply font-serif font-medium text-[22px] md:text-[26px] tracking-[-0.01em] leading-[1.15];
+  }
+  .eyebrow {
+    @apply text-[12.5px] uppercase tracking-[0.08em] font-medium text-ink-muted;
+  }
+  .prose-rk {
+    @apply max-w-prose mx-auto text-[16px] leading-[1.75] text-ink-muted;
+  }
+  .prose-rk h2 {
+    @apply font-serif text-ink text-[28px] mt-12 mb-4 leading-tight tracking-[-0.01em];
+  }
+  .prose-rk h3 {
+    @apply font-sans font-medium text-ink text-[16px] mt-8 mb-2 uppercase tracking-[0.08em];
+  }
+  .prose-rk p {
+    @apply mb-4;
+  }
+  .prose-rk ul {
+    @apply mb-4 pl-6 list-disc;
+  }
+  .prose-rk li {
+    @apply mb-2;
+  }
+  .prose-rk strong {
+    @apply text-ink font-medium;
+  }
+  .prose-rk a {
+    @apply text-accent hover:underline;
+  }
+}

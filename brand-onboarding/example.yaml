@@ -1,0 +1,56 @@
+# Sample brand onboarding config — copy this and customize per customer.
+# Run: node --env-file=.env server/scripts/onboard-brand.mjs brand-onboarding/<this-file>.yaml
+#
+# The file is read once, used to provision the brand + 5 products + queue
+# generations, then archived to brand-onboarding/completed/<name>.completed.json.
+
+brand:
+  companyName: "Woodcraft Chennai"          # Legal/registered brand name
+  ownerName: "Pradeep Krishnan"             # Owner's full name (for emails)
+  ownerEmail: "owner@woodcraftchennai.com"  # Owner's email (login + invoice)
+  website: "woodcraftchennai.com"           # Marketing site URL (no https://)
+  plan: "starter"                           # Informational only until billing module ships Week 10
+
+products:
+  - name: "Royal Sheesham Coffee Table"
+    slug: "royal-sheesham-coffee-table"
+    arMode: "placement"                     # Phase 1: placement only. Phase 3 unlocks tryon-face/wrist/hand
+    category: "furniture"
+    widthCm: 120                             # Real-world dimensions for AR scale (highly recommended)
+    heightCm: 45
+    depthCm: 60
+    photoUrls:
+      - "https://woodcraftchennai.com/cdn/sheesham-table-front.jpg"
+      - "https://woodcraftchennai.com/cdn/sheesham-table-side.jpg"
+      # 1-5 photos. Multiple angles improve Meshy generation quality.
+
+  - name: "Solid Teak 3-Seater Sofa"
+    slug: "solid-teak-sofa"
+    arMode: "placement"
+    category: "furniture"
+    widthCm: 220
+    heightCm: 85
+    depthCm: 95
+    photoUrls:
+      - "https://woodcraftchennai.com/cdn/teak-sofa-front.jpg"
+
+  - name: "Mango Wood Bookshelf"
+    slug: "mango-wood-bookshelf"
+    arMode: "placement"
+    category: "furniture"
+    photoUrls:
+      - "https://woodcraftchennai.com/cdn/bookshelf.jpg"
+
+  - name: "Hand-carved Side Table"
+    slug: "hand-carved-side-table"
+    arMode: "placement"
+    category: "furniture"
+    photoUrls:
+      - "https://woodcraftchennai.com/cdn/side-table.jpg"
+
+  - name: "Rosewood Bar Stool"
+    slug: "rosewood-bar-stool"
+    arMode: "placement"
+    category: "furniture"
+    photoUrls:
+      - "https://woodcraftchennai.com/cdn/bar-stool.jpg"

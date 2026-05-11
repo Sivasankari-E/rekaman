@@ -45,9 +45,15 @@ export const productsService = {
     if (existing) throw new SlugAlreadyExistsError();
 
     try {
+      // arMode + category are optional on the wire; when omitted, fall through
+      // to the Prisma schema defaults (arMode='placement', category=null).
+      // Passing `undefined` lets Prisma apply its default; passing `null` is a
+      // deliberate "no category".
       const product = await productsRepository.create(brandId, {
         name: input.name,
         slug: input.slug,
+        ...(input.arMode !== undefined && { arMode: input.arMode }),
+        ...(input.category !== undefined && { category: input.category }),
         widthCm: input.widthCm ?? null,
         heightCm: input.heightCm ?? null,
         depthCm: input.depthCm ?? null,
