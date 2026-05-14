@@ -44,6 +44,11 @@ export function injectButton(
     .btn:active { transform: translateY(0); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .icon { width: 20px; height: 20px; display: inline-flex; align-items: center; }
+    /* iOS Safari renders inline SVG at 0×0 unless explicitly sized — Chrome/Android
+       infer from the flex parent but WebKit follows the spec strictly. Without these
+       two rules the icon was invisible on iPhone (May 13 2026 regression). */
+    .icon svg { width: 100%; height: 100%; display: block; }
+    .icon svg path { stroke: currentColor; }
     .spinner {
       width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4);
       border-top-color: white; border-radius: 50%;
