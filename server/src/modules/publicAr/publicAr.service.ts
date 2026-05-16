@@ -36,6 +36,10 @@ export const publicArService = {
       arMode: product.arMode,
       category: product.category,
       glbUrl: product.glbUrl,
+      // v5.15: iOS AR Quick Look format. SDK serves USDZ to iOS Safari and
+      // GLB to Android WebXR. Pre-v5.15-pipeline products have usdzUrl=null;
+      // iOS falls back to GLB-via-AR-Quick-Look (flaky pre-iOS-17.4).
+      usdzUrl: product.usdzUrl,
       assets: product.assets.map((a) => ({
         type: a.assetType,
         url: a.url ?? '',

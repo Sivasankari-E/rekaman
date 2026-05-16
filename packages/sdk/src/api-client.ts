@@ -8,6 +8,11 @@ export interface ProductData {
   arMode: string;
   category: string | null;
   glbUrl: string | null;
+  // iOS AR Quick Look format (v5.15+). Nullable for backwards-compat: older
+  // products generated before the USDZ pipeline have this null, and the
+  // SDK's iOS launcher falls back to glbUrl. New Meshy generations always
+  // include both formats.
+  usdzUrl: string | null;
   assets: Array<{
     type: string;
     url: string;

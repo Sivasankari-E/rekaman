@@ -153,7 +153,12 @@ class MeshyClient {
       target_polycount: input.targetPolycount,
       auto_size: input.autoSize ?? true,
       origin_at: input.originAt ?? 'bottom',
-      target_formats: input.targetFormats ?? ['glb'],
+      // Default includes BOTH glb (Android WebXR / desktop fallback) and usdz
+      // (iOS AR Quick Look). Without 'usdz' in target_formats, Meshy does NOT
+      // include model_urls.usdz in the response — and we'd silently degrade
+      // iOS to GLB-fallback (the v5.14 "black flash" symptom).
+      // No extra Meshy cost — the formats are produced from the same task.
+      target_formats: input.targetFormats ?? ['glb', 'usdz'],
       image_enhancement: input.imageEnhancement ?? true,
       remove_lighting: input.removeLighting ?? true,
     };

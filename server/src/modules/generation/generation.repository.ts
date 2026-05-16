@@ -111,6 +111,12 @@ export const generationRepository = {
     args: {
       glbUrl: string;
       glbSizeKb: number;
+      // v5.15: USDZ is best-effort (iOS AR Quick Look). Nullable so worker can
+      // pass null when Meshy returned no usdz URL OR our download/upload
+      // soft-failed (Android-first principle — never deny GLB users their AR
+      // just because USDZ couldn't be captured).
+      usdzUrl?: string | null;
+      usdzSizeKb?: number | null;
       thumbnailUrl?: string;
       version: number;
       creditsUsed?: number;
@@ -135,6 +141,12 @@ export const generationRepository = {
         status: ProductStatus.READY,
         glbUrl: args.glbUrl,
         glbSizeKb: args.glbSizeKb,
+        // Explicit null is the "we tried and got nothing" signal — not
+        // `undefined` which would skip the column entirely on update. Both
+        // are fine on first-write; the explicit-null matters on regen where
+        // a previously-set USDZ might be cleared if the new attempt fails.
+        usdzUrl: args.usdzUrl ?? null,
+        usdzSizeKb: args.usdzSizeKb ?? null,
         metadata: merged,
       },
     });
@@ -191,6 +203,10 @@ export const generationRepository = {
         status: true,
         glbUrl: true,
         glbSizeKb: true,
+        // v5.15: surface USDZ state so the dashboard can flag products
+        // that need a regen to get iOS coverage.
+        usdzUrl: true,
+        usdzSizeKb: true,
         metadata: true,
         updatedAt: true,
       },

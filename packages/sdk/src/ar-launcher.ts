@@ -17,14 +17,33 @@ declare global {
   }
 }
 
-export function launchIosQuickLook(product: ProductData): void {
-  if (!product.glbUrl) {
-    throw new Error('No GLB URL available for AR Quick Look');
+/**
+ * Tag the SDK adds to `ar_session_started` telemetry so the dashboard can
+ * see how often iOS users get the native-USDZ path vs the GLB fallback.
+ * A high `glb-fallback` rate per-brand means that brand has products
+ * generated before the v5.15 USDZ pipeline and should be regenerated.
+ */
+export type IosQuickLookFormat = 'usdz' | 'glb-fallback';
+
+/**
+ * Open Apple's AR Quick Look. Prefers USDZ (native, reliable across all
+ * supported iOS versions) and falls back to GLB only when usdzUrl is null
+ * (pre-v5.15 products or Meshy soft-fails). The GLB path triggers Apple's
+ * built-in GLB decoder which is documented as flaky pre-iOS-17.4 (the
+ * v5.14 "black flash" symptom).
+ *
+ * Returns which format was actually launched so callers can fire telemetry.
+ */
+export function launchIosQuickLook(product: ProductData): IosQuickLookFormat {
+  // Prefer Apple-native USDZ; fall back to GLB if usdzUrl is null.
+  const iosHref = product.usdzUrl ?? product.glbUrl;
+  if (!iosHref) {
+    throw new Error('No USDZ or GLB URL available for AR Quick Look');
   }
 
   const link = document.createElement('a');
   link.setAttribute('rel', 'ar');
-  link.setAttribute('href', product.glbUrl);
+  link.setAttribute('href', iosHref);
 
   // QuickLook requires an <img> child to actually trigger
   const img = document.createElement('img');
@@ -34,6 +53,8 @@ export function launchIosQuickLook(product: ProductData): void {
   document.body.appendChild(link);
   link.click();
   setTimeout(() => link.remove(), 100);
+
+  return product.usdzUrl ? 'usdz' : 'glb-fallback';
 }
 
 const loadingChunks = new Map<string, Promise<void>>();

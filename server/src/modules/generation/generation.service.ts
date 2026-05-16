@@ -105,7 +105,10 @@ export const generationService = {
       targetPolycount: config.targetPolycount,
       autoSize: config.autoSize,
       originAt: 'bottom',
-      targetFormats: ['glb'],
+      // Request both formats from Meshy. GLB powers Android WebXR + desktop
+      // fallback; USDZ powers iOS AR Quick Look. Worker downloads BOTH from
+      // the same Meshy task (no extra credit cost — see v5.15 USDZ pipeline).
+      targetFormats: ['glb', 'usdz'],
     });
 
     // Step 2 — atomic transition. updateMany guards on (status IN [PENDING,

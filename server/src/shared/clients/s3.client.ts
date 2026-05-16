@@ -58,6 +58,12 @@ function getClient(): { s3: S3Client; bucket: string; region: string } {
 export const s3Keys = {
   productGlb: (brandId: string, productId: string, version: number) =>
     `brands/${brandId}/products/${productId}/v${version}/model.glb`,
+  // iOS AR Quick Look format (v5.15+ pipeline). Same `v{version}` namespace as
+  // GLB — keeps the immutable-cache contract (a regenerated product gets `v2/`,
+  // never overwrites `v1/model.usdz`). Uploaded with Content-Type
+  // `model/vnd.usdz+zip` per Apple's expected MIME for AR Quick Look.
+  productUsdz: (brandId: string, productId: string, version: number) =>
+    `brands/${brandId}/products/${productId}/v${version}/model.usdz`,
   productThumbnail: (brandId: string, productId: string, version: number) =>
     `brands/${brandId}/products/${productId}/v${version}/thumbnail.png`,
   productPhoto: (brandId: string, productId: string, photoUuid: string, ext: string) =>

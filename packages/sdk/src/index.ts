@@ -117,11 +117,15 @@ async function handleButtonClick(instance: MountedInstance) {
 
   try {
     if (instance.platform === 'ios-quicklook') {
-      launchIosQuickLook(instance.product);
+      // launchIosQuickLook returns which format Apple actually got
+      // (usdz vs glb-fallback). Capture it in telemetry so the dashboard
+      // can flag brands whose products predate the v5.15 USDZ pipeline
+      // and need regeneration — high `glb-fallback` rate = broken iOS UX.
+      const iosFormat = launchIosQuickLook(instance.product);
       track('ar_session_started', {
         productSlug: instance.productSlug,
         arMode: instance.product.arMode,
-        payload: { platform: 'ios-quicklook' },
+        payload: { platform: 'ios-quicklook', format: iosFormat },
       });
     } else if (instance.platform === 'webxr') {
       track('ar_session_started', {

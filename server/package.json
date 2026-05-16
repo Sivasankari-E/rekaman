@@ -7,7 +7,7 @@
     "dev": "tsx watch --clear-screen=false src/server.ts",
     "dev:worker": "tsx watch --clear-screen=false src/worker.ts",
     "build": "prisma generate && tsc",
-    "start": "node dist/server.js",
+    "start": "prisma migrate deploy && node dist/server.js",
     "start:worker": "node dist/worker.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings 0",

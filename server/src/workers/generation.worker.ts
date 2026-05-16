@@ -368,6 +368,68 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
     }
   }
 
+  // ── Step 4b — USDZ (iOS AR Quick Look) — best-effort, mirrors thumbnail ──
+  //
+  // Why best-effort: GLB is universal (Android WebXR + desktop fallback + the
+  // iOS GLB-fallback path if USDZ is missing). USDZ is an iOS-only enhancement.
+  // If USDZ download/upload fails for one product, we must NOT fail the whole
+  // generation and deny Android users their AR. Same "failure logged-not-thrown"
+  // pattern as the thumbnail block above (v5.7 convention).
+  //
+  // What "soft fail" means: log at warn, fire a Sentry warning (NOT an error),
+  // leave usdzUrl null in DB → SDK on iOS falls back to GLB-via-AR-Quick-Look
+  // for that one product (which may black-flash per v5.14, but at least doesn't
+  // break the whole pipeline). The dashboard's `format: 'glb-fallback'` analytic
+  // (Week 9) is how brands will see which products need a regen.
+  //
+  // The downloader is the same `downloadToBuffer` helper used for GLB and
+  // thumbnail (built-in 60s AbortController via DOWNLOAD_TIMEOUT_MS). Do NOT
+  // write a second downloader.
+  let usdzPublicUrl: string | null = null;
+  let usdzSizeKb: number | null = null;
+  const usdzSourceUrl = task.modelUrls.usdz;
+
+  if (usdzSourceUrl) {
+    try {
+      const usdzBuffer = await downloadToBuffer(usdzSourceUrl);
+      const usdzKey = s3Keys.productUsdz(brandId, productId, version);
+      await uploadToProductsBucket(
+        usdzKey,
+        usdzBuffer,
+        // Apple's expected MIME for USDZ. AR Quick Look is lenient about
+        // this but CloudFront + correct MIME = no surprises.
+        'model/vnd.usdz+zip',
+        'public, max-age=31536000, immutable',
+      );
+      usdzPublicUrl = publicProductUrl(usdzKey);
+      usdzSizeKb = Math.round(usdzBuffer.length / 1024);
+      log.info({ sizeKb: usdzSizeKb, usdzKey }, 'usdz uploaded');
+      Sentry.addBreadcrumb({
+        category: 'generation',
+        type: 'info',
+        message: 'usdz uploaded',
+        level: 'info',
+        data: { sizeKb: usdzSizeKb, usdzKey },
+      });
+    } catch (err) {
+      // best-effort: log, Sentry, continue. Android users unaffected.
+      log.warn(
+        { err: (err as Error).message },
+        'usdz download/upload failed — continuing GLB-only',
+      );
+      Sentry.captureMessage('USDZ pipeline soft-fail (product is GLB-only)', {
+        level: 'warning',
+        tags: { failure_class: 'usdz_pipeline_soft_fail', is_transient: 'true' },
+        extra: { meshyTaskId, usdzSourceUrl: usdzSourceUrl.slice(0, 120) },
+      });
+    }
+  } else {
+    log.info(
+      { meshyTaskId },
+      'meshy returned no usdz url — GLB-only for this product (iOS will fall back)',
+    );
+  }
+
   // ── Step 5 — mark READY ──
   const glbPublicUrl = publicProductUrl(glbKey);
   const thumbPublicUrl = thumbnailKey ? publicProductUrl(thumbnailKey) : undefined;
@@ -378,6 +440,11 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
     {
       glbUrl: glbPublicUrl,
       glbSizeKb,
+      // v5.15 USDZ pipeline: null if Meshy returned no usdz URL OR our
+      // best-effort download/upload soft-failed. Worker NEVER fails a job
+      // because USDZ went missing — Android-first principle.
+      usdzUrl: usdzPublicUrl,
+      usdzSizeKb,
       thumbnailUrl: thumbPublicUrl,
       version,
       creditsUsed: task.creditsUsed,
@@ -397,7 +464,9 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
   log.info(
     {
       glbUrl: glbPublicUrl,
-      sizeKb: glbSizeKb,
+      glbSizeKb,
+      usdzUrl: usdzPublicUrl,
+      usdzSizeKb,
       creditsUsed: task.creditsUsed,
       durationMs: Date.now() - startTime,
     },
@@ -409,7 +478,9 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
     message: 'generation complete',
     level: 'info',
     data: {
-      sizeKb: glbSizeKb,
+      glbSizeKb,
+      usdzSizeKb,
+      hasUsdz: usdzPublicUrl !== null,
       creditsUsed: task.creditsUsed,
       durationMs: Date.now() - startTime,
     },
