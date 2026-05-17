@@ -18,7 +18,7 @@ Record vertical 9:16 on your Android in good light. Use any free editor (CapCut 
 | 15–25s | Cut to phone POV — your hand holding Android Chrome on the same URL. Tap "Try in your space" | "On a real phone — Android Chrome, no app installed — this loads in three seconds." |
 | 25–45s | Camera opens, ground reticle appears, tap to place. Armchair appears in your actual room. Walk around it. | "The shopper now sees the chair at exact real-world scale, in their actual room, while still on the brand's website." |
 | 45–60s | Cut to terminal showing the integration code (just the 2 lines: `<script>` + `<div>`). Highlight | "Two lines of code on the brand's site. That's the entire integration. AI generates the 3D model from a single product photo in 90 seconds." |
-| 60–75s | Cut back to your face on camera | "Built in Chennai by one engineer, for Indian e-commerce. ₹3,999 a month for ten products. If you're a brand and tired of returns, email founder@rekaman.io. I'll set you up myself." |
+| 60–75s | Cut back to your face on camera | "Built in Tamil Nadu by one engineer, for Indian e-commerce. ₹3,999 a month for ten products. If you're a brand and tired of returns, email founder@rekaman.io. I'll set you up myself." |
 | 75–80s | End card: "rekaman.io · founder@rekaman.io · WhatsApp +91 8248 524449" | (Silent end card) |
 
 ### Recording tips
@@ -51,7 +51,7 @@ Record vertical 9:16 on your Android in good light. Use any free editor (CapCut 
 > Worth a 20-minute call this week?
 >
 > Sivasankari
-> Founder · Rekaman · Chennai
+> Founder · Rekaman · Tamil Nadu, India
 > rekaman.io · WhatsApp: +91 8248 524449
 
 ### Variation 2 — "data-led, B2B SaaS executive feel" (use for ~7 of the 30 sends — formal brands)
@@ -70,7 +70,7 @@ Record vertical 9:16 on your Android in good light. Use any free editor (CapCut 
 >
 > • **Universal compatibility** — works on Shopify, WooCommerce, Magento, and any custom site. Two lines of code on each product page.
 >
-> • **India-first** — Built in Chennai. WhatsApp-native sharing (Phase 2), regional language support, low-end Android fallback for ₹15K phones.
+> • **India-first** — Built in Tamil Nadu. WhatsApp-native sharing (Phase 2), regional language support, low-end Android fallback for ₹15K phones.
 >
 > Live demo (works on any phone): {{DEMO_VIDEO_URL}}
 > Or skip the video and try directly: https://rekaman-demo.vercel.app/oslo-sofa.html
@@ -88,7 +88,7 @@ Record vertical 9:16 on your Android in good light. Use any free editor (CapCut 
 >
 > Hi {{FirstName}} — I built AR for Indian e-commerce. Two lines of code on a product page, AI generates 3D from your photos, shoppers see products in their room. 60s demo on a real phone: {{DEMO_VIDEO_URL}}. Worth 15 minutes?
 >
-> — Sivasankari, founder of Rekaman (Chennai). +91 8248 524449.
+> — Sivasankari, founder of Rekaman (Tamil Nadu, India). +91 8248 524449.
 
 This 3-sentence version gets ~3× the reply rate of long emails for very-busy founders. Use for HomeTown, Pepperfry, Urban Ladder, Wakefit, Lenskart, etc.
 

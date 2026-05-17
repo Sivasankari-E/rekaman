@@ -394,13 +394,13 @@ function Trust() {
               We&rsquo;re built where you sell.
             </h2>
             <p className="text-[17px] text-ink-muted leading-relaxed mb-8">
-              Rekaman is built in Chennai by an Indian engineer for Indian e-commerce.
+              Rekaman is built in Tamil Nadu by an Indian engineer for Indian e-commerce.
               That means: WhatsApp-native sharing, multilingual UI in regional languages,
               UPI-friendly billing, low-end Android fallback, and a founder you can
               actually reach on WhatsApp.
             </p>
             <div className="space-y-4">
-              <TrustItem icon="📍" title="Built in Chennai, India" detail="Founder-led. Indian SaaS pricing. Indian customer support hours." />
+              <TrustItem icon="📍" title="Built in Tamil Nadu, India" detail="Founder-led. Indian SaaS pricing. Indian customer support hours." />
               <TrustItem icon="🔓" title="Open APIs · no lock-in" detail="Export your 3D models any time. Cancel and you keep your assets." />
               <TrustItem icon="🛡" title="DPDP Act 2023 compliant" detail="Right-to-export and right-to-delete endpoints from day one." />
               <TrustItem icon="⚡" title="Production-grade infrastructure" detail="AWS Mumbai · Sentry monitored · 99.5% uptime SLA on all paid plans." />
@@ -410,7 +410,7 @@ function Trust() {
           <div className="rounded-2xl p-8 bg-bg border border-border">
             <p className="eyebrow mb-4">Talk to the founder</p>
             <h3 className="h-card mb-2">Sivasankari E</h3>
-            <p className="text-[14px] text-ink-muted mb-6">Founder · Software engineer · Chennai</p>
+            <p className="text-[14px] text-ink-muted mb-6">Founder · Software engineer · Tamil Nadu</p>
             <div className="space-y-3 mb-8">
               <a href={`mailto:${FOUNDER_EMAIL}`} className="block text-[15px] hover:text-accent transition-colors">
                 <span className="text-ink-muted">Email · </span>
@@ -488,7 +488,7 @@ function Footer() {
               <span className="font-medium text-[18px] tracking-[-0.01em]">rekaman</span>
             </div>
             <p className="text-[14px] text-bg-alt/60 leading-relaxed">
-              Spatial commerce for any e-commerce store. Built in Chennai.
+              Spatial commerce for any e-commerce store. Built in Tamil Nadu.
             </p>
           </div>
           <FooterCol title="Product" links={[
@@ -509,7 +509,7 @@ function Footer() {
           ]} />
         </div>
         <div className="pt-8 border-t border-bg-alt/10 flex flex-wrap justify-between items-center gap-4 text-[12.5px] text-bg-alt/40">
-          <div>© 2026 Rekaman Spatial Private Limited (incorporation in progress) · Chennai, India</div>
+          <div>© 2026 Rekaman Spatial Private Limited (incorporation in progress) · Tamil Nadu, India</div>
           <div>v1.0 · Built with care</div>
         </div>
       </div>

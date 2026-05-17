@@ -28,7 +28,7 @@ export function SimpleFooter() {
     <footer className="border-t border-border bg-bg-alt mt-24">
       <div className="container-wide py-10">
         <div className="flex flex-wrap justify-between gap-6 text-[13px] text-ink-muted">
-          <div>© 2026 Rekaman Spatial Private Limited (incorporation in progress) · Chennai</div>
+          <div>© 2026 Rekaman Spatial Private Limited (incorporation in progress) · Tamil Nadu, India</div>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>

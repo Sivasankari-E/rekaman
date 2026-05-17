@@ -171,6 +171,13 @@ export const generationService = {
       status: product.status,
       glbUrl: product.glbUrl,
       glbSizeKb: product.glbSizeKb,
+      // v5.16 fix: repo selects these fields but the previous version of this
+      // function omitted them, so the status endpoint reported `usdzUrl` as
+      // absent even when the DB row + publicAr endpoint both had it. Caught by
+      // first prod regen on May 17 (product cmp9ssxc9000137sz4cfdch4h — file
+      // was 15.2 MB in S3, just invisible to this endpoint).
+      usdzUrl: product.usdzUrl,
+      usdzSizeKb: product.usdzSizeKb,
       generation: meta.generation ?? null,
       updatedAt: product.updatedAt,
     };

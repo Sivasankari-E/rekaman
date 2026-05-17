@@ -157,7 +157,7 @@ export default function TermsPage() {
             <h2>13. Governing law &amp; dispute resolution</h2>
             <p>
               These Terms are governed by the laws of India. Any disputes shall be
-              resolved exclusively by the courts of Chennai, Tamil Nadu, India. Both
+              resolved exclusively by the courts of Thanjavur, Tamil Nadu, India. Both
               parties agree to first attempt good-faith negotiation for at least 30 days
               before initiating formal dispute resolution.
             </p>

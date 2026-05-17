@@ -164,7 +164,7 @@ export default function PrivacyPage() {
             <p>
               Rekaman Spatial Private Limited<br />
               [Registered office address — to be added post-COI]<br />
-              Chennai, Tamil Nadu, India
+              Thanjavur, Tamil Nadu, India
             </p>
           </div>
         </div>

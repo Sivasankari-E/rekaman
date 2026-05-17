@@ -3,7 +3,7 @@ import { SimpleNav, SimpleFooter } from '../_components/SimpleNav';
 
 export const metadata: Metadata = {
   title: 'Contact',
-  description: 'Get in touch with Rekaman. Founder-led support, Chennai-based.',
+  description: 'Get in touch with Rekaman. Founder-led support, based in Tamil Nadu, India.',
 };
 
 export default function ContactPage() {
@@ -65,7 +65,7 @@ export default function ContactPage() {
             <p className="text-[15px] text-ink-muted leading-relaxed">
               Rekaman Spatial Private Limited<br />
               [Registered office address — to be added post-COI, expected May 2026]<br />
-              Chennai, Tamil Nadu, India<br />
+              Thanjavur, Tamil Nadu, India<br />
               CIN: <span className="font-mono text-[13px]">[to be added post-incorporation]</span><br />
               GST: <span className="text-ink-faint">Not yet registered (under threshold)</span>
             </p>
