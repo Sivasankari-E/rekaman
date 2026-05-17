@@ -620,7 +620,7 @@ When real customers exist (Week 6+), splitting dev and prod DBs becomes mandator
 # Run this any time to verify the whole stack:
 echo '─── api ───';   curl -sI https://api.rekaman.io/health | head -1
 echo '─── cdn ───';   curl -sI https://cdn.rekaman.io/v1/sdk.js | head -1
-echo '─── demo ───';  curl -sI https://rekaman-demo.vercel.app/oslo-sofa | head -1
+echo '─── demo ───';  curl -sI https://demo.rekaman.io/oslo-sofa | head -1
 echo '─── db (via api/metrics) ───'; curl -s https://api.rekaman.io/metrics | python3 -m json.tool | grep -E '"db"|"env"'
 echo '─── google oauth wired ───'; \
   curl -s -X POST https://api.rekaman.io/v1/auth/google -H 'Content-Type: application/json' \
@@ -1724,7 +1724,7 @@ rekaman/
     - `/v1/sdk.js` — main bundle, 7.1 KB raw / 3.0 KB gzipped (loads chunks via `<script>` tag injection)
     - `/v1/placement-engine-v4.js` — Three.js + WebXR chunk, 572 KB raw / 149.8 KB gzipped (current). v1 deprecated (dom-overlay bug), v2 deprecated (Railway URL baked in), v3 deprecated (Week 6 Day 1: model floated below floor + followed camera). Older versions remain in S3 as fallbacks for SDKs still in browser cache.
   - Products S3: `rekaman-products-prod-975050270919-ap-south-1-an` ✅ public-read (Phase 1 Path A); canonical demo GLB at `cmou3lwe9000337mk8223jby3/v1/model.glb`
-  - Demo: https://rekaman-demo.vercel.app/oslo-sofa ✅ shows real Meshy armchair AR (Week 6 Day 1 fix shipped May 7 evening). Custom domain `demo.rekaman.io` pending DNS.
+  - Demo: https://demo.rekaman.io/oslo-sofa ✅ live on custom domain (Vercel DNS wired May 17). Old `rekaman-demo.vercel.app/oslo-sofa` still resolves for backward compat. Shows real Meshy armchair with USDZ (iPhone) + GLB (Android) — verified end-to-end on iPhone 13 + Android Chrome May 17.
   - Dashboard: not live (Week 7-12 Plan A buildout)
   - Landing: not live (Week 6 ultra-minimal version)
   - Razorpay (test): https://dashboard.razorpay.com — sole-prop merchant `SIzmIUZLAwBxmz`, test keys active, live mode locked pending website verification (Week 6 unblocker)
@@ -1737,7 +1737,7 @@ rekaman/
 - Dashboard: `dashboard.rekaman.io` (Week 7+ Plan A)
 - API: `api.rekaman.io` ✅ live (Railway, TLS via Let's Encrypt)
 - CDN: `cdn.rekaman.io` ✅ live (CloudFront, TLS via ACM `*.rekaman.io` cert)
-- Demo: `demo.rekaman.io` (Vercel, Week 6 — currently still on `rekaman-demo.vercel.app`)
+- Demo: `demo.rekaman.io` ✅ live (Vercel, custom domain wired May 17, Week 7 Day 1)
 - Status: `status.rekaman.io` (Phase 2 / Month 5)
 - Docs: `docs.rekaman.io` (Phase 2 / Month 5)
 - SDK global: `window.Rekaman`

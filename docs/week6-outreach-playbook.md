@@ -13,7 +13,7 @@ Record vertical 9:16 on your Android in good light. Use any free editor (CapCut 
 
 | Time | Visual | Voiceover |
 |---|---|---|
-| 0–8s | Logo title card → cut to your laptop showing `rekaman-demo.vercel.app/oslo-sofa.html` on Chrome | "This is what AR looks like for an Indian e-commerce brand." |
+| 0–8s | Logo title card → cut to your laptop showing `demo.rekaman.io/oslo-sofa.html` on Chrome | "This is what AR looks like for an Indian e-commerce brand." |
 | 8–15s | Cursor scrolls the product page — show "HomeTown" header, armchair photo, ₹49,999 price, badges | "It looks like any normal product page. Until you tap the AR button." |
 | 15–25s | Cut to phone POV — your hand holding Android Chrome on the same URL. Tap "Try in your space" | "On a real phone — Android Chrome, no app installed — this loads in three seconds." |
 | 25–45s | Camera opens, ground reticle appears, tap to place. Armchair appears in your actual room. Walk around it. | "The shopper now sees the chair at exact real-world scale, in their actual room, while still on the brand's website." |
@@ -44,7 +44,7 @@ Record vertical 9:16 on your Android in good light. Use any free editor (CapCut 
 > I built Rekaman to fix this — it adds "View in your room" AR to product pages in under 20 minutes. Shoppers see the actual product at real-world scale in their actual room before buying. AI generates the 3D model from your existing photos. No 3D artists, no app download, no platform lock-in.
 >
 > 60-second demo on a real phone: {{DEMO_VIDEO_URL}}
-> Try it yourself: https://rekaman-demo.vercel.app/oslo-sofa.html (open on Android Chrome → tap "Try in your space")
+> Try it yourself: https://demo.rekaman.io/oslo-sofa.html (open on Android Chrome → tap "Try in your space")
 >
 > Pricing starts at ₹3,999/month. I'll personally set up your first 5 products free during onboarding (~20 min on Zoom). If returns drop even 5%, you'll have made back a year's subscription in the first month.
 >
@@ -73,7 +73,7 @@ Record vertical 9:16 on your Android in good light. Use any free editor (CapCut 
 > • **India-first** — Built in Tamil Nadu. WhatsApp-native sharing (Phase 2), regional language support, low-end Android fallback for ₹15K phones.
 >
 > Live demo (works on any phone): {{DEMO_VIDEO_URL}}
-> Or skip the video and try directly: https://rekaman-demo.vercel.app/oslo-sofa.html
+> Or skip the video and try directly: https://demo.rekaman.io/oslo-sofa.html
 >
 > Open to a 20-min call this or next week?
 >
@@ -104,7 +104,7 @@ This 3-sentence version gets ~3× the reply rate of long emails for very-busy fo
 > 2) If yes, would seeing 60 seconds of AR running on a real phone be useful?
 >
 > Demo: {{DEMO_VIDEO_URL}}
-> Live URL: https://rekaman-demo.vercel.app/oslo-sofa.html
+> Live URL: https://demo.rekaman.io/oslo-sofa.html
 >
 > If neither — totally fine, I'll stop. Reply with just "no" and I'll remove you from the list.
 >
@@ -134,7 +134,7 @@ LinkedIn DMs need to be SHORTER than emails. Don't paste the whole sales pitch.
 
 If they like or comment on your demo video / launch post:
 
-> Thanks for the like, {{FirstName}}! If you ever want to see the live demo on your phone (rather than just my screen recording), it's at https://rekaman-demo.vercel.app/oslo-sofa.html — works on any Android Chrome. Open to a quick chat any time. — Sivasankari
+> Thanks for the like, {{FirstName}}! If you ever want to see the live demo on your phone (rather than just my screen recording), it's at https://demo.rekaman.io/oslo-sofa.html — works on any Android Chrome. Open to a quick chat any time. — Sivasankari
 
 ---
 

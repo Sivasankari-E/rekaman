@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://rekaman.io' },
 };
 
-const DEMO_URL = 'https://rekaman-demo.vercel.app/oslo-sofa.html';
+const DEMO_URL = 'https://demo.rekaman.io/oslo-sofa.html';
 const FOUNDER_EMAIL = 'founder@rekaman.io';
 const WHATSAPP_E164 = '+918248524449';
 const WHATSAPP_DISPLAY = '+91 8248 524449';

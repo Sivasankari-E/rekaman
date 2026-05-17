@@ -10,7 +10,7 @@ const nextConfig = {
   async redirects() {
     return [
       // Quick links from rekaman.io/demo → live demo page
-      { source: '/demo', destination: 'https://rekaman-demo.vercel.app/oslo-sofa.html', permanent: false },
+      { source: '/demo', destination: 'https://demo.rekaman.io/oslo-sofa.html', permanent: false },
       { source: '/docs', destination: 'https://docs.rekaman.io', permanent: false }, // 404 until Phase 2 — intentional
     ];
   },
