@@ -910,8 +910,10 @@ model Product {
   arMode     String        @default("placement")  // 'placement' | 'tryon-face' | 'tryon-wrist' | 'tryon-hand' | 'tryon-foot' | 'tryon-photo' | 'multi-scene' | 'audio-preview'
   category   String?                              // 'furniture', 'eyewear', 'apparel', 'jewelry', 'watches', etc.
   status     ProductStatus @default(PENDING)
-  glbUrl     String?                              // primary GLB (placement)
+  glbUrl     String?                              // primary GLB (placement, Android WebXR, desktop)
   glbSizeKb  Int?
+  usdzUrl    String?                              // v5.16: iOS AR Quick Look (Apple-native USDZ from Meshy)
+  usdzSizeKb Int?
   photoUrls  String[]      @default([])
   widthCm    Float?
   heightCm   Float?
@@ -1710,11 +1712,11 @@ rekaman/
 
 *Update every Sunday and after every major milestone.*
 
-- **Week/Month:** Entering Week 6, Month 2 (May 12-18, 2026)
-- **Last completed:** Week 5 — Full Phase 1 technical pipeline live and proven end-to-end on prod (May 9 e2e: photo → Meshy → S3 → READY in 93s, 30 credits, canonical 13.5 MB armchair GLB shipped). All operational items resolved: Railway worker subscribed, products S3 public-read, AWS Budgets alert live, IAM hygiene migrated to scoped users, custom domains for `api.rekaman.io` + `cdn.rekaman.io`. Day 7 strategic shift confirmed (May 7): **Plan A locked** — hybrid ship-now / polish-in-parallel approach. Pvt Ltd structure decided (founder + mother as 2nd director, 99/1% shareholding, Razorpay Rize as service partner, Rekaman Spatial Private Limited as primary name). GST registration deferred to Month 4-5 (Phase 2 trigger). Brand identity decisions made (wordmark logo, Fraunces+Inter typography, Rekaman purple `#5A4FCF` accent, social handles to reserve). Demo helmet bug identified — fix scheduled Week 6 Day 1.
-- **Currently working on:** Week 6 Day 4 → Week 7 prep (May 14). **iOS AR decision RESOLVED (v5.15):** Option C chosen but via the trivial path — Meshy's Image-to-3D `model_urls` response already returns a `usdz` URL alongside `glb` (verified against Meshy API docs May 14). NO conversion library / Docker / Mac tooling needed (the v5.14 A/B/C "conversion-tool architectural decision" is moot — Meshy already produces USDZ as part of the same task we pay ~30 credits for; the worker simply wasn't downloading it). Full USDZ pipeline implementation spec'd (`docs/usdz-pipeline-implementation.md`): Prisma `usdzUrl`/`usdzSizeKb` additive columns → meshy.client captures `model_urls.usdz` → worker downloads+uploads USDZ as best-effort sibling of GLB (mirrors thumbnail pattern, never fails the job) → repository persists → publicAr returns → SDK serves USDZ on iOS, GLB on Android. ~1.5 hrs, zero new risk. **Founder location corrected:** Thanjavur (not Chennai) — remote CRM employee building from home; 9 doc/site/legal references fixed; marketing copy uses "Tamil Nadu", legal blocks use "Thanjavur, Tamil Nadu". **Pvt Ltd registration paused ~1 week:** founder lost physical PAN card (only low-quality image), and the email linked to PAN is also lost so NSDL e-PAN can't be retrieved either — physical PAN reissue applied for, ~1 week ETA. PAN is mandatory for Razorpay Rize KYC video call, so incorporation correctly paused until card arrives. **Nothing technical is blocked by this** — Concierge MVP runs on the existing sole-proprietor Razorpay account per Plan A. Other open ops items unchanged from v5.14 (DNS, Vercel git auto-deploy, `privacy@` alias, Razorpay website verification).
-- **Blocked on:** Nothing
-- **Next milestone:** Week 7 — first ₹3,999/mo paying brand onboarded via Concierge MVP
+- **Week/Month:** Week 7 Day 1-2 closed (May 16-17, 2026)
+- **Last completed:** Week 7 Day 1-2 — USDZ pipeline shipped + verified end-to-end on iPhone 13 (Apple AR Quick Look opens armchair, no black flash) + Android Chrome (WebXR placement regression-clean). Status endpoint bug (usdzUrl/usdzSizeKb missing from spread) caught + fixed. Demo wired to USDZ via `update-demo-with-usdz.mjs`. Founder-location sweep completed: marketing copy uses "Tamil Nadu, India", legal blocks use "Thanjavur, Tamil Nadu". DNS for `rekaman.io` + `demo.rekaman.io` wired + verified. Razorpay website verification submitted + approved. Vercel apex flipped to primary (www now 308→apex per SEO best practice). `privacy@rekaman.io` Google Workspace alias added (closes DPDP Act 2023 §10 compliance gap). All "rekaman-demo.vercel.app" references in codebase swept to "demo.rekaman.io". 4 commits pushed: 16b5dca (USDZ feat) → 19cc08f (v5.16 docs) → 0aadc9e (status-endpoint bug fix + Thanjavur sweep) → 98c8ae3 (demo URL refs).
+- **Currently working on:** Week 7 Day 3 starts tomorrow — environment isolation (Railway staging env + long-lived Neon staging branch + GitHub Actions branch-based deploy where `dev`→staging, `main`→prod). Closes the "bad git push breaks live customer AR" gap BEFORE customer #1 onboards. Decision locked May 17 — chose staging-first over outreach-first since fixing the gap pre-emptively is cheaper than recovering from a prod incident after a paying brand is live. ~2-3 hrs active work. Outreach (30 cold emails + 15 LinkedIn DMs) starts Day 5 once staging is green.
+- **Blocked on:** Nothing technical. Pvt Ltd registration still paused ~5 days awaiting physical PAN reissue (no business impact — Concierge MVP runs on sole-prop Razorpay).
+- **Next milestone:** Week 7 Day 5-7 — first ₹3,999/mo paying brand onboarded via Concierge MVP (now demo-able on both iPhone + Android, materially strengthens close).
 - **Current MRR:** ₹0
 - **Paying clients:** 0
 - **Deployed URLs:**
@@ -1726,14 +1728,14 @@ rekaman/
   - Products S3: `rekaman-products-prod-975050270919-ap-south-1-an` ✅ public-read (Phase 1 Path A); canonical demo GLB at `cmou3lwe9000337mk8223jby3/v1/model.glb`
   - Demo: https://demo.rekaman.io/oslo-sofa ✅ live on custom domain (Vercel DNS wired May 17). Old `rekaman-demo.vercel.app/oslo-sofa` still resolves for backward compat. Shows real Meshy armchair with USDZ (iPhone) + GLB (Android) — verified end-to-end on iPhone 13 + Android Chrome May 17.
   - Dashboard: not live (Week 7-12 Plan A buildout)
-  - Landing: not live (Week 6 ultra-minimal version)
-  - Razorpay (test): https://dashboard.razorpay.com — sole-prop merchant `SIzmIUZLAwBxmz`, test keys active, live mode locked pending website verification (Week 6 unblocker)
+  - Landing: https://rekaman.io ✅ live (Vercel, custom domain wired May 17, ACM SSL. Apex is primary, `www.rekaman.io` 308→apex per SEO best practice. 6 sections + 4 compliance pages — Privacy, Terms, Refund, Contact — all DPDP-compliant.)
+  - Razorpay: https://dashboard.razorpay.com — sole-prop merchant `SIzmIUZLAwBxmz`. Website `https://rekaman.io` submitted + approved May 17. Live mode unlocked. Migration to Pvt Ltd post-COI per Plan A.
 
 ---
 
 ## 🌐 Live URLs
 
-- Landing: `rekaman.io` (Week 6 ultra-minimal launch — 6 sections + 4 compliance pages)
+- Landing: `rekaman.io` ✅ live (Vercel, custom domain wired May 17, apex primary, ACM SSL)
 - Dashboard: `dashboard.rekaman.io` (Week 7+ Plan A)
 - API: `api.rekaman.io` ✅ live (Railway, TLS via Let's Encrypt)
 - CDN: `cdn.rekaman.io` ✅ live (CloudFront, TLS via ACM `*.rekaman.io` cert)
@@ -2360,7 +2362,7 @@ Captured here so future-Claude doesn't have to grep through `Generation Pipeline
 
 ---
 
-*Last updated: May 16, 2026 | Version 5.16*
+*Last updated: May 17, 2026 | Version 5.17*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
 *v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*
@@ -2614,3 +2616,43 @@ Zero additional Meshy cost (USDZ is already produced by the task we pay for). S3
 **Files changed (14):** `CLAUDE.md` (v5.15 strategic content from the previous session + this footer), `packages/sdk/src/{api-client,ar-launcher,index}.ts`, `server/package.json`, `server/prisma/schema.prisma` + new `server/prisma/migrations/20260516222636_v5_usdz_url/migration.sql`, `server/src/modules/generation/{repository,service}.ts`, `server/src/modules/publicAr/{service,types}.ts`, `server/src/shared/clients/{meshy,s3}.client.ts`, `server/src/workers/generation.worker.ts`.
 
 **What's next on Week 7's slate:** (a) founder runs the regen + verifies on iPhone, (b) Day 3 environment isolation (Railway staging env + Neon staging branch + branch-based deploy — closes the "bad prod push" gap before customer #1), (c) Day 4-5 dashboard scaffold P1, (d) DNS for rekaman.io + Vercel git auto-deploy + privacy@ alias + Razorpay verification (open ops items from v5.13/v5.14, blocked nothing technical, ready to ship in any order).*
+*v5.17 (Week 7 Day 1-2 close — iPhone verified, all open ops items shipped, May 17 2026): Today closed every Week 7 Day 1-2 deliverable AND every open ops item that had been deferred from v5.13/v5.14. Zero items remain in the "must-do-before-customer-#1" backlog. Tomorrow opens Day 3 (environment isolation) with a clean slate.
+
+**Verifications completed on real devices (the proof v5.16 was waiting for):**
+- **iPhone 13 Safari, iOS 26.4.1, founder's home network 4G**: opened `demo.rekaman.io/oslo-sofa.html` → tapped "View in your room" → AR Quick Look opened the armchair on the floor at real scale with NO black flash. ~5-second load (15.2 MB USDZ over 4G/2-bars; physics, not a bug). Apple's "AR / Object" toggle inside Quick Look also works — the "Object" mode shows the armchair as an orbital 3D preview on a black background (free Apple bonus that comes with USDZ; we ship two viewing modes for one Meshy generation). Screenshots captured for use as cold-email demo asset.
+- **Android Chrome regression**: same URL, WebXR placement-engine-v4 path UNCHANGED from v5.12 — model sits on floor, doesn't follow camera, scale correct. No regression from the USDZ pipeline (as designed — the iOS code path is fully separate from the Android one).
+
+**Bug caught + fixed in the same session (the v5.16 implementation's only landmine):** `generation.service.ts getGenerationStatus()` was returning `{ productId, status, glbUrl, glbSizeKb, generation, updatedAt }` but NOT spreading `usdzUrl` / `usdzSizeKb` despite the repo SELECT including them. The publicAr endpoint exposed USDZ correctly; the status endpoint hid it. Caught by founder's first `curl /generation-status` post-regen — response showed `glbUrl` present but `usdzUrl` absent. Direct S3 HEAD on the expected `v1/model.usdz` key returned `HTTP/2 200 + Content-Type: model/vnd.usdz+zip + Content-Length: 15,185,743` proving the worker DID download + upload USDZ; only the status endpoint's return shape was wrong. Fix: 5-line spread of `usdzUrl: product.usdzUrl, usdzSizeKb: product.usdzSizeKb` with an inline comment referencing the May 17 catch + the product id (`cmp9ssxc9000137sz4cfdch4h`) so future-Claude can trace it. **Lesson for future schema-additive PRs**: when adding a Product column, grep for ALL service-layer projections that return product data — repo SELECT + service spread + publicAr response + dashboard types are FOUR places to update; missing the service spread (one of those four) was the v5.16 miss.
+
+**Demo wired to USDZ — preserves the public URL `demo.rekaman.io/oslo-sofa`:** new `server/scripts/update-demo-with-usdz.mjs` updates the demo brand's `oslo-sofa` product to point at the fresh founder-brand-scoped GLB + USDZ pair (`brands/cmotyhdv20002uig5vxldw4g8/products/cmp9ssxc9000137sz4cfdch4h/v1/{model.glb, model.usdz}`). Cross-brand asset reference is intentional per v5.10 ("public bucket, unguessable cuid keys, no security cost"). Founder ran the script on her laptop (this dev shell can't reach Neon per v5.16 Gotcha). Idempotent — re-running re-applies same values.
+
+**DNS deploys (Week 7 Day 1-2):** Two new custom domains live, both via Namecheap CNAMEs + Vercel custom-domain wiring + ACM SSL auto-provisioned:
+- `rekaman.io` (apex) — added to `rekaman-landing` Vercel project. **Apex is now primary**; `www.rekaman.io` returns 308 → apex (canonical-redirect convention for SEO, also lets cold-email signatures use the shorter `rekaman.io` without a redirect bounce). Verified: `curl -sI https://rekaman.io` → `HTTP/2 200`, `curl -sI https://www.rekaman.io` → `HTTP/2 308 + location: https://rekaman.io/`.
+- `demo.rekaman.io` — added to `rekaman-demo` Vercel project. The old `rekaman-demo.vercel.app/oslo-sofa.html` URL still resolves (Vercel retains both domains automatically — important because earlier cold outreach assets already use it), but all NEW codebase references point to `demo.rekaman.io`. Swept: `apps/landing/app/page.tsx` `DEMO_URL` constant, `apps/landing/next.config.mjs` `/demo` redirect destination, `docs/week6-outreach-playbook.md` (6 references in cold email templates + LinkedIn DMs + video script), `CLAUDE.md` Current Status + Live URLs + cross-service health-check command.
+
+**Razorpay website verification approved.** Submitted `https://rekaman.io` via dashboard → Account & Settings → Business website details. Chose "No" for "Does your website require users to login to complete a payment?" — correct because the site itself collects no money; payments happen via Razorpay Payment Links (Concierge MVP, Week 7-8) or via embedded Checkout on the future `dashboard.rekaman.io` (Week 10+). If "Yes" had been chosen, Razorpay would have asked for test credentials for a non-existent login flow → verification would have stalled. **Live mode keys auto-issued post-approval.** Migration sole-prop → Pvt Ltd is post-COI per Plan A.
+
+**`privacy@rekaman.io` Google Workspace alias added.** admin.google.com → Users → founder@rekaman.io → Email aliases → Add `privacy` → Save. Closes the DPDP Act 2023 §10 compliance gap that's been open since v5.13 (the privacy + contact pages reference `privacy@rekaman.io` as the Grievance Officer email three times; without the alias, those emails would bounce — a real legal exposure even pre-revenue). Founder verified the alias by sending herself a test message that landed in the founder@ inbox.
+
+**Vercel git auto-deploy verified working.** Settings → Git → Production Branch = `main` set for both `rekaman-landing` and `rekaman-demo` projects per v5.13. Today's three commits (`16b5dca`, `0aadc9e`, `98c8ae3`) all auto-deployed within ~60s of push — no manual `npx vercel --prod` needed. The v5.13/v5.14 "manual deploy trap" is now fully closed.
+
+**Files changed today (cumulative across the 4 commits):** server: `package.json` (start script auto-migrate), `prisma/schema.prisma` (+2 cols), `prisma/migrations/20260516222636_v5_usdz_url/migration.sql` (new), `src/modules/generation/{repository,service}.ts`, `src/modules/publicAr/{service,types}.ts`, `src/shared/clients/{meshy,s3}.client.ts`, `src/workers/generation.worker.ts`, `scripts/update-demo-with-usdz.mjs` (new). sdk: `src/{api-client,ar-launcher,index}.ts`. landing: `app/page.tsx`, `app/_components/SimpleNav.tsx`, `app/contact/page.tsx`, `app/privacy/page.tsx`, `app/terms/page.tsx`, `next.config.mjs`. docs: `week6-outreach-playbook.md`. CLAUDE.md (v5.15/5.16/5.17 footers + Current Status + Live URLs + Product schema usdzUrl/usdzSizeKb addition per the v5.15 promise that schema additions get reflected once code lands).
+
+**Schema additions reflected in CLAUDE.md now that code has shipped:** `Product.usdzUrl String?` + `Product.usdzSizeKb Int?` — additive, nullable, no index (read on the same row as `glbUrl`), per Core Principle #13 "Schema is additive". The schema section (Database Schema → Product model) is retro-edited TODAY (not at v5.16 ship time) to match the doc discipline "doc reflects shipped code, changelog reflects decisions."
+
+**Pre-Week-7-Day-3 decision locked: environment isolation FIRST, outreach SECOND.** Founder explicitly chose this over the other two options (cold outreach now / dashboard scaffold first). Reasoning: a bad `git push` while a paying brand's shoppers are mid-AR-session is exactly the kind of incident that turns a customer into a churn statistic at month one. Closing the gap pre-emptively while at zero paying customers is much cheaper than recovering from a prod incident after a paying brand is live. Day 3-4 plan: long-lived Neon `staging` branch off prod (separate compute endpoint, scale-to-zero ≈ ₹0 idle) + Railway `staging` environment (separate api+worker services pointing at staging Neon, separate Upstash free tier) + GitHub Actions branch-based deploy (`main` → production as today, new `dev` → staging). Local `.env` switched to staging branch — founder's laptop NEVER touches prod DB again. Discipline: prod deploys only after staging is green. ~2-3 hrs active work. Day 5-7: 30 cold emails + 15 LinkedIn DMs + first paying brand onboarded via Concierge MVP.
+
+**Status of every Week 6/7 open ops item (audit before Day 3):**
+- [x] Demo working on Android (Week 6 Day 1, v5.12)
+- [x] Demo working on iPhone (Week 7 Day 1, v5.16/5.17 — USDZ pipeline)
+- [x] Landing site `rekaman.io` deployed (Week 6 Day 3, v5.13/5.14)
+- [x] `rekaman.io` DNS + custom domain + SSL (Week 7 Day 2, v5.17)
+- [x] `demo.rekaman.io` DNS + custom domain + SSL (Week 7 Day 2, v5.17)
+- [x] Vercel git auto-deploy for both projects (Week 7 Day 2, v5.17)
+- [x] Razorpay website verification (Week 7 Day 2, v5.17)
+- [x] `privacy@rekaman.io` Google Workspace alias (Week 7 Day 2, v5.17)
+- [x] Apex/www redirect direction correct (Week 7 Day 2, v5.17)
+- [ ] Pvt Ltd registration (paused awaiting PAN reissue, ~5 more days — not blocking)
+- [ ] Environment isolation (Week 7 Day 3 — tomorrow)
+- [ ] Dashboard scaffold (Week 7 Day 4-5 — after staging)
+- [ ] First paying brand (Week 7 Day 5-7 — after dashboard scaffold OR after first 30 cold emails replies, whichever comes first)*
