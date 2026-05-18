@@ -8,6 +8,24 @@ import type { ProductData } from '../api-client.js';
 // in the main bundle, which can't access ES module exports.
 
 // ─────────────────────────────────────────────────────────────────────────────
+// v6 — UX hardening from founder Coimbatore-prep test (May 18 2026)
+//
+// Issues caught during real-Android-phone testing of v5 (the day v5 shipped):
+//   • The resize pill at the bottom of the screen overlapped the placement
+//     reticle ring → users couldn't see where they were aiming to place.
+//     Fix: hide the pill until AFTER first placement. Reticle owns the screen
+//     pre-placement; pill owns the screen post-placement.
+//   • The reticle landed on walls (and any non-floor surface) as well as the
+//     floor → "wall-mounted armchair" risk in a showroom demo.
+//     Fix: surface-normal filter rejects non-horizontal hits.
+//   • The pill felt generic.
+//     Fix: brand-purple Reset, tighter rhythm, hairline border, entrance
+//     animation, haptic feedback on tap (8 ms vibration on Android).
+//
+// Everything from v5 below is preserved unchanged — geometry, scale math,
+// analytics, dimension priority. v6 is UX-only.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 // v5 — real-world scale correctness (Coimbatore-readiness)
 //
 // What v4 did wrong: it only scaled when `heightCm` was provided. Any product
@@ -278,42 +296,75 @@ async function startPlacementAR(product: ProductData): Promise<void> {
   overlayHost.id = 'rk-ar-overlay';
   // Inline styles so we never depend on the brand site's CSS (Shadow DOM also
   // ensures their CSS can't reach us — defense in depth).
+  // v6 — hidden by default. Shows only AFTER the user places the model for the
+  // first time. Rationale: pre-placement the reticle is the most important
+  // affordance on screen ("tap to place"); a resize widget overlapping it
+  // confuses the user (caught in founder Coimbatore-prep test, May 18 — the
+  // pill was occluding the reticle ring when looking at the floor).
+  // Post-placement the reticle becomes secondary and the resize controls take
+  // priority. Visibility is toggled in the `select` handler below.
   overlayHost.style.cssText = [
     'position:fixed', 'inset:auto 0 0 0',
-    'display:flex', 'justify-content:center', 'align-items:center',
-    'pointer-events:none', // Children re-enable pointer-events selectively
-    'padding:16px', 'padding-bottom:max(16px, env(safe-area-inset-bottom))',
+    'display:none', // v6 — hidden until first placement
+    'justify-content:center', 'align-items:center',
+    'pointer-events:none',
+    'padding:16px', 'padding-bottom:max(20px, env(safe-area-inset-bottom))',
     'z-index:2147483647',
   ].join(';');
   const overlayShadow = overlayHost.attachShadow({ mode: 'closed' });
+  // v6 polish — Rekaman purple accent (#5A4FCF / dark variant #8B7FFF per brand
+  // identity in CLAUDE.md), tighter rhythm, hairline border, brand-aligned
+  // typography (Inter primary, system fallback), entrance animation, haptic
+  // feedback on tap.
   overlayShadow.innerHTML = `
     <style>
+      @keyframes rkRise {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
       .panel {
         pointer-events: auto;
-        display: flex; align-items: center; gap: 10px;
-        background: rgba(15, 15, 15, 0.75);
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        display: flex; align-items: center; gap: 6px;
+        background: rgba(15, 15, 15, 0.82);
+        backdrop-filter: blur(24px) saturate(1.4);
+        -webkit-backdrop-filter: blur(24px) saturate(1.4);
+        border: 0.5px solid rgba(255,255,255,0.08);
         border-radius: 999px;
-        padding: 8px 14px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
-        color: #fff; font-size: 14px; line-height: 1;
+        padding: 6px 8px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.06) inset;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        color: #fff;
+        animation: rkRise 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
       }
       button {
         all: unset; cursor: pointer; user-select: none;
-        width: 36px; height: 36px; border-radius: 50%;
-        background: rgba(255,255,255,0.12);
+        width: 40px; height: 40px; border-radius: 50%;
+        background: rgba(255,255,255,0.10);
         display: inline-flex; align-items: center; justify-content: center;
-        font-size: 18px; font-weight: 500; color: #fff;
-        transition: background 120ms ease, transform 80ms ease;
+        font-size: 20px; font-weight: 500; color: #fff;
+        letter-spacing: -0.01em;
+        transition: background 140ms ease, transform 100ms ease;
       }
-      button:active { background: rgba(255,255,255,0.24); transform: scale(0.94); }
-      button[disabled] { opacity: 0.4; pointer-events: none; }
+      button:hover { background: rgba(255,255,255,0.16); }
+      button:active { background: rgba(139, 127, 255, 0.32); transform: scale(0.92); }
+      button[disabled] { opacity: 0.32; pointer-events: none; }
       .reset {
-        width: auto; height: 36px; padding: 0 14px; border-radius: 18px;
-        font-size: 13px; font-weight: 500;
+        width: auto; height: 40px; padding: 0 16px; border-radius: 20px;
+        font-size: 13.5px; font-weight: 500;
+        background: rgba(139, 127, 255, 0.16); /* subtle Rekaman purple */
+        color: #C8C2FF;
       }
-      .label { min-width: 78px; text-align: center; font-variant-numeric: tabular-nums; font-size: 13px; opacity: 0.85; }
+      .reset:hover { background: rgba(139, 127, 255, 0.28); color: #fff; }
+      .reset:active { background: rgba(90, 79, 207, 0.5); }
+      .reset[disabled] { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+      .label {
+        min-width: 92px; padding: 0 8px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        font-size: 15px; font-weight: 500;
+        letter-spacing: -0.01em;
+        line-height: 40px;
+      }
     </style>
     <div class="panel" role="group" aria-label="Resize model">
       <button id="dec" aria-label="Smaller">−</button>
@@ -328,6 +379,16 @@ async function startPlacementAR(product: ProductData): Promise<void> {
   const btnInc = overlayShadow.getElementById('inc') as HTMLButtonElement;
   const btnReset = overlayShadow.getElementById('reset') as HTMLButtonElement;
   const lblScale = overlayShadow.getElementById('label') as HTMLSpanElement;
+
+  // v6 — haptic feedback on tap. Most Android Chrome versions support
+  // navigator.vibrate; iOS Safari does not (and v6 only runs WebXR on Android
+  // anyway). The 8 ms pulse is subtle, matches what native iOS does for
+  // button taps in the AR Quick Look viewer.
+  const haptic = (): void => {
+    if ('vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch { /* ignore */ }
+    }
+  };
 
   // userScaleMultiplier — applied ON TOP of loadedScale.scalar. 1.0 = actual.
   let userScaleMultiplier = 1.0;
@@ -385,9 +446,9 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     updateButtonStates();
   }
 
-  btnInc.addEventListener('click', () => setUserScale(userScaleMultiplier * USER_SCALE_STEP));
-  btnDec.addEventListener('click', () => setUserScale(userScaleMultiplier / USER_SCALE_STEP));
-  btnReset.addEventListener('click', () => setUserScale(1.0));
+  btnInc.addEventListener('click', () => { haptic(); setUserScale(userScaleMultiplier * USER_SCALE_STEP); });
+  btnDec.addEventListener('click', () => { haptic(); setUserScale(userScaleMultiplier / USER_SCALE_STEP); });
+  btnReset.addEventListener('click', () => { haptic(); setUserScale(1.0); });
 
   updateButtonStates();
 
@@ -435,6 +496,17 @@ async function startPlacementAR(product: ProductData): Promise<void> {
   reticle.visible = false;
   scene.add(reticle);
 
+  // v6 — Threshold for "is this surface roughly horizontal-and-upward?". The
+  // hit-test pose's matrix Y-axis vector is the surface normal in world space.
+  // For a horizontal floor (or table), the Y-axis is approximately (0, 1, 0)
+  // — `m[5]` (the y-component of the local-Y axis in column-major layout) is
+  // ~1. For a wall, the Y-axis is horizontal (≈0). For a ceiling, the Y is
+  // negative. Threshold 0.85 accepts surfaces within ~32° of horizontal —
+  // covers normal floors plus slight slopes, rejects walls/ceilings cleanly.
+  // For placement mode (furniture/decor), we want floor only. Future Phase 3
+  // wall-art mode will invert this (m[5] near 0 + vertical alignment).
+  const FLOOR_NORMAL_THRESHOLD = 0.85;
+
   session.addEventListener('select', () => {
     if (!reticle.visible || !loadedModel) return;
 
@@ -452,6 +524,15 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     // should keep their preferred size.)
     applyUserScaleToPlaced();
 
+    // v6 — reveal the resize overlay AFTER the first placement, never before.
+    // Pre-placement the reticle is the primary affordance; covering it with a
+    // pill confuses placement. Post-placement the model is the focus and the
+    // pill is contextual to it. Setting display:flex (not block) preserves
+    // the flex centering we set on the host.
+    if (overlayHost.style.display !== 'flex') {
+      overlayHost.style.display = 'flex';
+    }
+
     track('ar_placed', {
       productSlug: product.slug,
       arMode: product.arMode,
@@ -465,8 +546,20 @@ async function startPlacementAR(product: ProductData): Promise<void> {
       if (results.length > 0) {
         const pose = results[0]!.getPose(localSpace);
         if (pose) {
-          reticle.visible = true;
-          reticle.matrix.fromArray(pose.transform.matrix);
+          // v6 — reject non-horizontal surfaces. The hit-test API returns hits
+          // on ANY detected surface (floor, table, wall, ceiling). Without this
+          // filter, brand owners pointing their phone at a showroom wall would
+          // see the reticle "stick" to the wall — and tapping would place a
+          // sofa hanging off the wall, which destroys the demo's credibility.
+          const m = pose.transform.matrix;
+          const surfaceUpY = m[5]!;
+          if (surfaceUpY >= FLOOR_NORMAL_THRESHOLD) {
+            reticle.visible = true;
+            reticle.matrix.fromArray(m);
+          } else {
+            // Wall/ceiling — pretend we have no hit so the reticle hides.
+            reticle.visible = false;
+          }
         }
       } else {
         reticle.visible = false;

@@ -76,12 +76,22 @@ const mainBundle: esbuild.BuildOptions = {
 //         document.body, per v5.12) — small floating pill at the bottom with
 //         − / Reset / + controls + size label ("76 cm" / "Approx. size")
 //       — user resize clamped 0.25× – 4× (via the multiplier-on-top pattern)
+//   v6: (Week 7 Day 3 evening, May 18 2026) UX hardening from founder's
+//       real-Android-phone test of v5. Same-day follow-up, no semantic
+//       change to the scale math or analytics:
+//       — overlay pill hidden until first placement (reticle pre-placement,
+//         pill post-placement; never overlap)
+//       — surface-normal filter rejects non-horizontal hits (reticle won't
+//         stick to walls/ceilings in placement mode; future wall-art mode
+//         in Phase 3 will invert the threshold)
+//       — visual polish: brand-purple Reset, hairline border, entrance
+//         animation, haptic feedback on button tap
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v5.js'),
+  outfile: join(outdir, 'placement-engine-v6.js'),
   format: 'iife',
 };
 
@@ -120,8 +130,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v5.js (lazy chunk)',
-    join(outdir, 'placement-engine-v5.js'),
+    'placement-engine-v6.js (lazy chunk)',
+    join(outdir, 'placement-engine-v6.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -138,7 +148,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v5.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v6.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));
