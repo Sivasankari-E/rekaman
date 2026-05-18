@@ -120,7 +120,18 @@
       <div class="ar-slot">
         <div data-rk-product="oslo-sofa" data-rk-key="rk_live_wW8dUxrRLB1_IOEUZj_5vZNFE95PUTGE"></div>
       </div>
-      <script src="https://cdn.rekaman.io/v1/sdk.js" defer></script>
+      <!-- Demo-only: cache-bust sdk.js on every page load so dev iterations don't get
+           stuck on a cached older version. Production brand integrations use the
+           clean `https://cdn.rekaman.io/v1/sdk.js` URL so CloudFront caching works
+           normally — this `?ts=` trick is purely for the founder's dev/demo loop. -->
+      <script>
+        (function () {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.rekaman.io/v1/sdk.js?ts=' + Date.now();
+          s.defer = true;
+          document.head.appendChild(s);
+        })();
+      </script>
 
       <footer>
         <div class="powered">
