@@ -86,12 +86,17 @@ const mainBundle: esbuild.BuildOptions = {
 //         in Phase 3 will invert the threshold)
 //       — visual polish: brand-purple Reset, hairline border, entrance
 //         animation, haptic feedback on button tap
+//   v7: (Week 7 Day 3 late evening, May 18 2026) finish the overlap fix —
+//       v6 hid the pill pre-placement but the RETICLE remained visible
+//       post-placement, so after first tap the two re-overlapped at the
+//       bottom-center of the screen. v7 hides the reticle once a model is
+//       placed (industry-standard single-placement-per-session pattern).
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v6.js'),
+  outfile: join(outdir, 'placement-engine-v7.js'),
   format: 'iife',
 };
 
@@ -130,8 +135,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v6.js (lazy chunk)',
-    join(outdir, 'placement-engine-v6.js'),
+    'placement-engine-v7.js (lazy chunk)',
+    join(outdir, 'placement-engine-v7.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -148,7 +153,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v6.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v7.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));

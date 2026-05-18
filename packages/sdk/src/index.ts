@@ -11,6 +11,10 @@ interface MountedInstance {
   apiKey: string;
   productSlug: string;
   product: ProductData | null;
+  // v5.20: in-flight product fetch. Used by handleButtonClick when the
+  // shopper taps the button before the fetch has resolved — instead of the
+  // tap being a silent no-op (v5.19 behaviour), we await this and proceed.
+  productPromise: Promise<ProductData> | null;
   platform: Platform | null;
   buttonHandle: ReturnType<typeof injectButton> | null;
 }
@@ -35,6 +39,7 @@ async function mount(container: HTMLElement) {
     apiKey,
     productSlug,
     product: null,
+    productPromise: null,
     platform: null,
     buttonHandle: null,
   };
@@ -42,19 +47,42 @@ async function mount(container: HTMLElement) {
 
   initAnalytics(apiKey);
 
-  // Kick off both detection paths in parallel for speed, but DO NOT paint the
-  // button until product data arrives. Earlier versions injected a disabled
-  // "View in AR" placeholder as soon as platform detection resolved (~50 ms)
-  // and upgraded the label + enabled state when the product fetch resolved
-  // (~200-500 ms). On slow networks this caused a visible 200-500 ms flicker
-  // — a faded ghost button that re-labelled itself and turned solid.
-  // Brand demo pages exposed the flicker badly; the perception was that the
-  // button was broken and "fixed itself". Trade-off: button appears slightly
-  // later (≤500 ms typical) but renders correct + enabled in one paint.
-  // Both promises still race in parallel so total time-to-button is bounded
-  // by the slower of the two, not their sum.
+  // v5.20 (May 18 evening) — paint the button IMMEDIATELY after platform
+  // detect (~50 ms), don't wait for the product fetch. The earlier "wait for
+  // product to avoid flicker" approach was correct for the multi-arMode
+  // future, but in Phase 1 reality: 100% of shipped products are 'placement'
+  // mode, so the default "View in your room" label IS the correct final
+  // label in 100% of cases — there's nothing to flicker INTO. Brand owners
+  // on real-world 4G were seeing the button take 1-3 seconds to appear on
+  // product pages, perceiving the integration as broken. The new flow:
+  //
+  //   1. platformPromise resolves (~50 ms) → inject button with default
+  //      label, enabled, ready to tap
+  //   2. productPromise resolves (200 ms - 3 s) in the background → if the
+  //      product's arMode generates a different label (Phase 3 try-on
+  //      modes — not shipped today), call setLabel() to update. For
+  //      placement mode, no-op.
+  //   3. If the shopper taps before productPromise resolves, handleButtonClick
+  //      shows a loading spinner on the button (via setLoading) and awaits
+  //      the still-pending fetch. From the shopper's POV: button appeared
+  //      fast, they tapped, AR loaded normally. No "broken-looking" wait.
+  //
+  // Both promises still race in parallel so total time-to-AR is bounded by
+  // the slower of the two, never their sum.
   const platformPromise = detectPlatform();
-  const productPromise = fetchProduct(apiKey, productSlug);
+  const productPromise = fetchProduct(apiKey, productSlug).then(
+    (p) => { instance.product = p; return p; },
+    (err) => {
+      track('ar_error', {
+        productSlug,
+        payload: { message: (err as Error).message, phase: 'init-fetch' },
+      });
+      throw err;
+    },
+  );
+  // Surface the in-flight promise so handleButtonClick can await it if the
+  // user taps before the fetch resolves.
+  instance.productPromise = productPromise;
 
   try {
     const platform = await platformPromise;
@@ -66,26 +94,36 @@ async function mount(container: HTMLElement) {
       // which arModes get blocked by which platforms).
       try {
         const product = await productPromise;
-        instance.product = product;
         track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
-      } catch (err) {
-        track('ar_error', {
-          productSlug,
-          payload: { message: (err as Error).message, phase: 'init' },
-        });
+      } catch {
+        // ar_error already fired by the productPromise .then(reject) above.
       }
       return;
     }
 
-    // Wait for product BEFORE injecting — fixes the flicker described above.
-    const product = await productPromise;
-    instance.product = product;
-    track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
-
+    // Inject IMMEDIATELY. Default label = placement-mode label = correct for
+    // 100% of today's products. setLabel below only fires if a future try-on
+    // product is mounted (Phase 3) — for placement, it's a no-op.
     instance.buttonHandle = injectButton(container, {
-      label: getButtonLabel(product.arMode),
+      label: getButtonLabel('placement'),
       onClick: () => handleButtonClick(instance),
     });
+
+    // Continue resolving the product in the background. When it lands, update
+    // the label only if a non-placement mode requires it. Errors are already
+    // tracked by the .then(reject) above; we just silently bail here.
+    productPromise
+      .then((product) => {
+        track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
+        const correctLabel = getButtonLabel(product.arMode);
+        if (correctLabel !== getButtonLabel('placement')) {
+          instance.buttonHandle?.setLabel(correctLabel);
+        }
+      })
+      .catch(() => {
+        // Already tracked. The button stays visible but tap will fail — that
+        // failure will fire ar_error from handleButtonClick.
+      });
   } catch (err) {
     track('ar_error', {
       productSlug,
@@ -107,11 +145,43 @@ function getButtonLabel(arMode: string): string {
 }
 
 async function handleButtonClick(instance: MountedInstance) {
-  if (!instance.product || !instance.platform) return;
+  if (!instance.platform) return;
+
+  // v5.20 — the button paints before the product fetch resolves (so it
+  // appears instantly on slow networks). If the user taps before then, show
+  // a loading spinner and await the in-flight promise. We delay the
+  // `ar_button_tapped` event until the product is loaded so it carries the
+  // correct arMode; an `earlyTap` flag in the payload tells the dashboard
+  // the shopper out-paced our fetch.
+  const earlyTap = !instance.product;
+  if (earlyTap) {
+    if (!instance.productPromise) return;
+    instance.buttonHandle?.setLoading(true);
+    try {
+      await instance.productPromise;
+    } catch {
+      // ar_error already tracked by the initial .then(reject) wrapper. Reset
+      // loading + bail; nothing else to do without product data.
+      instance.buttonHandle?.setLoading(false);
+      return;
+    }
+    if (!instance.product) {
+      instance.buttonHandle?.setLoading(false);
+      return;
+    }
+    // Fall through with `instance.product` now populated; setLoading(true)
+    // below keeps the spinner visible through the AR launch.
+  }
+
+  // Capture into a local const so TS flow analysis sees `product` as
+  // non-null through the rest of the function (we already returned above
+  // if it would have been null after await).
+  const product = instance.product!;
 
   track('ar_button_tapped', {
     productSlug: instance.productSlug,
-    arMode: instance.product.arMode,
+    arMode: product.arMode,
+    payload: earlyTap ? { earlyTap: true } : undefined,
   });
   instance.buttonHandle?.setLoading(true);
 
@@ -121,19 +191,19 @@ async function handleButtonClick(instance: MountedInstance) {
       // (usdz vs glb-fallback). Capture it in telemetry so the dashboard
       // can flag brands whose products predate the v5.15 USDZ pipeline
       // and need regeneration — high `glb-fallback` rate = broken iOS UX.
-      const iosFormat = launchIosQuickLook(instance.product);
+      const iosFormat = launchIosQuickLook(product);
       track('ar_session_started', {
         productSlug: instance.productSlug,
-        arMode: instance.product.arMode,
+        arMode: product.arMode,
         payload: { platform: 'ios-quicklook', format: iosFormat },
       });
     } else if (instance.platform === 'webxr') {
       track('ar_session_started', {
         productSlug: instance.productSlug,
-        arMode: instance.product.arMode,
+        arMode: product.arMode,
         payload: { platform: 'webxr' },
       });
-      await launchArExperience(instance.product);
+      await launchArExperience(product);
     }
   } catch (err) {
     track('ar_error', {

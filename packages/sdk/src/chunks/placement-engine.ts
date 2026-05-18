@@ -8,6 +8,22 @@ import type { ProductData } from '../api-client.js';
 // in the main bundle, which can't access ES module exports.
 
 // ─────────────────────────────────────────────────────────────────────────────
+// v7 — finish the reticle/pill overlap fix (May 18 2026 evening)
+//
+// v6 hid the pill until first placement, but didn't hide the reticle AFTER
+// first placement. When the founder placed a model and then looked down, the
+// reticle (still active) and pill (now visible) BOTH gravitated to the
+// screen's bottom-center → re-overlap. The pill was technically "on top"
+// (z-index'd as DOM overlay) but the reticle showed through tiles of the
+// floor pattern, creating the same visual confusion.
+//
+// v7: post-placement the reticle stays hidden. Single-placement-per-session
+// is the industry-standard pattern (IKEA Place, Wayfair). To start over the
+// user exits AR and re-taps "View in your room" — clean and predictable.
+//
+// Everything from v5/v6 below is preserved unchanged.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 // v6 — UX hardening from founder Coimbatore-prep test (May 18 2026)
 //
 // Issues caught during real-Android-phone testing of v5 (the day v5 shipped):
@@ -542,27 +558,41 @@ async function startPlacementAR(product: ProductData): Promise<void> {
 
   renderer.setAnimationLoop((_time, frame) => {
     if (frame && hitTestSource && localSpace) {
-      const results = frame.getHitTestResults(hitTestSource);
-      if (results.length > 0) {
-        const pose = results[0]!.getPose(localSpace);
-        if (pose) {
-          // v6 — reject non-horizontal surfaces. The hit-test API returns hits
-          // on ANY detected surface (floor, table, wall, ceiling). Without this
-          // filter, brand owners pointing their phone at a showroom wall would
-          // see the reticle "stick" to the wall — and tapping would place a
-          // sofa hanging off the wall, which destroys the demo's credibility.
-          const m = pose.transform.matrix;
-          const surfaceUpY = m[5]!;
-          if (surfaceUpY >= FLOOR_NORMAL_THRESHOLD) {
-            reticle.visible = true;
-            reticle.matrix.fromArray(m);
-          } else {
-            // Wall/ceiling — pretend we have no hit so the reticle hides.
-            reticle.visible = false;
-          }
-        }
-      } else {
+      // v7 — once the user has placed a model, the reticle's job is done.
+      // Showing it post-placement caused two problems in real-phone testing
+      // (founder, May 18 evening): (a) it occluded the pill (or vice-versa)
+      // since both gravitate to the bottom-center of the screen when the
+      // camera looks at the floor; (b) it implies "you can re-place" which
+      // we don't actually support cleanly yet (a tap re-places the model,
+      // but the floating pill makes it feel like the tap is for something
+      // else). Industry pattern (IKEA Place / Wayfair): single placement
+      // per session, exit AR to start over. v7 enforces this — once
+      // `placedModel` is non-null, the reticle stays hidden.
+      if (placedModel) {
         reticle.visible = false;
+      } else {
+        const results = frame.getHitTestResults(hitTestSource);
+        if (results.length > 0) {
+          const pose = results[0]!.getPose(localSpace);
+          if (pose) {
+            // v6 — reject non-horizontal surfaces. The hit-test API returns hits
+            // on ANY detected surface (floor, table, wall, ceiling). Without
+            // this filter, brand owners pointing their phone at a showroom wall
+            // would see the reticle "stick" to the wall — and tapping would
+            // place a sofa hanging off the wall, which destroys the demo's
+            // credibility.
+            const m = pose.transform.matrix;
+            const surfaceUpY = m[5]!;
+            if (surfaceUpY >= FLOOR_NORMAL_THRESHOLD) {
+              reticle.visible = true;
+              reticle.matrix.fromArray(m);
+            } else {
+              reticle.visible = false;
+            }
+          }
+        } else {
+          reticle.visible = false;
+        }
       }
     }
     renderer.render(scene, camera);
