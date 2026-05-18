@@ -8,6 +8,20 @@ import type { ProductData } from '../api-client.js';
 // in the main bundle, which can't access ES module exports.
 
 // ─────────────────────────────────────────────────────────────────────────────
+// v8 — restore re-placement via explicit "Move" button (May 18 2026 late night)
+//
+// v7 hid the reticle post-placement to kill the pill/reticle overlap. The
+// founder caught a regression: brand owners need to be able to re-place the
+// model during a showroom demo ("now show me next to the desk"). v7 forced
+// exit-and-re-enter, breaking the demo flow.
+//
+// v8 adds a "Move" button to the pill. Tap Move → reticle re-appears, pill
+// hides, current model stays visible in the scene as reference. Tap a new
+// floor spot → model jumps there, reticle hides, pill re-appears. Industry-
+// standard "explicit move mode" pattern (matches Apple AR Quick Look's drag
+// gesture which provides the same affordance via touch instead of a button).
+//
+// ─────────────────────────────────────────────────────────────────────────────
 // v7 — finish the reticle/pill overlap fix (May 18 2026 evening)
 //
 // v6 hid the pill until first placement, but didn't hide the reticle AFTER
@@ -364,9 +378,17 @@ async function startPlacementAR(product: ProductData): Promise<void> {
       button:hover { background: rgba(255,255,255,0.16); }
       button:active { background: rgba(139, 127, 255, 0.32); transform: scale(0.92); }
       button[disabled] { opacity: 0.32; pointer-events: none; }
-      .reset {
-        width: auto; height: 40px; padding: 0 16px; border-radius: 20px;
+      .text-btn {
+        width: auto; height: 40px; padding: 0 14px; border-radius: 20px;
         font-size: 13.5px; font-weight: 500;
+      }
+      .move {
+        background: rgba(255,255,255,0.10);
+        color: #fff;
+      }
+      .move:hover { background: rgba(255,255,255,0.18); }
+      .move:active { background: rgba(139, 127, 255, 0.32); }
+      .reset {
         background: rgba(139, 127, 255, 0.16); /* subtle Rekaman purple */
         color: #C8C2FF;
       }
@@ -374,25 +396,29 @@ async function startPlacementAR(product: ProductData): Promise<void> {
       .reset:active { background: rgba(90, 79, 207, 0.5); }
       .reset[disabled] { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
       .label {
-        min-width: 92px; padding: 0 8px;
+        min-width: 84px; padding: 0 6px;
         text-align: center;
         font-variant-numeric: tabular-nums;
         font-size: 15px; font-weight: 500;
         letter-spacing: -0.01em;
         line-height: 40px;
       }
+      .sep { width: 1px; height: 22px; background: rgba(255,255,255,0.12); margin: 0 2px; }
     </style>
-    <div class="panel" role="group" aria-label="Resize model">
+    <div class="panel" role="group" aria-label="AR controls">
       <button id="dec" aria-label="Smaller">−</button>
       <span class="label" id="label">Loading…</span>
       <button id="inc" aria-label="Bigger">+</button>
-      <button id="reset" class="reset" aria-label="Reset to actual size">Reset</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button id="move" class="text-btn move" aria-label="Move to new spot">Move</button>
+      <button id="reset" class="text-btn reset" aria-label="Reset to actual size">Reset</button>
     </div>
   `;
   document.body.appendChild(overlayHost);
 
   const btnDec = overlayShadow.getElementById('dec') as HTMLButtonElement;
   const btnInc = overlayShadow.getElementById('inc') as HTMLButtonElement;
+  const btnMove = overlayShadow.getElementById('move') as HTMLButtonElement;
   const btnReset = overlayShadow.getElementById('reset') as HTMLButtonElement;
   const lblScale = overlayShadow.getElementById('label') as HTMLSpanElement;
 
@@ -409,6 +435,14 @@ async function startPlacementAR(product: ProductData): Promise<void> {
   // userScaleMultiplier — applied ON TOP of loadedScale.scalar. 1.0 = actual.
   let userScaleMultiplier = 1.0;
   let placedModel: THREE.Group | null = null;
+  // v8 — When the user taps "Move", we want the reticle to re-appear so they
+  // can pick a new spot, but we keep the existing placed model visible in
+  // the scene as a visual reference ("the chair is currently here; tap to
+  // move it"). The select handler clears this flag once a new placement
+  // happens. Decoupling movement-intent from placedModel-null lets us hide
+  // the pill DURING the move without conflating "no model exists" with
+  // "model exists but user wants to move it". See animation loop below.
+  let isMoving = false;
 
   function applyUserScaleToPlaced() {
     if (!placedModel || !loadedScale) return;
@@ -465,6 +499,15 @@ async function startPlacementAR(product: ProductData): Promise<void> {
   btnInc.addEventListener('click', () => { haptic(); setUserScale(userScaleMultiplier * USER_SCALE_STEP); });
   btnDec.addEventListener('click', () => { haptic(); setUserScale(userScaleMultiplier / USER_SCALE_STEP); });
   btnReset.addEventListener('click', () => { haptic(); setUserScale(1.0); });
+  // v8 — Move button: hide pill, re-enable reticle, keep current placement
+  // visible in the scene until user taps a new spot. The session 'select'
+  // handler clears `isMoving` + re-shows the pill on successful re-place.
+  btnMove.addEventListener('click', () => {
+    if (!placedModel) return; // shouldn't be tappable pre-placement (pill is hidden)
+    haptic();
+    isMoving = true;
+    overlayHost.style.display = 'none';
+  });
 
   updateButtonStates();
 
@@ -534,6 +577,9 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     placed.rotation.set(0, yRot, 0);
     scene.add(placed);
     placedModel = placed;
+    // v8 — clear the "user is moving" flag now that they've placed at a new
+    // spot. Reticle returns to hidden, pill returns to visible.
+    isMoving = false;
 
     // Apply any user-set multiplier carried over from a previous placement in
     // the same session. (If the user resized then re-placed, the new placement
@@ -558,17 +604,11 @@ async function startPlacementAR(product: ProductData): Promise<void> {
 
   renderer.setAnimationLoop((_time, frame) => {
     if (frame && hitTestSource && localSpace) {
-      // v7 — once the user has placed a model, the reticle's job is done.
-      // Showing it post-placement caused two problems in real-phone testing
-      // (founder, May 18 evening): (a) it occluded the pill (or vice-versa)
-      // since both gravitate to the bottom-center of the screen when the
-      // camera looks at the floor; (b) it implies "you can re-place" which
-      // we don't actually support cleanly yet (a tap re-places the model,
-      // but the floating pill makes it feel like the tap is for something
-      // else). Industry pattern (IKEA Place / Wayfair): single placement
-      // per session, exit AR to start over. v7 enforces this — once
-      // `placedModel` is non-null, the reticle stays hidden.
-      if (placedModel) {
+      // v7/v8 — show the reticle when EITHER (a) nothing is placed yet OR
+      // (b) the user has tapped Move and is repositioning. Otherwise hide
+      // it so the pill never overlaps the reticle ring during normal use.
+      const showReticle = !placedModel || isMoving;
+      if (!showReticle) {
         reticle.visible = false;
       } else {
         const results = frame.getHitTestResults(hitTestSource);

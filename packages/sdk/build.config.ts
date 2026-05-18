@@ -91,12 +91,18 @@ const mainBundle: esbuild.BuildOptions = {
 //       post-placement, so after first tap the two re-overlapped at the
 //       bottom-center of the screen. v7 hides the reticle once a model is
 //       placed (industry-standard single-placement-per-session pattern).
+//   v8: (Week 7 Day 3 late night, May 18 2026) restore re-placement — v7's
+//       hide-reticle-post-placement broke the founder's showroom demo flow
+//       ("show me next to the desk"). v8 adds a "Move" button to the pill;
+//       tap Move → reticle re-appears → tap new spot → model jumps. Existing
+//       model stays as reference during the move. No overlap regression
+//       because the pill hides while the user is actively moving.
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v7.js'),
+  outfile: join(outdir, 'placement-engine-v8.js'),
   format: 'iife',
 };
 
@@ -135,8 +141,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v7.js (lazy chunk)',
-    join(outdir, 'placement-engine-v7.js'),
+    'placement-engine-v8.js (lazy chunk)',
+    join(outdir, 'placement-engine-v8.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -153,7 +159,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v7.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v8.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));
