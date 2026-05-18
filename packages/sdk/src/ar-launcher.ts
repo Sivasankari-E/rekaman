@@ -94,16 +94,22 @@ function loadChunk(filename: string): Promise<void> {
 export async function launchArExperience(product: ProductData): Promise<void> {
   switch (product.arMode) {
     case 'placement': {
+      // v5 — Week 7 Day 3 real-world scale correctness (Coimbatore-readiness):
+      //   • dimension-priority scaling (height → width → depth → 1m fallback)
+      //   • aspect-ratio sanity check → `ar_scale_applied { aspectWarning }`
+      //   • dom-overlay with dedicated small root (NOT document.body, per
+      //     v5.12) — − / Reset / + controls + size label ("76 cm" / "Approx.")
+      //   • user resize clamped 0.25× – 4× via multiplier-on-top pattern
       // v4 — Week 6 Day 1 fixes for the brand demo:
       //   • model now sits on the floor (Group-wrapper preserves the
       //     ground-correction across `setFromMatrixPosition` placement)
       //   • model no longer follows the camera
       //     (`renderer.xr.setReferenceSpaceType('local-floor')` aligns
       //     Three.js's scene frame with the hit-test reference space)
-      // Older versions (v1, v2, v3) remain in S3 as fallbacks for any SDK
+      // Older versions (v1, v2, v3, v4) remain in S3 as fallbacks for any SDK
       // still cached on a brand site that hasn't refreshed its sdk.js yet
       // (5-min browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v4.js');
+      await loadChunk('placement-engine-v5.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');

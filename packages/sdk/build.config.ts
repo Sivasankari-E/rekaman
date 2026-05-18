@@ -51,7 +51,7 @@ const mainBundle: esbuild.BuildOptions = {
 // self-registers on window.__rkChunks.placement so the main bundle's ar-launcher can
 // invoke it after load.
 //
-// Filename is versioned (`-v4`) and served with `Cache-Control: immutable`. ANY content
+// Filename is versioned (`-v5`) and served with `Cache-Control: immutable`. ANY content
 // change requires bumping the version — that's the contract that lets us cache forever
 // at the edge. Version history:
 //   v1: original ship (had dom-overlay bug — page text overlaid AR view)
@@ -64,12 +64,24 @@ const mainBundle: esbuild.BuildOptions = {
 //       — model no longer follows the camera (call
 //         `renderer.xr.setReferenceSpaceType('local-floor')` before setSession
 //         so Three.js's scene uses the same reference space we hit-test in)
+//   v5: (Week 7 Day 3, May 18 2026) real-world scale correctness for Coimbatore
+//       in-person demos. Fixes Part A items 3, 4, 5, 7, 8 from
+//       docs/ar-scale-correctness-spec.md:
+//       — `computeRealWorldScale()` pure function: dimension priority
+//         height → width → depth → fallback (longest native axis → 1.0 m)
+//       — aspect-ratio sanity check fires `ar_scale_applied { aspectWarning }`
+//         when a brand-provided 2nd dim is >25% off from native model aspect
+//       — "approximate size" hint shown in overlay when no dims provided
+//       — dom-overlay re-introduced with a DEDICATED small root (NOT
+//         document.body, per v5.12) — small floating pill at the bottom with
+//         − / Reset / + controls + size label ("76 cm" / "Approx. size")
+//       — user resize clamped 0.25× – 4× (via the multiplier-on-top pattern)
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v4.js'),
+  outfile: join(outdir, 'placement-engine-v5.js'),
   format: 'iife',
 };
 
@@ -108,8 +120,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v4.js (lazy chunk)',
-    join(outdir, 'placement-engine-v4.js'),
+    'placement-engine-v5.js (lazy chunk)',
+    join(outdir, 'placement-engine-v5.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -126,7 +138,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v4.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v5.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));

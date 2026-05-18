@@ -30,10 +30,15 @@ router.get(
     const { apiKey, productSlug } = ParamsSchema.parse(req.params);
     const product = await publicArService.resolveProduct(apiKey, productSlug);
 
-    // Cache aggressively at the CDN layer (5 min fresh, 24 hr stale-while-revalidate)
+    // v5.18 — tightened from max-age=300 to max-age=30. Brand product updates
+    // (dimensions, name, GLB URL after regen) must reflect to shoppers within
+    // ~1 minute without manual cache-bust. `stale-while-revalidate=60` keeps
+    // latency low: shoppers see slightly-stale data instantly while the CDN
+    // refreshes in the background. Per-product targeted invalidation on
+    // updates is a Phase 2 refinement.
     res.set(
       'Cache-Control',
-      'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+      'public, max-age=30, s-maxage=30, stale-while-revalidate=60',
     );
 
     res.json(product);

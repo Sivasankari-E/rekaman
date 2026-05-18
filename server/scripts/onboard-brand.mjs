@@ -150,14 +150,20 @@ async function createProduct(token, p) {
   // POST /v1/products returns { product: {...} } — unwrap.
   // Server schema accepts: name, slug, arMode, category, widthCm, heightCm, depthCm
   // (arMode + category added in Week 6 Day 2 schema extension for onboarding parity).
+  //
+  // v5.18 — unit conversion at the boundary. The server canonical unit is cm
+  // (per schema `Product.widthCm/heightCm/depthCm`); brands may provide the
+  // YAML in `cm` (default), `in`, `m`, or `ft` via optional `unit` field. We
+  // convert ONCE here so the rest of the system never has to branch on units.
+  const unit = (p.unit ?? 'cm').toLowerCase();
   const body = {
     name: p.name,
     slug: p.slug,
     arMode: p.arMode ?? 'placement',
     category: p.category ?? null,
-    widthCm: p.widthCm ?? null,
-    heightCm: p.heightCm ?? null,
-    depthCm: p.depthCm ?? null,
+    widthCm: convertToCm(p.widthCm, unit),
+    heightCm: convertToCm(p.heightCm, unit),
+    depthCm: convertToCm(p.depthCm, unit),
   };
   const r = await api('POST', '/v1/products', token, body);
   if (!r?.product?.id) {
@@ -270,12 +276,53 @@ function validateConfig(c) {
     if (p.arMode && !['placement', 'tryon-face', 'tryon-wrist', 'tryon-hand', 'tryon-foot', 'tryon-photo', 'multi-scene', 'audio-preview'].includes(p.arMode)) {
       errors.push(`products[${i}].arMode "${p.arMode}" is not valid`);
     }
+    // v5.18 — dimension unit + absurd-value validation. unit defaults to cm.
+    // Convert once here for validation only; createProduct() re-converts when
+    // building the API body so this remains pure.
+    const unit = (p.unit ?? 'cm').toLowerCase();
+    if (p.unit !== undefined && !['cm', 'in', 'm', 'ft'].includes(unit)) {
+      errors.push(`products[${i}].unit "${p.unit}" not recognised (use cm, in, m, or ft)`);
+    }
+    for (const axis of /** @type {const} */ (['widthCm', 'heightCm', 'depthCm'])) {
+      if (p[axis] == null) continue;
+      if (typeof p[axis] !== 'number' || !Number.isFinite(p[axis])) {
+        errors.push(`products[${i}].${axis} must be a number`);
+        continue;
+      }
+      // Convert to cm for the absurd-value check; bounds 0.5 cm – 1000 cm
+      // catch the common "meant 78 cm but entered 78 m" data-entry errors
+      // (which would scale a chair to a 78-storey building) AND the reverse
+      // ("meant 0.78 m but entered 0.78 cm" → renders as a thumb).
+      const cm = convertToCm(p[axis], unit);
+      if (cm != null && (cm < 0.5 || cm > 1000)) {
+        errors.push(
+          `products[${i}].${axis}=${p[axis]} ${unit} (= ${cm.toFixed(2)} cm) is outside [0.5, 1000] cm — likely a unit error`,
+        );
+      }
+    }
   });
 
   if (errors.length) {
     console.error('Config validation failed:');
     errors.forEach((e) => console.error(`  • ${e}`));
     exit(1);
+  }
+}
+
+/**
+ * Convert a length in `unit` (cm | in | m | ft) to centimetres.
+ * Returns null when value is null/undefined (passthrough for "unspecified").
+ * Throws on unrecognised unit — validation should have caught this earlier.
+ */
+function convertToCm(value, unit) {
+  if (value == null) return null;
+  switch (unit) {
+    case 'cm': return value;
+    case 'in': return value * 2.54;
+    case 'm':  return value * 100;
+    case 'ft': return value * 30.48;
+    default:
+      throw new Error(`unrecognised unit "${unit}" — should have been caught by validateConfig`);
   }
 }
 
@@ -390,6 +437,10 @@ EXAMPLE YAML:
       slug: "royal-sheesham-coffee-table"
       arMode: "placement"
       category: "furniture"
+      # dimension unit defaults to cm. brands often think in inches/feet
+      # for furniture; specify the unit and we convert at the boundary so
+      # the server only ever sees centimetres.
+      # unit: "in"  # cm (default) | in | m | ft
       widthCm: 120
       heightCm: 45
       depthCm: 60
