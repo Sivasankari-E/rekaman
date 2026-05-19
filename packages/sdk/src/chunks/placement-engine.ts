@@ -8,6 +8,19 @@ import type { ProductData } from '../api-client.js';
 // in the main bundle, which can't access ES module exports.
 
 // ─────────────────────────────────────────────────────────────────────────────
+// v11 — fix v10's session-killing overlay removal (May 20 2026 late evening)
+//
+// v10's `dismissHint()` called `overlayHost.remove()` 500ms after the CSS
+// fade completed. That removal was a WebXR spec violation: the dom-overlay
+// root MUST remain in the document for the session's lifetime. Removing it
+// signals the browser to end the session. Founder caught this on first
+// real-phone test: camera closed itself ~500ms after the reticle appeared.
+//
+// v11 fix: never remove `overlayHost` mid-session. Just hide the inner
+// `.hint` pill via display:none after the fade. The overlay host stays as
+// an invisible empty container until the session 'end' handler removes it.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 // v10 — "Move your phone slowly" loading hint (May 20 2026)
 //
 // Founder hit the standard WebXR timing gap during real-phone testing:
@@ -366,19 +379,34 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     });
   });
 
-// v10 — hint fade-out trigger. The hint shows from session start; once we get
-  // a valid floor-pose result (= ARCore has found a plane), we fade the hint
-  // out and remove the overlay 500ms later. After fade-out, the AR view is
-  // clean camera-only as in v9.
+  // v11 — hint fade-out trigger. The hint shows from session start; once we
+  // get a valid floor-pose result (= ARCore has found a plane), we fade the
+  // hint pill out via CSS.
+  //
+  // CRITICAL DIFFERENCE FROM v10: we do NOT remove `overlayHost` from the
+  // DOM during the session. v10 did that and it terminated the WebXR session
+  // automatically — the dom-overlay spec requires the overlay root element
+  // to remain in the document for the session's entire lifetime; removing it
+  // signals "the user can no longer see the overlay" and the browser ends
+  // the session. Founder caught this on first real-phone test: camera
+  // closed itself ~500ms after the reticle appeared.
+  //
+  // v11 fix: just hide the visual hint pill via display:none after the CSS
+  // fade transition. The empty overlay host stays in the DOM, satisfying
+  // the spec. Final cleanup of `overlayHost` happens in the session 'end'
+  // handler where it's safe.
   let hintDismissed = false;
   function dismissHint() {
     if (hintDismissed) return;
     hintDismissed = true;
     const hint = overlayShadow.getElementById('hint');
-    if (hint) hint.classList.add('fade');
-    // Pull the overlay host from the DOM AFTER the CSS fade animation completes,
-    // so we don't yank it mid-transition (looks janky).
-    setTimeout(() => overlayHost.remove(), 500);
+    if (!hint) return;
+    hint.classList.add('fade');
+    // After the CSS fade completes (380ms), hide the pill entirely so it
+    // can't accidentally intercept anything. Keep the overlayHost mounted.
+    setTimeout(() => {
+      hint.style.display = 'none';
+    }, 500);
   }
 
   renderer.setAnimationLoop((_time, frame) => {
@@ -419,9 +447,10 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     hitTestSource.cancel();
     renderer.domElement.remove();
     renderer.dispose();
-    // Safety net — if the user exited AR before ARCore detected a plane, the
-    // hint overlay is still in the DOM. Remove it.
-    if (!hintDismissed) overlayHost.remove();
+    // Final cleanup — safe to remove here because the WebXR session is
+    // already ending. (v10 incorrectly removed this mid-session; v11 holds
+    // it until 'end' fires.)
+    overlayHost.remove();
   });
 }
 

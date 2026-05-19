@@ -95,6 +95,9 @@ function loadChunk(filename: string): Promise<void> {
 export async function launchArExperience(product: ProductData): Promise<void> {
   switch (product.arMode) {
     case 'placement': {
+      // v11 — Week 7 Day 4 late evening (May 20 2026), fix v10's WebXR-spec
+      // violation where removing the overlay root mid-session terminated
+      // the session. v11 keeps the host mounted, only hides the inner pill.
       // v10 — Week 7 Day 4 evening (May 20 2026), "Move your phone slowly
       // across the floor" loading hint. Non-interactive overlay that
       // self-dismisses on first floor hit. Closes the visual gap between
@@ -121,10 +124,10 @@ export async function launchArExperience(product: ProductData): Promise<void> {
       //   • model no longer follows the camera
       //     (`renderer.xr.setReferenceSpaceType('local-floor')` aligns
       //     Three.js's scene frame with the hit-test reference space)
-      // Older versions (v1–v9) remain in S3 as fallbacks for any SDK still
+      // Older versions (v1–v10) remain in S3 as fallbacks for any SDK still
       // cached on a brand site that hasn't refreshed its sdk.js yet (5-min
       // browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v10.js');
+      await loadChunk('placement-engine-v11.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');
@@ -158,10 +161,11 @@ export async function launchArExperience(product: ProductData): Promise<void> {
  * unless the mode renders something other than a single GLB.
  */
 export async function launchProductViewer3D(product: ProductData): Promise<void> {
-  // v2 — May 20 2026, fixed broken X close button (v1 called history.back()
-  // after removing the popstate listener so cleanup never fired). v1 stays
-  // in S3 as fallback per the immutable-cache contract.
-  await loadChunk('viewer-3d-engine-v2.js');
+  // v3 — May 20 2026, X button removed entirely. v1 and v2 both had broken
+  // close handlers; v3 sidesteps the problem by relying exclusively on
+  // Android swipe-back / back-button → popstate → close(). v1+v2 stay in
+  // S3 as fallbacks per the immutable-cache contract.
+  await loadChunk('viewer-3d-engine-v3.js');
   const api = window.__rkChunks?.viewer3d;
   if (!api?.startProductViewer3D) {
     throw new Error('viewer-3d chunk did not register on window.__rkChunks.viewer3d');

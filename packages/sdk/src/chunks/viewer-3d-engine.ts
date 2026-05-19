@@ -8,6 +8,21 @@ import type { ProductData } from '../api-client.js';
 // IIFE format; loaded via <script> tag injection from the main SDK bundle.
 
 // ─────────────────────────────────────────────────────────────────────────────
+// v3 — X button removed (May 20 2026 late evening)
+//
+// v1 shipped with an X close button; v2 rewrote the close handler (the v1
+// implementation had a broken history.back() chain). Founder testing of v2
+// showed the X still didn't fire reliably on real Android Chrome. Rather
+// than spend a third iteration on a button that's strictly optional, v3
+// removes the X entirely. Close is now via Android system back gesture or
+// hardware back-button (both fire popstate, which triggers the existing
+// `onPopState` close handler).
+//
+// Trade-off: desktop users without a back-gesture need to press the browser
+// back button or Esc (browser Esc → popstate via the pushed history entry).
+// Coimbatore demos are 100% Android anyway, so this is fine for Phase 1.
+//
+// ─────────────────────────────────────────────────────────────────────────────
 // viewer-3d-engine v1 (May 19 2026)
 //
 // Interactive 3D viewer — Android-side equivalent of Apple AR Quick Look's
@@ -73,9 +88,13 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
         position: absolute; inset: 0;
         touch-action: none; /* OrbitControls needs full control of touch events */
       }
+      /* v3 — X button removed (v1/v2 implementations had buggy close
+         handlers). Close is now exclusively via Android swipe-back gesture
+         or system back-button (both trigger popstate). Title pill stays
+         centered at top as a product-name reference. */
       .top-bar {
         position: absolute; top: 0; left: 0; right: 0;
-        display: flex; justify-content: space-between; align-items: center;
+        display: flex; justify-content: center; align-items: center;
         padding: 14px 16px;
         padding-top: max(14px, env(safe-area-inset-top));
         pointer-events: none;
@@ -84,16 +103,6 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
         z-index: 2;
       }
       .top-bar > * { pointer-events: auto; }
-      .close {
-        all: unset; cursor: pointer; user-select: none;
-        width: 38px; height: 38px; border-radius: 50%;
-        background: rgba(255,255,255,0.12);
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: 22px; font-weight: 300; color: #fff;
-        line-height: 1;
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      }
-      .close:active { background: rgba(255,255,255,0.24); }
       .title {
         font-size: 14px; font-weight: 500;
         background: rgba(15,15,15,0.7);
@@ -135,13 +144,11 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
       @keyframes rkSpin { to { transform: rotate(360deg); } }
     </style>
     <div class="top-bar">
-      <button id="close" class="close" aria-label="Close 3D viewer">×</button>
       <div class="title" id="title">3D model</div>
-      <div style="width:38px"></div>
     </div>
     <div class="stage" id="stage"></div>
     <div class="loading" id="loading"><span class="spinner"></span>Loading 3D model…</div>
-    <div class="hint" id="hint">Drag to rotate · Pinch to zoom</div>
+    <div class="hint" id="hint">Drag to rotate · Pinch to zoom · Swipe back to close</div>
   `;
   document.body.appendChild(overlayHost);
   // Prevent the page below the overlay from scrolling while open.
@@ -150,7 +157,6 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
 
   const stage = overlayShadow.getElementById('stage') as HTMLDivElement;
   const loading = overlayShadow.getElementById('loading') as HTMLDivElement;
-  const closeBtn = overlayShadow.getElementById('close') as HTMLButtonElement;
   const titleEl = overlayShadow.getElementById('title') as HTMLDivElement;
   titleEl.textContent = product.name;
 
@@ -314,24 +320,17 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
     });
   }
 
-  // Push a history entry so the Android system back-button closes the viewer
-  // rather than leaving the product page entirely (jarring UX otherwise).
+  // v3 — close is exclusively via Android swipe-back gesture or system
+  // back-button. The pushed history entry catches both: when the user
+  // navigates back, the popstate listener calls close(). No X button = no
+  // close-handler bugs (v1 and v2 both had different broken implementations).
+  // For desktop testing (where there's no swipe-back), pressing the browser
+  // back button or pressing Escape also navigates back via history.
   history.pushState({ rkViewer3D: true }, '');
   function onPopState() {
     close();
   }
   window.addEventListener('popstate', onPopState);
-
-  closeBtn.addEventListener('click', () => {
-    if (history.state && (history.state as { rkViewer3D?: boolean }).rkViewer3D) {
-      // Pop our pushed entry — this fires popstate → close().
-      history.back();
-    } else {
-      // Edge case: history was already popped (e.g. user navigated mid-session
-      // via deep link). Clean up directly.
-      close();
-    }
-  });
 }
 
 // Register on window so the main SDK bundle can find this entry-point after

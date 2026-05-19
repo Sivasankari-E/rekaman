@@ -115,12 +115,18 @@ const mainBundle: esbuild.BuildOptions = {
 //        screen so it never overlaps the reticle's natural floor position.
 //        Re-introduces optional dom-overlay (safely — hint is non-tappable
 //        so the v5-v8 overlap problems don't apply).
+//   v11: (Week 7 Day 4 late evening, May 20 2026) fix v10's session-killing
+//        overlay removal — v10 called overlayHost.remove() 500ms after the
+//        hint fade, which is a WebXR DOM Overlay spec violation: the
+//        overlay root must remain in the document for the session lifetime.
+//        Removing it terminates the session. v11 just hides the inner hint
+//        pill via display:none; the host stays mounted until 'end' fires.
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v10.js'),
+  outfile: join(outdir, 'placement-engine-v11.js'),
   format: 'iife',
 };
 
@@ -135,10 +141,15 @@ const placementChunk: esbuild.BuildOptions = {
 //     history.back() AFTER removing the popstate listener, so navigation
 //     didn't trigger the close chain. v2 makes close() idempotent and
 //     routes X-tap through popstate (one source of truth).
+// v3: (May 20 2026 late evening) X button removed entirely. v2's rewrite
+//     still didn't reliably close on real Android Chrome. Rather than
+//     debug a third iteration, removed the button — close is now via
+//     Android swipe-back gesture or system back-button (both fire
+//     popstate, hitting the existing onPopState close handler).
 const viewer3dChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/viewer-3d-engine.ts'],
-  outfile: join(outdir, 'viewer-3d-engine-v2.js'),
+  outfile: join(outdir, 'viewer-3d-engine-v3.js'),
   format: 'iife',
 };
 
@@ -178,12 +189,12 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v10.js (lazy chunk)',
-    join(outdir, 'placement-engine-v10.js'),
+    'placement-engine-v11.js (lazy chunk)',
+    join(outdir, 'placement-engine-v11.js'),
   );
   const viewer3dSize = reportSize(
-    'viewer-3d-engine-v2.js (lazy chunk)',
-    join(outdir, 'viewer-3d-engine-v2.js'),
+    'viewer-3d-engine-v3.js (lazy chunk)',
+    join(outdir, 'viewer-3d-engine-v3.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -200,8 +211,8 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v10.js': { ...chunkSize, metafile: placementResult.metafile },
-      'viewer-3d-engine-v2.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
+      'placement-engine-v11.js': { ...chunkSize, metafile: placementResult.metafile },
+      'viewer-3d-engine-v3.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));
