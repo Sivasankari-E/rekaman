@@ -2363,7 +2363,7 @@ Captured here so future-Claude doesn't have to grep through `Generation Pipeline
 
 ---
 
-*Last updated: May 18, 2026 | Version 5.19*
+*Last updated: May 20, 2026 | Version 5.20*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
 *v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*
@@ -2729,3 +2729,83 @@ Zero additional Meshy cost (USDZ is already produced by the task we pay for). S3
 6. **No CLAUDE.md technical-section edits.** v5.19 edits confined to: this footer, the version line, and the Current Status block (updated to reflect v5 shipped — done in a separate edit immediately after this commit so the doc footer captures the implementation deviation list cleanly). The Database Schema is byte-unchanged; the Generation Pipeline Runbook is byte-unchanged. v5's added overlay UI / analytics event / scale function are documented in this footer for changelog continuity; they will be reflected in the SDK Philosophy section only if/when an SDK-architecture concept becomes load-bearing for future Claude (probably never — the overlay is one-off, not a pattern repeated across modes).
 
 **What's next:** founder runs the Android measure-tape verification (~10 min on her phone with a measuring tape). If green, Part A is shipped end-to-end. Day 3 (environment isolation: Railway staging env + Neon staging branch + GitHub Actions branch deploy) follows immediately — that gate is still mandatory before customer #1. Week 8: QR/hosted-viewer + Part C (iOS USDZ rescale via `usd-core`). Coimbatore in-person sales motion begins ~June 1st.*
+*v5.20 (Week 7 Day 4 — pill stripped to v9, 'View in 3D' added, May 19-20 2026): A correction + a feature, both shaped by founder real-phone testing.
+
+**The correction: placement-engine v6/v7/v8 → v9 (pill stripped).** v5.18 specced an in-AR resize pill (− / + / Reset, plus a Move button added in v8 to support re-placement). Three iterations of real-Android-phone testing during Coimbatore prep produced:
+- v6: pill polish + dom-overlay with dedicated root + floor-only hit-test
+- v7: hide reticle post-placement (kill v6 overlap regression)
+- v8: add Move button (restore re-placement broken by v7)
+- v9: strip the pill entirely — the widget wasn't load-bearing for the value prop ("model at real-world size in the showroom") and was producing cache + overlap problems each iteration
+
+What v9 KEEPS (the actual correctness work from v5.18 stays intact):
+- `computeRealWorldScale()` — dimension priority height → width → depth → fallback (longest native axis = 1.0 m)
+- `ar_scale_applied` analytics event with `{ basis, aspectWarning, basisMetres, native*M }` so the Week 9 dashboard can flag brands with missing or contradictory dim data
+- Floor-only hit-test filter (no wall placement for furniture)
+- Group-wrapper grounding (model bottom always on the hit point)
+- Reference-space pinned to local-floor before setSession (no follow-camera bug)
+
+What v9 REMOVES:
+- The − / + / Reset / Move pill UI
+- dom-overlay session feature (back to plain immersive-ar — fewer optional-feature dependencies = wider browser compatibility)
+- Haptic feedback
+- User-driven resize (model is at exact real-world size; measuring-tape verification beats UI labels for brand-owner credibility anyway)
+- Reticle-hides-post-placement (revert v7 — reticle stays visible always, tap a new spot to re-place exactly like v4)
+
+Net: chunk dropped 151.9 KB → 150.2 KB gzipped. Less code, less surface area for bugs, no dependency on dom-overlay being supported.
+
+**Tooling fix that came out of the iteration loop (`apps/demo/public/oslo-sofa.html`):** founder's Android Chrome was holding stale `sdk.js` across SDK deploys despite repeated cache-clear attempts (Site settings clear, app-storage clear, force-stop). The fix that finally stuck: the demo HTML injects `sdk.js?ts=Date.now()` at runtime instead of a static `<script src=".../sdk.js">` tag. Every demo page load forces a fresh fetch — no cache layer can short-circuit. Demo-only — production brand integrations still use the clean `https://cdn.rekaman.io/v1/sdk.js` URL so CloudFront caching works normally for paying customers. Documented inline in the demo HTML.
+
+**The feature: 'View in 3D' (interactive orbital viewer, May 20 2026 — chunk `viewer-3d-engine-v1.js`).** Founder asked: "iOS AR Quick Look has an Object view that orbits the model in a black void — can we add that for Android?" Yes — Apple gives it free with USDZ rendering; Android has no built-in equivalent. Three.js (already bundled with placement-engine) plus OrbitControls (~5 KB) gives us the same experience cross-platform.
+
+New stacked-button SDK layout on every product page:
+
+```
+[ View in your room ]  ← primary (purple-filled pill) — AR with camera
+[ View in 3D       ]  ← secondary (purple-outlined pill) — 3D viewer, no camera
+```
+
+The 3D viewer (`packages/sdk/src/chunks/viewer-3d-engine.ts`):
+- Fullscreen Shadow-DOM-isolated overlay with black radial-gradient background (mirrors Apple's Object view aesthetic)
+- Three.js scene with soft three-point lighting (key + fill + hemisphere) flattering most furniture textures
+- OrbitControls: drag to rotate, pinch to zoom (range derived from model diagonal — works regardless of native scale), 0.08 damping for smoothness, panning disabled (rotate + zoom covers 99% of intent), polar-angle clamped 0.1 → π−0.1 so user can't flip upside-down (looks weird for furniture)
+- Hint text "Drag to rotate · Pinch to zoom" fades out after 2 seconds + 6 seconds animation duration
+- Spinner during GLB load
+- Close button (top-left X) + Android system back-button support via `history.pushState({rkViewer3D: true}, '')` — back closes the viewer rather than leaving the product page (jarring otherwise)
+- Same GLB as the AR view — one Meshy generation feeds both modes
+- Body scroll locked while open, restored on close
+
+Cross-platform compatibility:
+- iOS Safari ✅ (WebGL supported everywhere; AR Quick Look stays primary on iOS but 3D viewer is alongside it)
+- Android Chrome ✅
+- Desktop ✅ (the only path for desktop shoppers — there is no WebXR on desktop)
+- Low-end Android phones without WebXR ✅ (falls back gracefully)
+
+**Analytics added:**
+- `viewer_3d_button_tapped` — fires when secondary button is tapped (with `earlyTap: true` if shopper out-paced the product fetch on slow 4G)
+- `viewer_3d_started` — session begin, with `productSlug` + `arMode` + `modelId`
+- `viewer_3d_ended` — session end with `durationMs` engagement signal
+- `viewer_3d_error` — GLB load failure or chunk failure
+
+The Week 9 dashboard will compare AR vs 3D engagement per brand per product. Useful signal: brands whose shoppers consistently choose 3D over AR may have an AR usability issue (camera permission denial, slow phones, browser/device combinations where WebXR fails) — that's correctable via brand outreach.
+
+**SDK bundle changes:**
+- `ui.ts` extended: `ButtonConfig.secondary` field; `ButtonHandle.setSecondaryLoading()`; new `cubeIcon()` SVG (isometric cube matching the Rekaman Spatial brand identity); `.btn-secondary` style class (purple outline instead of fill — visually clearly subordinate to the AR button)
+- `ar-launcher.ts`: new exported `launchProductViewer3D(product)` function + `window.__rkChunks.viewer3d` type
+- `index.ts`: `handle3DButtonClick()` mirroring `handleButtonClick()`'s early-tap promise-awaiting pattern so a fast shopper-tap never silently no-ops
+- `build.config.ts`: new third bundle target + size-report + manifest entry. Build now produces three files (`sdk.js`, `placement-engine-v9.js`, `viewer-3d-engine-v1.js`)
+
+**Demo page cleanup (`apps/demo/public/oslo-sofa.html`):** thumbnails reduced from 4 (only one mapped to the actual 3D model, the others were unrelated Pexels furniture/decor) to 1 (the real Pexels armchair). This is a feature DEMO, not a complete product catalogue — clarity over realism. Brand owners viewing the demo no longer wonder "will all 4 thumbnails show in AR?".
+
+**SDK sizes after v5.20:**
+- `sdk.js` main bundle: 7.8 → 10.4 KB raw / 3.3 → 3.9 KB gzipped (+0.6 KB for the secondary button template + cube icon + handle3DButtonClick). Well under the 50 KB CLAUDE.md budget.
+- `placement-engine-v9.js`: 150.2 KB gzipped (v9, unchanged)
+- `viewer-3d-engine-v1.js`: 155.0 KB gzipped (new; only loads on "View in 3D" tap)
+
+**Deployment trail (May 19-20 2026):**
+- Commits: `45dc98e` (v9 strip-pill, May 19) → `1c25d41` (v5.21 View-in-3D, May 20)
+- All AWS ops via `--profile rekaman` IAM user (`rekaman-deploy-cli`)
+- S3 uploads: placement-engine-v9.js + viewer-3d-engine-v1.js with `Cache-Control: immutable`; sdk.js with the standard 5-min-fresh + edge cache
+- CloudFront `/v1/sdk.js` invalidated after each sdk.js update (chunk URLs are versioned, no invalidation needed)
+- Demo HTML auto-deploys via Vercel on push (git auto-deploy verified Week 7 Day 2)
+
+**What's next:** Day 3 environment isolation (Railway staging env + Neon staging branch + GitHub Actions branch deploy) — still the mandatory gate before customer #1 onboarding. Then Week 8 dashboard scaffold (signup/login/products list/API keys/embed code) so brands can self-serve onboard once Concierge MVP scales beyond 5 customers. Coimbatore in-person sales motion begins ~June 1st with the founder demoing on her own Android phone: brand owner taps "View in your room" → sees the chair at exact 86 cm in their showroom → if they want a different view, taps "View in 3D" → sees the chair orbiting in a black void. Two complementary modes, one Meshy generation, one button-tap each.*
