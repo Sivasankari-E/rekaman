@@ -8,6 +8,27 @@ import type { ProductData } from '../api-client.js';
 // in the main bundle, which can't access ES module exports.
 
 // ─────────────────────────────────────────────────────────────────────────────
+// v10 — "Move your phone slowly" loading hint (May 20 2026)
+//
+// Founder hit the standard WebXR timing gap during real-phone testing:
+// Chrome's camera feed appears within ~500ms of session start, but ARCore
+// takes another 1-3 seconds to scan the environment and detect the first
+// floor plane. During that window, the user sees a blank camera with no
+// reticle and wonders if the AR is broken.
+//
+// v10 fix: a non-interactive hint pill at ~30% from the top of the screen
+// ("Move your phone slowly across the floor") shows from session start and
+// fades out the moment ARCore returns the first valid floor hit. After fade
+// the AR view is clean camera-only exactly as in v9.
+//
+// Why this is safe re-using dom-overlay (which v5-v8 abused and v9 dropped):
+//   • Non-interactive — no buttons, no taps, no `select` event hijack risk
+//   • Self-dismissing — fades out automatically; never coexists with the
+//     reticle for more than the 400ms fade animation
+//   • Positioned at the TOP of the screen — nowhere near where the reticle
+//     naturally appears (bottom-center, where the floor is looking-direction)
+//
+// ─────────────────────────────────────────────────────────────────────────────
 // v9 — simplification (May 19 2026)
 //
 // v5-v8 added an in-AR dom-overlay pill with − / + / Reset / Move buttons.
@@ -220,13 +241,70 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     throw new Error('WebXR not available');
   }
 
-  // No dom-overlay — clean camera-only AR view, no on-screen controls to
-  // overlap the reticle or confuse brand owners during showroom demos. Exit
-  // via the system-rendered "End AR" button (Chrome Android shows this in
-  // the top-right corner automatically).
+  // v10 — non-interactive "Move your phone slowly across the floor" hint that
+  // appears during the 1-3 seconds between camera-opens and ARCore-detects-a-
+  // plane. Without this, brand owners see a blank camera and wonder if the AR
+  // is broken. This is the standard pattern from IKEA Place, Wayfair, etc.
+  //
+  // Why we can use dom-overlay here without re-introducing the v5-v8 problems:
+  //   • Non-interactive (no buttons, no taps) → no overlap-with-reticle risk
+  //     even if it briefly coexists with a hit-test result
+  //   • Auto-fades after the first successful hit-test → invisible before
+  //     the user has any reason to look at the floor for placement
+  //   • Positioned high on the screen (~30% from top) so it's nowhere near
+  //     where the reticle naturally lives (floor → bottom of screen)
+  const overlayHost = document.createElement('div');
+  overlayHost.id = 'rk-ar-loading-hint';
+  overlayHost.style.cssText = [
+    'position:fixed',
+    'inset:0',
+    'pointer-events:none',
+    'display:flex',
+    'justify-content:center',
+    'align-items:flex-start',
+    'padding-top:30vh',
+    'z-index:2147483647',
+  ].join(';');
+  const overlayShadow = overlayHost.attachShadow({ mode: 'closed' });
+  overlayShadow.innerHTML = `
+    <style>
+      @keyframes rkHintRise {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .hint {
+        background: rgba(15, 15, 15, 0.75);
+        backdrop-filter: blur(20px) saturate(1.4);
+        -webkit-backdrop-filter: blur(20px) saturate(1.4);
+        border: 0.5px solid rgba(255,255,255,0.08);
+        color: #fff;
+        padding: 11px 18px;
+        border-radius: 999px;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-size: 13.5px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+        max-width: 80vw;
+        text-align: center;
+        animation: rkHintRise 280ms 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        opacity: 1;
+        transition: opacity 380ms ease-out;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+      }
+      .hint.fade { opacity: 0; }
+    </style>
+    <div class="hint" id="hint">Move your phone slowly across the floor</div>
+  `;
+  document.body.appendChild(overlayHost);
+
+  // No dom-overlay-as-document.body — only the small hint root composites.
+  // After it fades out, the AR view is clean camera-only as in v9.
   const session = await navigator.xr.requestSession('immersive-ar', {
     requiredFeatures: ['local-floor', 'hit-test'],
-  });
+    optionalFeatures: ['dom-overlay'],
+    domOverlay: { root: overlayHost },
+  } as XRSessionInit);
 
   // (v4 fix preserved) Reference-space mismatch — we requested `local-floor`
   // from the session AND read hit-test poses in `local-floor`, but Three.js's
@@ -288,6 +366,21 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     });
   });
 
+// v10 — hint fade-out trigger. The hint shows from session start; once we get
+  // a valid floor-pose result (= ARCore has found a plane), we fade the hint
+  // out and remove the overlay 500ms later. After fade-out, the AR view is
+  // clean camera-only as in v9.
+  let hintDismissed = false;
+  function dismissHint() {
+    if (hintDismissed) return;
+    hintDismissed = true;
+    const hint = overlayShadow.getElementById('hint');
+    if (hint) hint.classList.add('fade');
+    // Pull the overlay host from the DOM AFTER the CSS fade animation completes,
+    // so we don't yank it mid-transition (looks janky).
+    setTimeout(() => overlayHost.remove(), 500);
+  }
+
   renderer.setAnimationLoop((_time, frame) => {
     if (frame && hitTestSource && localSpace) {
       const results = frame.getHitTestResults(hitTestSource);
@@ -298,9 +391,11 @@ async function startPlacementAR(product: ProductData): Promise<void> {
           const surfaceUpY = m[5]!;
           if (surfaceUpY >= FLOOR_NORMAL_THRESHOLD) {
             // Horizontal floor / table top — show reticle, ready to place
-            // (or re-place an existing model).
+            // (or re-place an existing model). First time we hit this branch,
+            // dismiss the loading hint.
             reticle.visible = true;
             reticle.matrix.fromArray(m);
+            if (!hintDismissed) dismissHint();
           } else {
             // Wall or ceiling — hide reticle, can't place here.
             reticle.visible = false;
@@ -324,6 +419,9 @@ async function startPlacementAR(product: ProductData): Promise<void> {
     hitTestSource.cancel();
     renderer.domElement.remove();
     renderer.dispose();
+    // Safety net — if the user exited AR before ARCore detected a plane, the
+    // hint overlay is still in the DOM. Remove it.
+    if (!hintDismissed) overlayHost.remove();
   });
 }
 

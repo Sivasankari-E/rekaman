@@ -95,6 +95,10 @@ function loadChunk(filename: string): Promise<void> {
 export async function launchArExperience(product: ProductData): Promise<void> {
   switch (product.arMode) {
     case 'placement': {
+      // v10 — Week 7 Day 4 evening (May 20 2026), "Move your phone slowly
+      // across the floor" loading hint. Non-interactive overlay that
+      // self-dismisses on first floor hit. Closes the visual gap between
+      // camera-open and ARCore-detects-plane (typically 1-3 seconds).
       // v9 — Week 7 Day 3 follow-up (May 19 2026), strip the pill entirely:
       //   • no − / + / Reset / Move buttons, no dom-overlay, just clean AR
       //   • reticle stays visible always (tap floor to re-place)
@@ -117,10 +121,10 @@ export async function launchArExperience(product: ProductData): Promise<void> {
       //   • model no longer follows the camera
       //     (`renderer.xr.setReferenceSpaceType('local-floor')` aligns
       //     Three.js's scene frame with the hit-test reference space)
-      // Older versions (v1–v8) remain in S3 as fallbacks for any SDK still
+      // Older versions (v1–v9) remain in S3 as fallbacks for any SDK still
       // cached on a brand site that hasn't refreshed its sdk.js yet (5-min
       // browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v9.js');
+      await loadChunk('placement-engine-v10.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');
@@ -154,7 +158,10 @@ export async function launchArExperience(product: ProductData): Promise<void> {
  * unless the mode renders something other than a single GLB.
  */
 export async function launchProductViewer3D(product: ProductData): Promise<void> {
-  await loadChunk('viewer-3d-engine-v1.js');
+  // v2 — May 20 2026, fixed broken X close button (v1 called history.back()
+  // after removing the popstate listener so cleanup never fired). v1 stays
+  // in S3 as fallback per the immutable-cache contract.
+  await loadChunk('viewer-3d-engine-v2.js');
   const api = window.__rkChunks?.viewer3d;
   if (!api?.startProductViewer3D) {
     throw new Error('viewer-3d chunk did not register on window.__rkChunks.viewer3d');

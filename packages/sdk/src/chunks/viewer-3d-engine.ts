@@ -277,13 +277,28 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
   window.addEventListener('orientationchange', onResize);
 
   // ───────────────────────────────────────────────────────────────────────
-  // Close handling — clean up listeners, render loop, scene resources, and
-  // restore body scroll.
+  // Close handling. v2 rewrite — v1 had a broken close chain: the X button
+  // handler called `history.back()` AFTER removing the popstate listener, so
+  // the back-navigation never triggered cleanup. v2 makes close() idempotent
+  // and routes the X button THROUGH the popstate path (one source of truth
+  // for cleanup, no duplicate dispose).
+  //
+  // Flow:
+  //   • Mount-time:    pushState({rkViewer3D:true}) + popstate listener that
+  //                    calls close()
+  //   • X tap:         call history.back() → browser fires popstate → close()
+  //                    cleans up. No "double close" because close() is guarded.
+  //   • Android back:  same as X tap (back-button fires popstate natively)
+  //   • Already-popped state (rare): X tap calls close() directly
   // ───────────────────────────────────────────────────────────────────────
+  let closed = false;
   function close() {
+    if (closed) return; // idempotent — safe to call from X tap AND popstate
+    closed = true;
     stopped = true;
     window.removeEventListener('resize', onResize);
     window.removeEventListener('orientationchange', onResize);
+    window.removeEventListener('popstate', onPopState);
     document.body.style.overflow = prevBodyOverflow;
     controls.dispose();
     renderer.dispose();
@@ -298,30 +313,25 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
       },
     });
   }
-  closeBtn.addEventListener('click', close);
-  // Android system back-button: when the user presses back, browsers fire a
-  // history popstate. Push a state entry so back closes the viewer instead
-  // of leaving the product page entirely (which would be jarring UX).
+
+  // Push a history entry so the Android system back-button closes the viewer
+  // rather than leaving the product page entirely (jarring UX otherwise).
   history.pushState({ rkViewer3D: true }, '');
-  const onPopState = () => {
-    window.removeEventListener('popstate', onPopState);
+  function onPopState() {
     close();
-  };
+  }
   window.addEventListener('popstate', onPopState);
-  // Override close to also pop the state we pushed.
-  const originalClose = close;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function _closeWithHistory() {
-    window.removeEventListener('popstate', onPopState);
-    if (history.state?.rkViewer3D) {
+
+  closeBtn.addEventListener('click', () => {
+    if (history.state && (history.state as { rkViewer3D?: boolean }).rkViewer3D) {
+      // Pop our pushed entry — this fires popstate → close().
       history.back();
     } else {
-      originalClose();
+      // Edge case: history was already popped (e.g. user navigated mid-session
+      // via deep link). Clean up directly.
+      close();
     }
-  }
-  // Wire button to history-aware close; back-button uses popstate path above.
-  closeBtn.removeEventListener('click', close);
-  closeBtn.addEventListener('click', _closeWithHistory);
+  });
 }
 
 // Register on window so the main SDK bundle can find this entry-point after

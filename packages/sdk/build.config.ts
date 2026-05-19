@@ -108,25 +108,37 @@ const mainBundle: esbuild.BuildOptions = {
 //       the dashboard still flags brands with bad dim data via the
 //       ar_scale_applied event. Net: cleaner AR view, less code, no UI
 //       regressions to chase.
+//   v10: (Week 7 Day 4 evening, May 20 2026) add "Move your phone slowly
+//        across the floor" hint that shows during the 1-3 second gap
+//        between camera-open and ARCore-detects-floor. Non-interactive,
+//        self-dismisses on first valid floor hit, positioned at top of
+//        screen so it never overlaps the reticle's natural floor position.
+//        Re-introduces optional dom-overlay (safely — hint is non-tappable
+//        so the v5-v8 overlap problems don't apply).
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v9.js'),
+  outfile: join(outdir, 'placement-engine-v10.js'),
   format: 'iife',
 };
 
 // viewer-3d-engine — interactive 3D model viewer (rotate / zoom in a
 // fullscreen overlay). Cross-platform: works wherever WebGL is available
-// (iOS Safari, Android Chrome, desktop). Ships v1 (May 19 2026).
+// (iOS Safari, Android Chrome, desktop).
 //
-// v1: initial release. Three.js + OrbitControls, Shadow-DOM-isolated overlay,
-//     touch-friendly rotate/zoom, system-back-button-aware close.
+// v1: (May 19 2026) initial release. Three.js + OrbitControls, Shadow-DOM-
+//     isolated overlay, touch-friendly rotate/zoom, system-back-button-aware
+//     close.
+// v2: (May 20 2026) fixed broken X-button. v1's close handler called
+//     history.back() AFTER removing the popstate listener, so navigation
+//     didn't trigger the close chain. v2 makes close() idempotent and
+//     routes X-tap through popstate (one source of truth).
 const viewer3dChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/viewer-3d-engine.ts'],
-  outfile: join(outdir, 'viewer-3d-engine-v1.js'),
+  outfile: join(outdir, 'viewer-3d-engine-v2.js'),
   format: 'iife',
 };
 
@@ -166,12 +178,12 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v9.js (lazy chunk)',
-    join(outdir, 'placement-engine-v9.js'),
+    'placement-engine-v10.js (lazy chunk)',
+    join(outdir, 'placement-engine-v10.js'),
   );
   const viewer3dSize = reportSize(
-    'viewer-3d-engine-v1.js (lazy chunk)',
-    join(outdir, 'viewer-3d-engine-v1.js'),
+    'viewer-3d-engine-v2.js (lazy chunk)',
+    join(outdir, 'viewer-3d-engine-v2.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -188,8 +200,8 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v9.js': { ...chunkSize, metafile: placementResult.metafile },
-      'viewer-3d-engine-v1.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
+      'placement-engine-v10.js': { ...chunkSize, metafile: placementResult.metafile },
+      'viewer-3d-engine-v2.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));
