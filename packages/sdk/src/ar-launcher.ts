@@ -94,13 +94,12 @@ function loadChunk(filename: string): Promise<void> {
 export async function launchArExperience(product: ProductData): Promise<void> {
   switch (product.arMode) {
     case 'placement': {
-      // v8 — Week 7 Day 3 late night, restore re-placement:
-      //   • "Move" button in the pill — tap to re-place the existing model
-      //     (reticle re-appears, pill hides while moving, both reset after
-      //     the new placement tap)
-      // v7 — Week 7 Day 3 late evening, finish the overlap fix:
-      //   • reticle hides once a model is placed (single-placement-per-session,
-      //     IKEA Place / Wayfair pattern)
+      // v9 — Week 7 Day 3 follow-up (May 19 2026), strip the pill entirely:
+      //   • no − / + / Reset / Move buttons, no dom-overlay, just clean AR
+      //   • reticle stays visible always (tap floor to re-place)
+      //   • KEEPS: real-world scale, floor-only filter, analytics
+      // v8 — added Move button (now removed in v9)
+      // v7 — hid reticle post-placement (now reverted in v9)
       // v6 — Week 7 Day 3 evening UX hardening (from real-phone test of v5):
       //   • overlay pill hidden until first placement (no reticle overlap)
       //   • surface-normal filter rejects non-horizontal hits (no wall-stick)
@@ -117,10 +116,10 @@ export async function launchArExperience(product: ProductData): Promise<void> {
       //   • model no longer follows the camera
       //     (`renderer.xr.setReferenceSpaceType('local-floor')` aligns
       //     Three.js's scene frame with the hit-test reference space)
-      // Older versions (v1–v7) remain in S3 as fallbacks for any SDK still
+      // Older versions (v1–v8) remain in S3 as fallbacks for any SDK still
       // cached on a brand site that hasn't refreshed its sdk.js yet (5-min
       // browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v8.js');
+      await loadChunk('placement-engine-v9.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');

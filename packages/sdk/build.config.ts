@@ -97,12 +97,23 @@ const mainBundle: esbuild.BuildOptions = {
 //       tap Move → reticle re-appears → tap new spot → model jumps. Existing
 //       model stays as reference during the move. No overlap regression
 //       because the pill hides while the user is actively moving.
+//   v9: (Week 7 Day 3 follow-up, May 19 2026) strip the pill UI entirely.
+//       v5-v8 spent three iterations debugging overlap/cache problems caused
+//       by the in-AR resize widget. After founder testing confirmed the
+//       widget wasn't worth the complexity, v9 removes it: no pill, no − /
+//       + / Reset / Move, no dom-overlay. Reticle stays visible at all
+//       times (revert v7); tap to place, tap a new spot to re-place. Keeps
+//       all of v5.18's scale math + analytics + floor-only filter — the
+//       model still renders at correct real-world size automatically, and
+//       the dashboard still flags brands with bad dim data via the
+//       ar_scale_applied event. Net: cleaner AR view, less code, no UI
+//       regressions to chase.
 // Old SDK loaders keep loading the prior version from cache until their `sdk.js`
 // (5 min browser cache) refreshes and routes them forward.
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v8.js'),
+  outfile: join(outdir, 'placement-engine-v9.js'),
   format: 'iife',
 };
 
@@ -141,8 +152,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v8.js (lazy chunk)',
-    join(outdir, 'placement-engine-v8.js'),
+    'placement-engine-v9.js (lazy chunk)',
+    join(outdir, 'placement-engine-v9.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -159,7 +170,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v8.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v9.js': { ...chunkSize, metafile: placementResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));
