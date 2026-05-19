@@ -117,11 +117,24 @@ const placementChunk: esbuild.BuildOptions = {
   format: 'iife',
 };
 
+// viewer-3d-engine — interactive 3D model viewer (rotate / zoom in a
+// fullscreen overlay). Cross-platform: works wherever WebGL is available
+// (iOS Safari, Android Chrome, desktop). Ships v1 (May 19 2026).
+//
+// v1: initial release. Three.js + OrbitControls, Shadow-DOM-isolated overlay,
+//     touch-friendly rotate/zoom, system-back-button-aware close.
+const viewer3dChunk: esbuild.BuildOptions = {
+  ...sharedConfig,
+  entryPoints: ['src/chunks/viewer-3d-engine.ts'],
+  outfile: join(outdir, 'viewer-3d-engine-v1.js'),
+  format: 'iife',
+};
+
 // FUTURE — when Phase 3 lands, append:
 //   - faceTryonChunk:  src/chunks/face-tryon-engine.ts  → face-tryon-engine-v1.js
 //   - wristTryonChunk: src/chunks/wrist-tryon-engine.ts → wrist-tryon-engine-v1.js
 
-const allBundles = [mainBundle, placementChunk];
+const allBundles = [mainBundle, placementChunk, viewer3dChunk];
 
 function fmtKB(bytes: number) {
   return (bytes / 1024).toFixed(1) + ' KB';
@@ -145,6 +158,7 @@ async function buildOnce() {
 
   const mainResult = await esbuild.build(mainBundle);
   const placementResult = await esbuild.build(placementChunk);
+  const viewer3dResult = await esbuild.build(viewer3dChunk);
 
   console.log('\n✅ SDK build complete:');
   const mainSize = reportSize(
@@ -154,6 +168,10 @@ async function buildOnce() {
   const chunkSize = reportSize(
     'placement-engine-v9.js (lazy chunk)',
     join(outdir, 'placement-engine-v9.js'),
+  );
+  const viewer3dSize = reportSize(
+    'viewer-3d-engine-v1.js (lazy chunk)',
+    join(outdir, 'viewer-3d-engine-v1.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -171,6 +189,7 @@ async function buildOnce() {
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
       'placement-engine-v9.js': { ...chunkSize, metafile: placementResult.metafile },
+      'viewer-3d-engine-v1.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));

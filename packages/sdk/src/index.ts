@@ -1,7 +1,7 @@
 import { fetchProduct, type ProductData } from './api-client.js';
 import { initAnalytics, track } from './analytics.js';
 import { detectPlatform, type Platform } from './platform-detect.js';
-import { launchIosQuickLook, launchArExperience } from './ar-launcher.js';
+import { launchIosQuickLook, launchArExperience, launchProductViewer3D } from './ar-launcher.js';
 import { injectButton } from './ui.js';
 
 // __SDK_VERSION__ is declared globally in src/globals.d.ts.
@@ -107,6 +107,14 @@ async function mount(container: HTMLElement) {
     instance.buttonHandle = injectButton(container, {
       label: getButtonLabel('placement'),
       onClick: () => handleButtonClick(instance),
+      // v5.21 — secondary "View in 3D" button. Available on all platforms
+      // (iOS / Android / desktop) — anywhere WebGL works, which is everywhere
+      // shoppers actually browse from. The 3D viewer chunk handles its own
+      // overlay UI; this button just routes a tap into the chunk.
+      secondary: {
+        label: 'View in 3D',
+        onClick: () => handle3DButtonClick(instance),
+      },
     });
 
     // Continue resolving the product in the background. When it lands, update
@@ -213,6 +221,54 @@ async function handleButtonClick(instance: MountedInstance) {
     console.warn('[Rekaman] launch failed', err);
   } finally {
     instance.buttonHandle?.setLoading(false);
+  }
+}
+
+/**
+ * Secondary entry-point — "View in 3D". Same early-tap awaiting pattern as
+ * handleButtonClick so the tap isn't a silent no-op if the user is faster
+ * than the product fetch on slow 4G.
+ *
+ * Unlike the AR entry-point, the 3D viewer doesn't need platform detection
+ * — WebGL is available everywhere shoppers actually browse. We still wait
+ * for the product fetch so we have the GLB URL.
+ */
+async function handle3DButtonClick(instance: MountedInstance) {
+  const earlyTap = !instance.product;
+  if (earlyTap) {
+    if (!instance.productPromise) return;
+    instance.buttonHandle?.setSecondaryLoading(true);
+    try {
+      await instance.productPromise;
+    } catch {
+      instance.buttonHandle?.setSecondaryLoading(false);
+      return;
+    }
+    if (!instance.product) {
+      instance.buttonHandle?.setSecondaryLoading(false);
+      return;
+    }
+  }
+
+  const product = instance.product!;
+
+  track('viewer_3d_button_tapped', {
+    productSlug: instance.productSlug,
+    arMode: product.arMode,
+    payload: earlyTap ? { earlyTap: true } : undefined,
+  });
+  instance.buttonHandle?.setSecondaryLoading(true);
+
+  try {
+    await launchProductViewer3D(product);
+  } catch (err) {
+    track('viewer_3d_error', {
+      productSlug: instance.productSlug,
+      payload: { message: (err as Error).message, phase: 'launch' },
+    });
+    console.warn('[Rekaman] 3D viewer launch failed', err);
+  } finally {
+    instance.buttonHandle?.setSecondaryLoading(false);
   }
 }
 

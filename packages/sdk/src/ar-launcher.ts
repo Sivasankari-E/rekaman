@@ -11,6 +11,7 @@ declare global {
   interface Window {
     __rkChunks?: {
       placement?: { startPlacementAR: (product: ProductData) => Promise<void> };
+      viewer3d?: { startProductViewer3D: (product: ProductData) => Promise<void> };
       // Future:
       // tryonFace?: { startFaceTryOn: (product: ProductData) => Promise<void> };
     };
@@ -140,4 +141,23 @@ export async function launchArExperience(product: ProductData): Promise<void> {
     default:
       throw new Error(`Unsupported arMode: ${product.arMode}`);
   }
+}
+
+/**
+ * Launch the interactive 3D viewer (rotate/zoom in a fullscreen overlay).
+ * Works on any browser that supports WebGL — iOS Safari, Android Chrome,
+ * desktop. Complements the AR experience for users who can't or don't want
+ * to grant camera permission, and for desktop users.
+ *
+ * Same chunk regardless of arMode — the 3D viewer just orbits the GLB.
+ * Adding a new arMode in Phase 3+ doesn't require a new viewer chunk
+ * unless the mode renders something other than a single GLB.
+ */
+export async function launchProductViewer3D(product: ProductData): Promise<void> {
+  await loadChunk('viewer-3d-engine-v1.js');
+  const api = window.__rkChunks?.viewer3d;
+  if (!api?.startProductViewer3D) {
+    throw new Error('viewer-3d chunk did not register on window.__rkChunks.viewer3d');
+  }
+  await api.startProductViewer3D(product);
 }
