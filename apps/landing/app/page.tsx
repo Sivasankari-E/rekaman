@@ -44,8 +44,13 @@ function Nav() {
             Demo
           </a>
         </nav>
-        <a href={`mailto:${FOUNDER_EMAIL}`} className="btn-primary text-[14px] px-4 py-2">
-          Talk to us
+        {/* Primary nav CTA → /onboard (redirects to the Brand Onboarding
+            Google Form). A 60-second structured lead-capture form converts
+            better than a raw mailto: — it auto-notifies the founder + lands
+            the lead in the tracking Sheet. Always visible in the sticky
+            header so the form is discoverable from any scroll position. */}
+        <a href="/onboard" className="btn-primary text-[14px] px-4 py-2">
+          Get started
         </a>
       </div>
     </header>
@@ -462,8 +467,9 @@ function FinalCTA() {
           AR live on your store within 7 days, or your money back.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <a href={`mailto:${FOUNDER_EMAIL}?subject=${encodeURIComponent('Interested in Rekaman')}`} className="btn-accent">
-            Talk to the founder
+          {/* Primary close → the 60-second onboarding form. */}
+          <a href="/onboard" className="btn-accent">
+            Get started — 60-second form
           </a>
           <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
             See live demo
