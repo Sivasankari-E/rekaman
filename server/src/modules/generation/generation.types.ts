@@ -35,6 +35,14 @@ export const DEFAULT_GENERATION_CONFIG: GenerationConfig = {
  */
 export interface GenerationMetadata {
   meshyTaskId?: string;
+  /**
+   * Which Meshy endpoint the task was created against — 'single' or 'multi'.
+   * The worker MUST poll the matching GET endpoint (single and multi tasks
+   * have separate poll URLs). Absent on tasks created before the multi-image
+   * switch (May 2026); the worker defaults those to 'single' — correct, as
+   * all pre-switch tasks were single-image.
+   */
+  meshyTaskKind?: 'single' | 'multi';
   attemptNumber?: number;
   startedAt?: string;
   completedAt?: string;

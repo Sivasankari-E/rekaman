@@ -43,8 +43,26 @@ export type MeshyTaskStatus =
   | 'FAILED'
   | 'CANCELED';
 
+/**
+ * Which Meshy endpoint a task was created against. CRITICAL: single-image
+ * and multi-image tasks have SEPARATE polling URLs —
+ *   single → GET /openapi/v1/image-to-3d/:id
+ *   multi  → GET /openapi/v1/multi-image-to-3d/:id
+ * — so this `kind` must be persisted alongside the task ID and passed back
+ * to `getImageTo3dTask` when polling. Polling a multi-image task on the
+ * single-image GET endpoint returns 404.
+ */
+export type MeshyTaskKind = 'single' | 'multi';
+
 export interface MeshyImageTo3dInput {
-  imageUrl: string;
+  /**
+   * 1-4 image URLs of the SAME object from different angles. 1 image routes
+   * to the single-image endpoint; 2-4 route to multi-image-to-3d (materially
+   * better back/side geometry). Meshy's hard cap is 4 — a 5th+ is rejected
+   * here with a ValidationError (the route-layer Zod schema also caps at 4;
+   * this is defense-in-depth for any caller bypassing the route).
+   */
+  imageUrls: string[];
   aiModel?: 'meshy-6' | 'latest';
   shouldRemesh?: boolean;
   shouldTexture?: boolean;
@@ -138,14 +156,38 @@ class MeshyClient {
   }
 
   /**
-   * Create an image-to-3D task. Returns the Meshy task ID.
+   * Create an image-to-3D task from 1-4 images.
+   *
+   * Routes by image count:
+   *   1 image  → POST /openapi/v1/image-to-3d        (body: image_url)
+   *   2-4      → POST /openapi/v1/multi-image-to-3d   (body: image_urls)
+   *
+   * Returns the Meshy task ID AND the `kind` — the caller MUST persist the
+   * kind so the worker polls the matching GET endpoint (the two endpoints
+   * have separate task-ID namespaces / poll URLs).
+   *
    * Credits are charged immediately on a successful 202 response.
    */
-  async createImageTo3dTask(input: MeshyImageTo3dInput): Promise<string> {
+  async createImageTo3dTask(
+    input: MeshyImageTo3dInput,
+  ): Promise<{ taskId: string; kind: MeshyTaskKind }> {
     const { baseUrl, apiKey } = this.getCredentials();
 
-    const body = {
-      image_url: input.imageUrl,
+    if (input.imageUrls.length === 0) {
+      throw new ValidationError('At least 1 image URL is required for generation');
+    }
+    if (input.imageUrls.length > 4) {
+      throw new ValidationError(
+        `Meshy accepts at most 4 images per task, got ${input.imageUrls.length}. ` +
+          'Use the 4 best angles: front, 3/4, side, detail.',
+      );
+    }
+
+    const kind: MeshyTaskKind = input.imageUrls.length > 1 ? 'multi' : 'single';
+
+    // Shared params — identical across both endpoints. Only the image field
+    // and the URL path differ.
+    const commonBody = {
       ai_model: input.aiModel ?? 'meshy-6',
       should_remesh: input.shouldRemesh ?? true,
       should_texture: input.shouldTexture ?? true,
@@ -163,9 +205,16 @@ class MeshyClient {
       remove_lighting: input.removeLighting ?? true,
     };
 
+    const path =
+      kind === 'multi' ? '/openapi/v1/multi-image-to-3d' : '/openapi/v1/image-to-3d';
+    const body =
+      kind === 'multi'
+        ? { image_urls: input.imageUrls, ...commonBody }
+        : { image_url: input.imageUrls[0], ...commonBody };
+
     let response: Response;
     try {
-      response = await fetch(`${baseUrl}/openapi/v1/image-to-3d`, {
+      response = await fetch(`${baseUrl}${path}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -175,7 +224,7 @@ class MeshyClient {
       });
     } catch (err) {
       logger.warn(
-        { err: (err as Error).message, op: 'meshy.create' },
+        { err: (err as Error).message, op: 'meshy.create', kind },
         'meshy network error',
       );
       throw new ExternalServiceError('meshy', 'Network error contacting Meshy');
@@ -195,25 +244,39 @@ class MeshyClient {
       throw new ExternalServiceError('meshy', 'Meshy create response shape unexpected');
     }
 
-    logger.info({ taskId: parsed.data.result, op: 'meshy.create' }, 'meshy task created');
-    return parsed.data.result;
+    logger.info(
+      { taskId: parsed.data.result, op: 'meshy.create', kind, imageCount: input.imageUrls.length },
+      'meshy task created',
+    );
+    return { taskId: parsed.data.result, kind };
   }
 
   /**
    * Fetch the current state of a task. Used by the worker's poll loop.
+   *
+   * `kind` MUST match how the task was created — single and multi tasks have
+   * separate GET endpoints. Defaults to 'single' for backward-compatibility:
+   * tasks created before the multi-image switch have no `meshyTaskKind` in
+   * their stored metadata, and were all single-image.
    */
-  async getImageTo3dTask(taskId: string): Promise<MeshyTask> {
+  async getImageTo3dTask(
+    taskId: string,
+    kind: MeshyTaskKind = 'single',
+  ): Promise<MeshyTask> {
     const { baseUrl, apiKey } = this.getCredentials();
+
+    const path =
+      kind === 'multi' ? '/openapi/v1/multi-image-to-3d' : '/openapi/v1/image-to-3d';
 
     let response: Response;
     try {
-      response = await fetch(`${baseUrl}/openapi/v1/image-to-3d/${encodeURIComponent(taskId)}`, {
+      response = await fetch(`${baseUrl}${path}/${encodeURIComponent(taskId)}`, {
         method: 'GET',
         headers: { Authorization: `Bearer ${apiKey}` },
       });
     } catch (err) {
       logger.warn(
-        { err: (err as Error).message, taskId, op: 'meshy.poll' },
+        { err: (err as Error).message, taskId, op: 'meshy.poll', kind },
         'meshy network error',
       );
       throw new ExternalServiceError('meshy', 'Network error contacting Meshy');

@@ -129,11 +129,17 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
     throw new UnrecoverableError('Product not found — was it deleted?');
   }
 
-  const meta = (product.metadata ?? {}) as { generation?: { meshyTaskId?: string } };
+  const meta = (product.metadata ?? {}) as {
+    generation?: { meshyTaskId?: string; meshyTaskKind?: 'single' | 'multi' };
+  };
   const meshyTaskId = meta.generation?.meshyTaskId;
   if (!meshyTaskId) {
     throw new UnrecoverableError('Product has no meshyTaskId in metadata');
   }
+  // Tasks created before the multi-image switch (May 2026) have no
+  // `meshyTaskKind` — default to 'single' (correct: they were all
+  // single-image). The kind selects which Meshy GET endpoint we poll.
+  const meshyTaskKind = meta.generation?.meshyTaskKind ?? 'single';
 
   if (product.status !== 'PROCESSING') {
     log.warn(
@@ -171,7 +177,7 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
     }
 
     try {
-      task = await meshy.getImageTo3dTask(meshyTaskId);
+      task = await meshy.getImageTo3dTask(meshyTaskId, meshyTaskKind);
     } catch (err) {
       // ── Permanent (don't keep polling) ──
       if (err instanceof PaymentRequiredError) {

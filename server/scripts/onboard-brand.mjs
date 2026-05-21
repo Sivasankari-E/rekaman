@@ -269,7 +269,18 @@ function validateConfig(c) {
     if (!p.name) errors.push(`products[${i}].name is required`);
     if (!p.slug) errors.push(`products[${i}].slug is required`);
     if (!/^[a-z0-9-]+$/.test(p.slug ?? '')) errors.push(`products[${i}].slug "${p.slug}" must be lowercase letters, numbers, and dashes only`);
-    if (!Array.isArray(p.photoUrls) || p.photoUrls.length === 0) errors.push(`products[${i}].photoUrls[] is required (1-5 https URLs)`);
+    // photoUrls: 1-4 HTTPS URLs of the SAME product from different angles.
+    // 1 photo → Meshy single-image endpoint; 2-4 → multi-image endpoint
+    // (better back/side geometry). Meshy's hard cap is 4 — the server's
+    // /generate route also rejects >4, so catch it here with a clear message.
+    if (!Array.isArray(p.photoUrls) || p.photoUrls.length === 0) {
+      errors.push(`products[${i}].photoUrls[] is required (1-4 https URLs, multi-angle preferred)`);
+    } else if (p.photoUrls.length > 4) {
+      errors.push(
+        `products[${i}].photoUrls[] has ${p.photoUrls.length} URLs — Meshy accepts at most 4. ` +
+          `Use the 4 best angles: front, 3/4, side, detail.`,
+      );
+    }
     p.photoUrls?.forEach((u, j) => {
       if (!u.startsWith('https://')) errors.push(`products[${i}].photoUrls[${j}] must be HTTPS`);
     });

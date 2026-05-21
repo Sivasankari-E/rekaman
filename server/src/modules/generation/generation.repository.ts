@@ -65,6 +65,7 @@ export const generationRepository = {
     brandId: string,
     productId: string,
     meshyTaskId: string,
+    meshyTaskKind: 'single' | 'multi',
     attemptNumber: number,
   ): Promise<{ updated: boolean }> {
     // Two-step because Prisma's updateMany doesn't expose JSONB merge: first
@@ -85,6 +86,9 @@ export const generationRepository = {
 
     const merged = mergeGenerationMetadata(current.metadata, {
       meshyTaskId,
+      // Persisted so the worker polls the matching Meshy GET endpoint
+      // (single vs multi have separate poll URLs).
+      meshyTaskKind,
       attemptNumber,
       startedAt: new Date().toISOString(),
     });

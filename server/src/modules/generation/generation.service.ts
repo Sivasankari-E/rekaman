@@ -91,13 +91,15 @@ export const generationService = {
     // Step 1 — Meshy first. Throws typed errors (PaymentRequiredError,
     // ValidationError, ExternalServiceError, RateLimitExceededError) which
     // bubble up unchanged. Product stays in its prior state.
+    //
+    // All of the product's photos (1-4, capped by the route's Zod schema)
+    // are sent. The client routes to the single-image or multi-image Meshy
+    // endpoint by count — 2-4 photos produce materially better back/side
+    // geometry. `kind` records which endpoint was used so the worker polls
+    // the matching GET URL.
     const meshy = getMeshyClient();
-    const meshyTaskId = await meshy.createImageTo3dTask({
-      // Meshy v1 image-to-3d takes a single image URL. Multi-photo support
-      // ships in Phase 2 (image-to-3d-multi-image). For now we use the first
-      // photo — additional photos are stored on the product but unused by
-      // generation until then.
-      imageUrl: input.photoUrls[0]!,
+    const { taskId: meshyTaskId, kind: meshyTaskKind } = await meshy.createImageTo3dTask({
+      imageUrls: input.photoUrls,
       aiModel: config.aiModel,
       shouldRemesh: config.shouldRemesh,
       shouldTexture: config.shouldTexture,
@@ -118,6 +120,7 @@ export const generationService = {
       brandId,
       productId,
       meshyTaskId,
+      meshyTaskKind,
       attemptNumber,
     );
     if (!updated) {
