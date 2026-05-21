@@ -54,6 +54,16 @@ export const publicArService = {
       brand: {
         slug: auth.brand.slug,
         name: auth.brand.companyName,
+        // Theme — passed through as-is (null stays null). The SDK is the
+        // single source of truth for what "Rekaman default" means: if we
+        // ever change the default purple, only the SDK constant changes,
+        // no prod data backfill needed.
+        theme: {
+          primaryColor: auth.brand.primaryColor,
+          textColor: auth.brand.textColor,
+          buttonStyle: auth.brand.buttonStyle,
+          buttonLabel: auth.brand.buttonLabel,
+        },
       },
       generatedAt: new Date().toISOString(),
     };

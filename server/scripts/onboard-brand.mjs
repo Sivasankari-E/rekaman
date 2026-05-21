@@ -70,6 +70,13 @@ try {
   const apiKey = await createApiKey(token, 'Production website');
   log(`✓ API key minted: ${apiKey.prefix}***  (id=${apiKey.id})`);
 
+  // Optional AR-button theme. Omitted → brand renders the Rekaman-purple
+  // default. Only PATCH if at least one theme field is present.
+  if (config.brand.theme && Object.keys(config.brand.theme).length > 0) {
+    await updateBrandTheme(token, config.brand.theme);
+    log(`✓ brand theme applied: ${JSON.stringify(config.brand.theme)}`);
+  }
+
   const created = [];
   for (const productCfg of config.products) {
     const p = await createProduct(token, productCfg);
@@ -144,6 +151,17 @@ async function createApiKey(token, name) {
     throw new Error('API key response missing key.key field — server contract changed?');
   }
   return r.key;
+}
+
+async function updateBrandTheme(token, theme) {
+  // PATCH /v1/brands/me — sets the AR-button theme. Only send the fields the
+  // YAML actually specified; the server treats omitted fields as "unchanged".
+  // The server rejects an empty body, hence the caller's Object.keys guard.
+  const body = {};
+  for (const field of ['primaryColor', 'textColor', 'buttonStyle', 'buttonLabel']) {
+    if (theme[field] !== undefined) body[field] = theme[field];
+  }
+  return await api('PATCH', '/v1/brands/me', token, body);
 }
 
 async function createProduct(token, p) {
@@ -262,6 +280,29 @@ function validateConfig(c) {
   const errors = [];
   if (!c?.brand?.companyName) errors.push('brand.companyName is required');
   if (!c?.brand?.ownerEmail) errors.push('brand.ownerEmail is required');
+
+  // Optional brand theme. Validate here — BEFORE any API call — so a bad hex
+  // is caught before the brand is created (the theme PATCH runs after signup;
+  // failing there would leave a half-onboarded brand).
+  const theme = c?.brand?.theme;
+  if (theme) {
+    const hexRe = /^#[0-9a-fA-F]{6}$/;
+    for (const f of ['primaryColor', 'textColor']) {
+      if (theme[f] != null && !hexRe.test(String(theme[f]))) {
+        errors.push(`brand.theme.${f} "${theme[f]}" must be a 6-digit hex colour like #5A4FCF (or null/omit)`);
+      }
+    }
+    if (theme.buttonStyle != null && !['pill', 'rounded', 'square'].includes(theme.buttonStyle)) {
+      errors.push(`brand.theme.buttonStyle "${theme.buttonStyle}" must be pill, rounded, or square`);
+    }
+    if (
+      theme.buttonLabel != null &&
+      (typeof theme.buttonLabel !== 'string' || theme.buttonLabel.length < 1 || theme.buttonLabel.length > 40)
+    ) {
+      errors.push('brand.theme.buttonLabel must be a string of 1-40 characters');
+    }
+  }
+
   if (!Array.isArray(c?.products) || c.products.length === 0) errors.push('products[] must have at least 1 entry');
   if (c?.products?.length > 20) errors.push('products[] capped at 20 per onboarding (split into multiple runs)');
 
@@ -443,6 +484,15 @@ EXAMPLE YAML:
     ownerEmail: "owner@woodcraftchennai.com"
     website: "woodcraftchennai.com"
     plan: "starter"
+    # Optional AR-button theme — omit the whole block for the Rekaman-purple
+    # default. primaryColor/textColor are 6-digit hex; buttonStyle is
+    # pill | rounded | square; buttonLabel overrides "View in your room".
+    # Any field set to null (or omitted) falls back to the Rekaman default.
+    # theme:
+    #   primaryColor: "#8B4513"   # saddle brown
+    #   textColor: null           # null → SDK auto-picks white/black for contrast
+    #   buttonStyle: "rounded"
+    #   buttonLabel: null
   products:
     - name: "Royal Sheesham Coffee Table"
       slug: "royal-sheesham-coffee-table"

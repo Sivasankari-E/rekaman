@@ -1,5 +1,32 @@
 const BUTTON_HOST_CLASS = 'rk-ar-button-host';
 
+/**
+ * Brand AR-button theme, as delivered by the publicAr endpoint. Every field
+ * is nullable — a null means "use the Rekaman default". A brand that never
+ * configured a theme has all-null and renders the standard Rekaman button.
+ */
+export interface BrandTheme {
+  primaryColor: string | null; // hex, e.g. "#FF6B35"
+  textColor: string | null;    // hex; null → SDK computes for contrast
+  buttonStyle: string | null;  // 'pill' | 'rounded' | 'square'; null → 'pill'
+  buttonLabel: string | null;  // overrides the per-arMode label; handled in index.ts
+}
+
+/**
+ * Rekaman defaults — the SINGLE source of truth for "unthemed" appearance.
+ * If we ever rebrand, only this constant changes; no brand-data backfill,
+ * because the server stores null for unthemed brands and the SDK resolves
+ * null → these values at render time.
+ *
+ * `#5A4FCF` is the Rekaman purple from the CLAUDE.md brand-identity block
+ * (also the landing-site accent) — the SDK button is now consistent with it.
+ */
+const REKAMAN_DEFAULTS = {
+  primaryColor: '#5A4FCF',
+  textColor: '#FFFFFF',
+  radius: '999px', // pill
+};
+
 export interface ButtonConfig {
   label?: string;
   onClick: () => void;
@@ -13,6 +40,13 @@ export interface ButtonConfig {
     label: string;
     onClick: () => void;
   };
+  /**
+   * Optional brand theme applied at injection time. The SDK paints the
+   * button before the product fetch resolves (v5.20 immediate-paint), so
+   * the theme usually isn't known yet — index.ts calls `setTheme` once the
+   * product lands. This field exists for any future synchronous caller.
+   */
+  theme?: BrandTheme | null;
 }
 
 export interface ButtonHandle {
@@ -20,7 +54,50 @@ export interface ButtonHandle {
   setLabel: (text: string) => void;
   setEnabled: (enabled: boolean) => void;
   setSecondaryLoading: (loading: boolean) => void;
+  /** Apply (or re-apply) a brand theme. Safe to call any time post-inject. */
+  setTheme: (theme: BrandTheme | null) => void;
   remove: () => void;
+}
+
+/**
+ * Pick #FFFFFF or #0F0F0F for text on a given background, by WCAG contrast
+ * ratio. Used when a brand sets `primaryColor` but no explicit `textColor`.
+ */
+function computeContrastTextColor(hex: string): string {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) return REKAMAN_DEFAULTS.textColor; // malformed → safe default
+  const lin = (h: string): number => {
+    const c = parseInt(h, 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  // WCAG relative luminance of the background.
+  const L = 0.2126 * lin(m[1]!) + 0.7152 * lin(m[2]!) + 0.0722 * lin(m[3]!);
+  // Contrast ratio = (lighter + 0.05) / (darker + 0.05). Compare white vs
+  // near-black text and take whichever reads better.
+  const vsWhite = 1.05 / (L + 0.05);
+  const vsBlack = (L + 0.05) / 0.05;
+  return vsWhite >= vsBlack ? '#FFFFFF' : '#0F0F0F';
+}
+
+function radiusForStyle(style: string | null | undefined): string {
+  if (style === 'square') return '6px';
+  if (style === 'rounded') return '14px';
+  return REKAMAN_DEFAULTS.radius; // 'pill' or null/unknown
+}
+
+/**
+ * Resolve a theme (with all its nulls) into concrete values and write them
+ * as CSS custom properties on the shadow host. CSS variables inherit through
+ * the shadow boundary, so the `<style>` block's `var(--rk-*)` references pick
+ * them up. Re-callable — that's how `setTheme` works.
+ */
+function applyTheme(host: HTMLElement, theme: BrandTheme | null): void {
+  const primary = theme?.primaryColor ?? REKAMAN_DEFAULTS.primaryColor;
+  const text = theme?.textColor ?? computeContrastTextColor(primary);
+  const radius = radiusForStyle(theme?.buttonStyle);
+  host.style.setProperty('--rk-primary', primary);
+  host.style.setProperty('--rk-text', text);
+  host.style.setProperty('--rk-radius', radius);
 }
 
 export function injectButton(
@@ -34,6 +111,11 @@ export function injectButton(
   // Shadow DOM keeps the brand's CSS from leaking into our button (and vice-versa)
   const shadow = host.attachShadow({ mode: 'open' });
 
+  // Theme is applied as CSS custom properties on the host. The `<style>`
+  // below references them with `var(--rk-*, <fallback>)` so the button is
+  // correct even before `applyTheme` runs.
+  applyTheme(host, config.theme ?? null);
+
   const style = document.createElement('style');
   style.textContent = `
     .stack { display: inline-flex; flex-direction: column; gap: 8px; align-items: stretch; }
@@ -44,31 +126,32 @@ export function injectButton(
       gap: 8px;
       padding: 12px 24px;
       font: 600 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      background: #6366f1;
-      color: white;
+      background: var(--rk-primary, ${REKAMAN_DEFAULTS.primaryColor});
+      color: var(--rk-text, ${REKAMAN_DEFAULTS.textColor});
       border: none;
-      border-radius: 999px;
+      border-radius: var(--rk-radius, ${REKAMAN_DEFAULTS.radius});
       cursor: pointer;
       transition: transform 0.1s, box-shadow 0.1s;
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      /* Neutral drop shadow — works for any brand colour (a colour-matched
+         glow would need the primary as rgb components, not worth a 4th var). */
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
     }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22); }
     .btn:active { transform: translateY(0); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    /* Secondary button — same shape, neutral colour, lighter visual weight.
-       Pairs visually with the primary by sharing the rounded pill silhouette
-       and font, but reads as a clearly-different choice. */
+    /* Secondary button — outlined in the brand colour, lighter visual weight.
+       Pairs with the primary by sharing the silhouette + font, reads as a
+       clearly-different choice. */
     .btn-secondary {
       background: transparent;
-      color: #6366f1;
+      color: var(--rk-primary, ${REKAMAN_DEFAULTS.primaryColor});
       box-shadow: none;
-      border: 1.5px solid rgba(99, 102, 241, 0.3);
+      border: 1.5px solid var(--rk-primary, ${REKAMAN_DEFAULTS.primaryColor});
       padding: 10px 22px;
       font-weight: 500;
     }
     .btn-secondary:hover {
-      background: rgba(99, 102, 241, 0.06);
-      border-color: rgba(99, 102, 241, 0.5);
+      background: rgba(0, 0, 0, 0.05);
       transform: none;
       box-shadow: none;
     }
@@ -79,12 +162,15 @@ export function injectButton(
        two rules the icon was invisible on iPhone (May 13 2026 regression). */
     .icon svg { width: 100%; height: 100%; display: block; }
     .icon svg path, .icon svg polygon, .icon svg circle { stroke: currentColor; }
+    /* Spinner uses currentColor → themed automatically: white-ish on the
+       filled primary button, brand-coloured on the outlined secondary. */
     .spinner {
-      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4);
-      border-top-color: white; border-radius: 50%;
+      width: 16px; height: 16px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
       animation: spin 0.6s linear infinite;
     }
-    .btn-secondary .spinner { border-color: rgba(99,102,241,0.3); border-top-color: #6366f1; }
     @keyframes spin { to { transform: rotate(360deg); } }
   `;
   shadow.appendChild(style);
@@ -158,6 +244,9 @@ export function injectButton(
       secondaryBtn.disabled = loading;
       secondaryBtn.setAttribute('aria-busy', loading ? 'true' : 'false');
       secondaryIcon.innerHTML = loading ? '<div class="spinner"></div>' : cubeIcon();
+    },
+    setTheme(theme: BrandTheme | null) {
+      applyTheme(host, theme);
     },
     remove() {
       host.remove();

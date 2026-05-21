@@ -30,6 +30,15 @@ export interface PublicProductResponse {
   brand: {
     slug: string;
     name: string;
+    // AR button theme. All fields nullable — the SDK falls back to Rekaman
+    // defaults (purple pill) for any null. A brand that never set a theme
+    // gets the standard Rekaman-branded button, zero visual regression.
+    theme: {
+      primaryColor: string | null;           // hex; null → Rekaman purple
+      textColor: string | null;              // hex; null → SDK computes for contrast
+      buttonStyle: string | null;            // 'pill' | 'rounded' | 'square'; null → 'pill'
+      buttonLabel: string | null;            // null → SDK per-arMode default
+    };
   };
 
   generatedAt: string;                       // for client-side caching

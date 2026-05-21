@@ -24,7 +24,19 @@ export interface ProductData {
     depthCm: number | null;
   };
   variants: unknown | null;
-  brand: { slug: string; name: string };
+  brand: {
+    slug: string;
+    name: string;
+    // AR button theme (v5.22+). All fields nullable — the SDK falls back to
+    // Rekaman defaults for any null. `theme` itself is optional so an older
+    // API response without it is handled by optional chaining at the call site.
+    theme?: {
+      primaryColor: string | null;
+      textColor: string | null;
+      buttonStyle: string | null;
+      buttonLabel: string | null;
+    };
+  };
 }
 
 interface ApiErrorBody {

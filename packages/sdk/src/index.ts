@@ -117,15 +117,28 @@ async function mount(container: HTMLElement) {
       },
     });
 
-    // Continue resolving the product in the background. When it lands, update
-    // the label only if a non-placement mode requires it. Errors are already
-    // tracked by the .then(reject) above; we just silently bail here.
+    // Continue resolving the product in the background. When it lands:
+    //   • apply the brand theme (button colours + radius) — no-op for brands
+    //     with no theme set (resolves to Rekaman defaults, already showing);
+    //   • update the label if the brand set a custom one OR a non-placement
+    //     mode needs a different default.
+    // Errors are already tracked by the .then(reject) above; bail silently.
     productPromise
       .then((product) => {
         track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
-        const correctLabel = getButtonLabel(product.arMode);
-        if (correctLabel !== getButtonLabel('placement')) {
-          instance.buttonHandle?.setLabel(correctLabel);
+
+        // Theme — brands with a custom palette get their colours; brands
+        // without stay Rekaman-purple. Brief recolour on slow networks
+        // (button paints before this resolves) is acceptable per v5.20.
+        instance.buttonHandle?.setTheme(product.brand.theme ?? null);
+
+        // Label precedence: brand's explicit buttonLabel override wins,
+        // else the per-arMode default. Only call setLabel if it differs
+        // from what's already painted ("View in your room").
+        const desiredLabel =
+          product.brand.theme?.buttonLabel ?? getButtonLabel(product.arMode);
+        if (desiredLabel !== getButtonLabel('placement')) {
+          instance.buttonHandle?.setLabel(desiredLabel);
         }
       })
       .catch(() => {

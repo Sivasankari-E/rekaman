@@ -39,6 +39,13 @@ model Brand {
   billingEmail String?
   website      String?
   trialEndsAt  DateTime?
+  // AR button theme — surfaced to the SDK via the publicAr endpoint.
+  // ALL nullable: the SDK falls back to Rekaman defaults when null, so a
+  // brand with no theme set renders the standard Rekaman purple pill.
+  primaryColor String?                              // hex, e.g. "#6366f1"
+  textColor    String?                              // hex; null → SDK computes from primaryColor luminance
+  buttonStyle  String?                              // 'pill' | 'rounded' | 'square'; null → 'pill'
+  buttonLabel  String?                              // overrides "View in your room"; null → SDK per-arMode default
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   deletedAt    DateTime?
