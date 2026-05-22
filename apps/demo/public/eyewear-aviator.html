@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lens Atelier — Classic Aviator</title>
+    <meta name="description" content="Inspect the Classic Aviator in interactive 3D. A Rekaman demo." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/_catalog.css" />
+    <style>
+      :root {
+        --accent: #3B5B92;
+        --accent-ink: #ffffff;
+        --page-bg: #f7f8fa;
+        --heading-font: "Fraunces", Georgia, serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="brandbar">
+        <div class="brand"><span class="mark">L</span>Lens Atelier</div>
+        <div class="links">Sunglasses · Optical · Cases</div>
+      </header>
+
+      <nav class="crumb"><a href="/">Demo catalogue</a> · Eyewear · Classic Aviator</nav>
+
+      <main class="product">
+        <div class="gallery">
+          <div class="hero"><img src="RK_HERO_IMG" onerror="this.closest('.hero').style.display='none'" alt="Classic Aviator sunglasses" /></div>
+        </div>
+
+        <p class="eyebrow">Polarised · UV400</p>
+        <h1 class="title">Classic Aviator</h1>
+
+        <div class="pricerow">
+          <span class="price">₹3,299</span>
+          <span class="price-was">₹4,999</span>
+          <span class="price-off">34% off</span>
+        </div>
+        <p class="price-note">Inclusive of all taxes · Free lens cloth &amp; case</p>
+
+        <p class="desc">
+          The <strong>teardrop aviator</strong>, reset for everyday wear — a lightweight
+          metal frame, spring hinges and polarised UV400 lenses that cut glare without
+          dimming the world. Adjustable silicone nose pads for an all-day fit.
+        </p>
+
+        <div class="specs">
+          <div class="s"><div class="k">Frame width</div><div class="v">14 cm</div></div>
+          <div class="s"><div class="k">Lens</div><div class="v">Polarised · UV400</div></div>
+          <div class="s"><div class="k">Frame</div><div class="v">Anti-rust alloy</div></div>
+          <div class="s"><div class="k">Weight</div><div class="v">28 g</div></div>
+        </div>
+
+        <div class="trust">
+          <div class="b"><div class="bt">Free delivery</div><div class="bs">3–5 days · Pan India</div></div>
+          <div class="b"><div class="bt">14-day returns</div><div class="bs">No questions asked</div></div>
+          <div class="b"><div class="bt">1-year warranty</div><div class="bs">On frame &amp; hinges</div></div>
+        </div>
+
+        <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
+        <div class="ar-slot">
+          <div data-rk-product="cat-eyewear-aviator" data-rk-key="RK_DEMO_CATALOG_KEY"></div>
+        </div>
+        <p class="ar-hint">Tap <strong>View in 3D</strong> to rotate the frames and zoom into the detail.</p>
+      </main>
+
+      <footer class="foot">
+        <div class="powered">
+          <div class="rk">Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+          <a href="/">← All categories</a>
+        </div>
+        <div class="disclaimer">Demo page · "Lens Atelier" is a fictional brand · Built to showcase Rekaman AR.</div>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.rekaman.io/v1/sdk.js?ts=' + Date.now();
+        s.defer = true;
+        document.head.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>

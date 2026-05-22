@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Aurora Fine Jewelry — Solitaire Statement Ring</title>
+    <meta name="description" content="Inspect the Solitaire Statement Ring in interactive 3D. A Rekaman demo." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/_catalog.css" />
+    <style>
+      :root {
+        --accent: #B76E79;
+        --accent-ink: #ffffff;
+        --page-bg: #fcf8f7;
+        --heading-font: "Fraunces", Georgia, serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="brandbar">
+        <div class="brand"><span class="mark">A</span>Aurora Fine Jewelry</div>
+        <div class="links">Rings · Necklaces · Bridal</div>
+      </header>
+
+      <nav class="crumb"><a href="/">Demo catalogue</a> · Jewelry · Solitaire Statement Ring</nav>
+
+      <main class="product">
+        <div class="gallery">
+          <div class="hero"><img src="RK_HERO_IMG" onerror="this.closest('.hero').style.display='none'" alt="Solitaire Statement Ring" /></div>
+        </div>
+
+        <p class="eyebrow">18k gold · Certified stone</p>
+        <h1 class="title">Solitaire Statement Ring</h1>
+
+        <div class="pricerow">
+          <span class="price">₹84,999</span>
+          <span class="price-was">₹99,000</span>
+          <span class="price-off">14% off</span>
+        </div>
+        <p class="price-note">Inclusive of all taxes · EMI from ₹4,047/month</p>
+
+        <p class="desc">
+          A <strong>brilliant-cut solitaire</strong> raised on a slim 18k gold band, with a
+          six-prong setting that lets light through from every angle. Each stone is
+          lab-certified and comes with a lifetime authenticity card. Free resizing within
+          the first year.
+        </p>
+
+        <div class="specs">
+          <div class="s"><div class="k">Band</div><div class="v">18k yellow gold</div></div>
+          <div class="s"><div class="k">Stone</div><div class="v">0.50 ct · VS clarity</div></div>
+          <div class="s"><div class="k">Setting</div><div class="v">Six-prong solitaire</div></div>
+          <div class="s"><div class="k">Sizes</div><div class="v">India 8–22 · free resizing</div></div>
+        </div>
+
+        <div class="trust">
+          <div class="b"><div class="bt">Insured delivery</div><div class="bs">3–6 days · Pan India</div></div>
+          <div class="b"><div class="bt">15-day returns</div><div class="bs">Full refund</div></div>
+          <div class="b"><div class="bt">Lifetime authenticity</div><div class="bs">Certified card</div></div>
+        </div>
+
+        <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
+        <div class="ar-slot">
+          <div data-rk-product="cat-jewelry-ring" data-rk-key="RK_DEMO_CATALOG_KEY"></div>
+        </div>
+        <p class="ar-hint">Tap <strong>View in 3D</strong> to rotate the ring and zoom into the setting.</p>
+      </main>
+
+      <footer class="foot">
+        <div class="powered">
+          <div class="rk">Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+          <a href="/">← All categories</a>
+        </div>
+        <div class="disclaimer">Demo page · "Aurora Fine Jewelry" is a fictional brand · Built to showcase Rekaman AR.</div>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.rekaman.io/v1/sdk.js?ts=' + Date.now();
+        s.defer = true;
+        document.head.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>

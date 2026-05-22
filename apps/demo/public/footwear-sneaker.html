@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Sole Studio — Studio Court Sneaker</title>
+    <meta name="description" content="See the Studio Court Sneaker in 3D and in your space. A Rekaman demo." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/_catalog.css" />
+    <style>
+      :root {
+        --accent: #14a05a;
+        --accent-ink: #ffffff;
+        --page-bg: #f6f7f6;
+        --heading-font: "Inter", system-ui, sans-serif;
+      }
+      h1.title { font-weight: 800; letter-spacing: -0.035em; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="brandbar">
+        <div class="brand"><span class="mark">S</span>Sole Studio</div>
+        <div class="links">Sneakers · Court · Running</div>
+      </header>
+
+      <nav class="crumb"><a href="/">Demo catalogue</a> · Footwear · Studio Court Sneaker</nav>
+
+      <main class="product">
+        <div class="gallery">
+          <div class="hero"><img src="RK_HERO_IMG" onerror="this.closest('.hero').style.display='none'" alt="Studio Court Sneaker" /></div>
+        </div>
+
+        <p class="eyebrow">Court · Everyday</p>
+        <h1 class="title">Studio Court Sneaker</h1>
+
+        <div class="pricerow">
+          <span class="price">₹4,499</span>
+          <span class="price-was">₹6,999</span>
+          <span class="price-off">36% off</span>
+        </div>
+        <p class="price-note">Inclusive of all taxes · Free shipping &amp; returns</p>
+
+        <p class="desc">
+          A <strong>clean court silhouette</strong> in full-grain leather on a cushioned
+          rubber sole. Padded collar, breathable lining, and a stitched outsole built to
+          take daily wear. Unisex sizing, India 4–12.
+        </p>
+
+        <div class="specs">
+          <div class="s"><div class="k">Upper</div><div class="v">Full-grain leather</div></div>
+          <div class="s"><div class="k">Sole</div><div class="v">Cushioned rubber</div></div>
+          <div class="s"><div class="k">Fit</div><div class="v">True to size · unisex</div></div>
+          <div class="s"><div class="k">Sizes</div><div class="v">India 4–12</div></div>
+        </div>
+
+        <div class="trust">
+          <div class="b"><div class="bt">Free delivery</div><div class="bs">3–5 days · Pan India</div></div>
+          <div class="b"><div class="bt">30-day returns</div><div class="bs">Free &amp; easy</div></div>
+          <div class="b"><div class="bt">6-month warranty</div><div class="bs">On sole &amp; stitching</div></div>
+        </div>
+
+        <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
+        <div class="ar-slot">
+          <div data-rk-product="cat-footwear-sneaker" data-rk-key="RK_DEMO_CATALOG_KEY"></div>
+        </div>
+        <p class="ar-hint">Tap <strong>View in 3D</strong> to rotate the sneaker, or <strong>View in your room</strong> to place it.</p>
+      </main>
+
+      <footer class="foot">
+        <div class="powered">
+          <div class="rk">Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+          <a href="/">← All categories</a>
+        </div>
+        <div class="disclaimer">Demo page · "Sole Studio" is a fictional brand · Built to showcase Rekaman AR.</div>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.rekaman.io/v1/sdk.js?ts=' + Date.now();
+        s.defer = true;
+        document.head.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lumina Home — Halo Pendant Lamp</title>
+    <meta name="description" content="See the Halo Pendant Lamp in your space with augmented reality. A Rekaman demo." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/_catalog.css" />
+    <style>
+      :root {
+        --accent: #C8962E;
+        --accent-ink: #ffffff;
+        --page-bg: #fbf9f4;
+        --heading-font: "Inter", system-ui, sans-serif;
+      }
+      h1.title { font-weight: 700; letter-spacing: -0.03em; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="brandbar">
+        <div class="brand"><span class="mark">L</span>Lumina Home</div>
+        <div class="links">Lighting · Decor · Accents</div>
+      </header>
+
+      <nav class="crumb"><a href="/">Demo catalogue</a> · Decor &amp; Lighting · Halo Pendant Lamp</nav>
+
+      <main class="product">
+        <div class="gallery">
+          <div class="hero"><img src="RK_HERO_IMG" onerror="this.closest('.hero').style.display='none'" alt="Halo Pendant Lamp" /></div>
+        </div>
+
+        <p class="eyebrow">Warm-glow lighting</p>
+        <h1 class="title">Halo Pendant Lamp</h1>
+
+        <div class="pricerow">
+          <span class="price">₹7,499</span>
+          <span class="price-was">₹10,999</span>
+          <span class="price-off">32% off</span>
+        </div>
+        <p class="price-note">Inclusive of all taxes · EMI from ₹357/month</p>
+
+        <p class="desc">
+          A <strong>hand-spun brass pendant</strong> with a frosted diffuser that throws a
+          soft, even glow — designed for over a dining table or a reading nook. Ceiling
+          rose and 1.8 m braided cord included. Pairs with any standard E27 bulb.
+        </p>
+
+        <div class="specs">
+          <div class="s"><div class="k">Dimensions</div><div class="v">30 × 30 × 38 cm</div></div>
+          <div class="s"><div class="k">Cord length</div><div class="v">180 cm (adjustable)</div></div>
+          <div class="s"><div class="k">Finish</div><div class="v">Antique brass</div></div>
+          <div class="s"><div class="k">Bulb</div><div class="v">E27 · not included</div></div>
+        </div>
+
+        <div class="trust">
+          <div class="b"><div class="bt">Free delivery</div><div class="bs">4–6 days · Pan India</div></div>
+          <div class="b"><div class="bt">7-day returns</div><div class="bs">No questions asked</div></div>
+          <div class="b"><div class="bt">2-year warranty</div><div class="bs">On wiring &amp; finish</div></div>
+        </div>
+
+        <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
+        <div class="ar-slot">
+          <div data-rk-product="cat-decor-lamp" data-rk-key="RK_DEMO_CATALOG_KEY"></div>
+        </div>
+        <p class="ar-hint">Tap <strong>View in your room</strong> to see the lamp at true scale in your space.</p>
+      </main>
+
+      <footer class="foot">
+        <div class="powered">
+          <div class="rk">Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+          <a href="/">← All categories</a>
+        </div>
+        <div class="disclaimer">Demo page · "Lumina Home" is a fictional brand · Built to showcase Rekaman AR.</div>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.rekaman.io/v1/sdk.js?ts=' + Date.now();
+        s.defer = true;
+        document.head.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>

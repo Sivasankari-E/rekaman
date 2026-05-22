@@ -2,43 +2,122 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rekaman — Live Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Rekaman — Live AR Demos by Category</title>
+    <meta name="description" content="See Rekaman AR on a real product page in your category — furniture, decor, eyewear, jewelry, watches, footwear." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/_catalog.css" />
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font: 16px/1.6 system-ui, -apple-system, sans-serif; color: #111; background: #fafafa; }
-      .container { max-width: 700px; margin: 0 auto; padding: 64px 24px; }
-      h1 { font-size: 36px; margin-bottom: 12px; letter-spacing: -0.02em; }
-      .tagline { color: #555; margin-bottom: 40px; font-size: 18px; }
-      .demo-card {
-        display: block; padding: 24px;
-        background: white; border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
-        text-decoration: none; color: inherit;
-        transition: transform 0.1s, box-shadow 0.1s;
+      :root {
+        --accent: #5A4FCF;
+        --accent-ink: #ffffff;
+        --page-bg: #faf9f7;
+        --heading-font: "Fraunces", Georgia, serif;
       }
-      .demo-card:hover { transform: translateY(-1px); box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08); }
-      .demo-card h2 { font-size: 20px; margin-bottom: 8px; color: #111; }
-      .demo-card p { color: #666; font-size: 14px; }
-      .meta { margin-top: 12px; font-size: 12px; color: #999; }
-      .meta code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-      footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid #eee; color: #888; font-size: 13px; }
-      footer a { color: #6366f1; text-decoration: none; }
+      /* Hub-only: colour-tile thumbnails (no image dependency). Each tile
+         carries its category page's brand accent for visual cohesion. */
+      .cat .tile {
+        aspect-ratio: 16 / 10;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 40px;
+      }
+      .cat .body .cbrand {
+        font-size: 11px; color: var(--ink-faint);
+        letter-spacing: 0.06em; text-transform: uppercase; margin-top: 5px;
+      }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Rekaman</h1>
-      <p class="tagline">Spatial commerce for any brand. Try the demo on Android Chrome or iPhone Safari.</p>
+    <div class="wrap">
+      <header class="brandbar">
+        <div class="brand"><span class="mark">R</span>Rekaman</div>
+        <div class="links">Live AR demos</div>
+      </header>
 
-      <a class="demo-card" href="/oslo-sofa">
-        <h2>Oslo Lounge Chair →</h2>
-        <p>HomeTown's sample product page with the Rekaman SDK embedded. Tap "View in your room" on an Android Chrome phone to place a real 3D armchair on your floor.</p>
-        <div class="meta">SDK: <code>cdn.rekaman.io/v1/sdk.js</code> · Embed: <code>&lt;script&gt;</code> + <code>&lt;div&gt;</code></div>
-      </a>
+      <main class="hub">
+        <div class="hub-head">
+          <p class="hub-eyebrow">See it in your category</p>
+          <h1>What do you sell?</h1>
+          <p class="hub-sub">
+            Tap your category to open a real product page with Rekaman AR built in —
+            the same experience your shoppers would get.
+          </p>
+        </div>
 
-      <footer>
-        Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.
+        <div class="grid">
+          <a class="cat" href="/furniture-armchair">
+            <div class="tile" style="background:#f1e8dd">🪑</div>
+            <div class="body">
+              <div class="ct">Furniture</div>
+              <div class="cs">View in your room, at real size</div>
+              <div class="cbrand">Oslo &amp; Co. · lounge chair</div>
+              <div class="cgo">Open demo →</div>
+            </div>
+          </a>
+
+          <a class="cat" href="/decor-pendant-lamp">
+            <div class="tile" style="background:#f6efdc">💡</div>
+            <div class="body">
+              <div class="ct">Decor &amp; Lighting</div>
+              <div class="cs">Place it to true scale</div>
+              <div class="cbrand">Lumina Home · pendant lamp</div>
+              <div class="cgo">Open demo →</div>
+            </div>
+          </a>
+
+          <a class="cat" href="/eyewear-aviator">
+            <div class="tile" style="background:#e6ebf3">🕶️</div>
+            <div class="body">
+              <div class="ct">Eyewear</div>
+              <div class="cs">Rotate &amp; zoom in 3D</div>
+              <div class="cbrand">Lens Atelier · aviator</div>
+              <div class="cgo">Open demo →</div>
+            </div>
+          </a>
+
+          <a class="cat" href="/jewelry-ring">
+            <div class="tile" style="background:#f6e9ea">💍</div>
+            <div class="body">
+              <div class="ct">Jewelry</div>
+              <div class="cs">Rotate &amp; zoom in 3D</div>
+              <div class="cbrand">Aurora Fine Jewelry · ring</div>
+              <div class="cgo">Open demo →</div>
+            </div>
+          </a>
+
+          <a class="cat" href="/watches-chronograph">
+            <div class="tile" style="background:#f0ece1">⌚</div>
+            <div class="body">
+              <div class="ct">Watches</div>
+              <div class="cs">Rotate &amp; zoom in 3D</div>
+              <div class="cbrand">Meridian Watches · chronograph</div>
+              <div class="cgo">Open demo →</div>
+            </div>
+          </a>
+
+          <a class="cat" href="/footwear-sneaker">
+            <div class="tile" style="background:#e6efe9">👟</div>
+            <div class="body">
+              <div class="ct">Footwear</div>
+              <div class="cs">3D, or place it in your room</div>
+              <div class="cbrand">Sole Studio · court sneaker</div>
+              <div class="cgo">Open demo →</div>
+            </div>
+          </a>
+        </div>
+      </main>
+
+      <footer class="foot">
+        <div class="powered">
+          <div class="rk">Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+          <a href="https://rekaman.io">rekaman.io →</a>
+        </div>
+        <div class="disclaimer">
+          Demo catalogue · all brands shown are fictional · built to showcase Rekaman AR.
+          Best on a phone — Android Chrome or iPhone Safari.
+        </div>
       </footer>
     </div>
   </body>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Meridian Watches — Meridian Chronograph</title>
+    <meta name="description" content="Inspect the Meridian Chronograph in interactive 3D. A Rekaman demo." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/_catalog.css" />
+    <style>
+      :root {
+        --accent: #B8923E;
+        --accent-ink: #1a1a1a;
+        --page-bg: #f6f6f4;
+        --heading-font: "Inter", system-ui, sans-serif;
+      }
+      h1.title { font-weight: 700; letter-spacing: -0.03em; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="brandbar">
+        <div class="brand"><span class="mark">M</span>Meridian Watches</div>
+        <div class="links">Chronographs · Automatic · Straps</div>
+      </header>
+
+      <nav class="crumb"><a href="/">Demo catalogue</a> · Watches · Meridian Chronograph</nav>
+
+      <main class="product">
+        <div class="gallery">
+          <div class="hero"><img src="RK_HERO_IMG" onerror="this.closest('.hero').style.display='none'" alt="Meridian Chronograph wristwatch" /></div>
+        </div>
+
+        <p class="eyebrow">Sapphire glass · 10 ATM</p>
+        <h1 class="title">Meridian Chronograph</h1>
+
+        <div class="pricerow">
+          <span class="price">₹18,999</span>
+          <span class="price-was">₹26,500</span>
+          <span class="price-off">28% off</span>
+        </div>
+        <p class="price-note">Inclusive of all taxes · EMI from ₹904/month</p>
+
+        <p class="desc">
+          A <strong>three-dial chronograph</strong> with a brushed-steel case, sapphire
+          crystal and a 10 ATM water rating. Slim 11 mm profile, luminous hands, and a
+          quick-release strap so you can swap leather for steel in seconds.
+        </p>
+
+        <div class="specs">
+          <div class="s"><div class="k">Case</div><div class="v">42 mm brushed steel</div></div>
+          <div class="s"><div class="k">Glass</div><div class="v">Scratch-resistant sapphire</div></div>
+          <div class="s"><div class="k">Water rating</div><div class="v">10 ATM (100 m)</div></div>
+          <div class="s"><div class="k">Movement</div><div class="v">Quartz chronograph</div></div>
+        </div>
+
+        <div class="trust">
+          <div class="b"><div class="bt">Free delivery</div><div class="bs">3–5 days · Pan India</div></div>
+          <div class="b"><div class="bt">14-day returns</div><div class="bs">No questions asked</div></div>
+          <div class="b"><div class="bt">2-year warranty</div><div class="bs">On the movement</div></div>
+        </div>
+
+        <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
+        <div class="ar-slot">
+          <div data-rk-product="cat-watch-chrono" data-rk-key="RK_DEMO_CATALOG_KEY"></div>
+        </div>
+        <p class="ar-hint">Tap <strong>View in 3D</strong> to spin the watch and inspect the dial.</p>
+      </main>
+
+      <footer class="foot">
+        <div class="powered">
+          <div class="rk">Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+          <a href="/">← All categories</a>
+        </div>
+        <div class="disclaimer">Demo page · "Meridian Watches" is a fictional brand · Built to showcase Rekaman AR.</div>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.rekaman.io/v1/sdk.js?ts=' + Date.now();
+        s.defer = true;
+        document.head.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>
