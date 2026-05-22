@@ -10,11 +10,10 @@
  * The founder runs this ONCE. ~6 × 30 = ~180 Meshy credits (~₹300-500).
  *
  * ── BEFORE RUNNING ──────────────────────────────────────────────────────
- * 1. Fill the 5 empty `photoUrl` fields in CATALOG below. Open pexels.com,
- *    search the category, pick a CLEAN single-product shot on a plain
- *    background, copy the image URL. Furniture is pre-filled (known-good).
- *    Each photo must be a public HTTPS URL.
- * 2. Get an auth token for the founder brand:
+ * All 6 photoUrls in CATALOG below are pre-filled with verified, clean,
+ * watermark-free Pexels images (May 2026). Swap any if you prefer a
+ * different product look — just keep them public HTTPS, single product,
+ * plain background. Then get an auth token for the founder brand:
  *      cd server
  *      TOKEN=$(node --env-file=.env scripts/mint-jwt.mjs founder@rekaman.io 2>/dev/null)
  *    (If mint-jwt's JWT_SECRET has drifted from Railway's, use /v1/auth/login
@@ -59,31 +58,34 @@ const CATALOG = [
     name: 'Halo Pendant Lamp', slug: 'cat-decor-lamp', category: 'decor',
     widthCm: 30, heightCm: 38, depthCm: 30,
     htmlFile: 'decor-pendant-lamp.html',
-    photoUrls: [], // ← FILL: a clean pendant-lamp photo, plain background
+    photoUrls: ['https://images.pexels.com/photos/5812176/pexels-photo-5812176.jpeg?auto=compress&cs=tinysrgb&w=1400'],
   },
   {
     name: 'Classic Aviator', slug: 'cat-eyewear-aviator', category: 'eyewear',
     widthCm: 14, heightCm: 5, depthCm: 14,
     htmlFile: 'eyewear-aviator.html',
-    photoUrls: [], // ← FILL: a clean aviator-sunglasses photo
+    photoUrls: ['https://images.pexels.com/photos/2659705/pexels-photo-2659705.jpeg?auto=compress&cs=tinysrgb&w=1400'],
   },
   {
     name: 'Solitaire Statement Ring', slug: 'cat-jewelry-ring', category: 'jewelry',
     widthCm: 2.2, heightCm: 2.5, depthCm: 2.2,
     htmlFile: 'jewelry-ring.html',
-    photoUrls: [], // ← FILL: a clean gold-ring photo
+    photoUrls: ['https://images.pexels.com/photos/32988587/pexels-photo-32988587.jpeg?auto=compress&cs=tinysrgb&w=1400'],
   },
   {
     name: 'Meridian Chronograph', slug: 'cat-watch-chrono', category: 'watches',
     widthCm: 4.2, heightCm: 1.1, depthCm: 4.6,
     htmlFile: 'watches-chronograph.html',
-    photoUrls: [], // ← FILL: a clean wristwatch photo
+    photoUrls: ['https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=1400'],
   },
   {
+    // Footwear photo swapped from the founder-supplied iStock URL (watermarked
+    // comp image — the watermark would bake into the 3D texture) to a clean
+    // watermark-free Pexels shot of sneakers on a white background.
     name: 'Studio Court Sneaker', slug: 'cat-footwear-sneaker', category: 'footwear',
     widthCm: 10, heightCm: 11, depthCm: 29,
     htmlFile: 'footwear-sneaker.html',
-    photoUrls: [], // ← FILL: a clean single-sneaker photo
+    photoUrls: ['https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=1400'],
   },
 ];
 
