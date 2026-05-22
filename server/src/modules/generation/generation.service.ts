@@ -10,6 +10,7 @@ import {
   ConflictError,
   NotFoundError,
   ValidationError,
+  ExternalServiceError,
 } from '../../shared/errors.js';
 import { generationRepository } from './generation.repository.js';
 import {
@@ -145,12 +146,34 @@ export const generationService = {
       config,
     };
 
-    await getGenerationQueue().add(GENERATION_JOB_NAME, jobData, {
-      jobId,
-      // Meshy tasks idle in PENDING for 5–10s after creation; first poll any
-      // sooner is wasted work. Worker tuning lives in env (POLL_INTERVAL_MS).
-      delay: 5000,
-    });
+    // The enqueue is an external-service call (Redis/BullMQ) and MUST be
+    // wrapped per CLAUDE.md → External API Boundaries — an uncaught raw
+    // IORedis error (e.g. Upstash "max requests limit exceeded", or Redis
+    // unreachable) would otherwise surface as a generic 500 INTERNAL_ERROR.
+    //
+    // IMPORTANT: by this point the Meshy task is ALREADY created and paid
+    // for, and the product is ALREADY marked PROCESSING. If the enqueue
+    // fails, that task is orphaned — charged, no worker job. We log at
+    // error level with the meshyTaskId so it can be recovered later via
+    // `scripts/recover-stuck-generation.mjs <productId>` (re-enqueues
+    // against the SAME meshyTaskId — no fresh Meshy charge).
+    try {
+      await getGenerationQueue().add(GENERATION_JOB_NAME, jobData, {
+        jobId,
+        // Meshy tasks idle in PENDING for 5–10s after creation; first poll any
+        // sooner is wasted work. Worker tuning lives in env (POLL_INTERVAL_MS).
+        delay: 5000,
+      });
+    } catch (err) {
+      logger.error(
+        { err: (err as Error).message, brandId, productId, meshyTaskId, attemptNumber, jobId },
+        'generation enqueue failed — meshy task orphaned (recover via recover-stuck-generation.mjs)',
+      );
+      throw new ExternalServiceError(
+        'redis',
+        'Could not queue the generation job — the job queue is unavailable',
+      );
+    }
 
     logger.info(
       { brandId, productId, meshyTaskId, attemptNumber, jobId },
