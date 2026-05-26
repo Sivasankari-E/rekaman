@@ -32,7 +32,7 @@
  * regex on the attributes, so re-running with a fresh key still works.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { env, exit } from 'node:process';
@@ -43,6 +43,11 @@ const POLL_INTERVAL_MS = Number(env.POLL_INTERVAL_MS || 10000);
 const POLL_TIMEOUT_MS = Number(env.POLL_TIMEOUT_MS || 900_000); // 15 min for 6
 
 const PUBLIC_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../apps/demo/public');
+// Local cache of the minted Demo-catalogue API key so re-runs don't churn it
+// (the API never exposes a key's value after creation — only the prefix —
+// so listing existing keys can't recover the full value for HTML wiring).
+// Gitignored via server/.gitignore.
+const KEY_CACHE_FILE = resolve(dirname(fileURLToPath(import.meta.url)), '.demo-catalog-key');
 
 // ── CATALOG ───────────────────────────────────────────────────────────────
 // Dimensions in cm (W × H × D) — drive real-world AR scale. Fill photoUrl
@@ -182,12 +187,30 @@ async function pollAll(products) {
   return status;
 }
 
-async function createApiKey() {
+async function ensureApiKey() {
+  // Priority: explicit env override > local cache file > mint new.
+  // The API key value is shown ONCE on creation (then hashed at rest), so the
+  // cache file is the only way to recover a prior key for re-runs.
+  if (env.DEMO_CATALOG_KEY?.startsWith('rk_live_')) {
+    log('  • Using API key from DEMO_CATALOG_KEY env var');
+    return env.DEMO_CATALOG_KEY;
+  }
+  if (existsSync(KEY_CACHE_FILE)) {
+    const cached = readFileSync(KEY_CACHE_FILE, 'utf8').trim();
+    if (cached.startsWith('rk_live_')) {
+      log(`  • Reusing cached API key from scripts/.demo-catalog-key`);
+      return cached;
+    }
+  }
   const r = await api('POST', '/v1/api-keys', { name: 'Demo catalogue' });
   if (!r.ok || !r.body?.key?.key) {
     throw new Error(`create API key failed: ${r.status} ${JSON.stringify(r.body)}`);
   }
-  return r.body.key.key;
+  const newKey = r.body.key.key;
+  writeFileSync(KEY_CACHE_FILE, newKey);
+  try { chmodSync(KEY_CACHE_FILE, 0o600); } catch { /* chmod best-effort on non-POSIX */ }
+  log(`  ✓ Minted new key and cached to scripts/.demo-catalog-key (gitignored, 0600)`);
+  return newKey;
 }
 
 function wireHtml(item, apiKey) {
@@ -221,8 +244,8 @@ try {
   log('\n⏳ polling all generations to READY...');
   const finalStatus = await pollAll(products);
 
-  const apiKey = await createApiKey();
-  log(`\n✓ API key minted for the demo catalogue: ${apiKey.slice(0, 16)}…`);
+  const apiKey = await ensureApiKey();
+  log(`\n✓ API key resolved: ${apiKey.slice(0, 16)}…`);
 
   for (const p of products) wireHtml(p, apiKey);
   log(`✓ wired API key + hero photos into ${products.length} HTML files`);
