@@ -9,8 +9,11 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      // Quick links from rekaman.io/demo → live demo page
-      { source: '/demo', destination: 'https://demo.rekaman.io/oslo-sofa.html', permanent: false },
+      // Quick links from rekaman.io/demo → live category-picker hub.
+      // The legacy /oslo-sofa.html URL is preserved on the demo project for
+      // back-compat with earlier cold emails (per v5.17), but new traffic
+      // lands on the hub so prospects see the multi-category breadth.
+      { source: '/demo', destination: 'https://demo.rekaman.io/', permanent: false },
       // rekaman.io/onboard → Google Form lead-capture (Brand Onboarding form).
       // Memorable URL for in-person Coimbatore demos + cold emails + business
       // cards. 307 (permanent:false) deliberately — keeps flexibility to swap
