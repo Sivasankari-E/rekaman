@@ -54,12 +54,21 @@ export const generationRepository = {
     }),
 
   /**
-   * Atomically transition product PENDING|FAILED → PROCESSING and stamp the
+   * Atomically transition product PENDING|FAILED → PROCESSING (and READY →
+   * PROCESSING when `allowFromReady` is set — an explicit regen) and stamp the
    * Meshy task id into metadata.generation. Returns `{ updated: boolean }`
    * — false means another request beat us to it (race) or the product moved
    * to a non-restartable status. Callers must treat false as a 409 Conflict
    * AND remember the Meshy task they just paid for is now orphaned (logging
    * is the service layer's responsibility).
+   *
+   * `allowFromReady`: when the caller passed an explicit `config` to
+   * regenerate an already-READY product, READY must be a valid source state
+   * here too. Without this, the service-layer regen check would pass but this
+   * atomic guard would reject READY → PROCESSING, returning count: 0 — which
+   * the service misreads as a race and 409s AFTER the Meshy task was created
+   * and charged, orphaning it. (Bug fixed Week 8 — the guard and the
+   * service-layer precondition had drifted out of sync.)
    */
   async markProductProcessing(
     brandId: string,
@@ -67,7 +76,15 @@ export const generationRepository = {
     meshyTaskId: string,
     meshyTaskKind: 'single' | 'multi',
     attemptNumber: number,
+    allowFromReady = false,
   ): Promise<{ updated: boolean }> {
+    // The set of source statuses from which a generation may start. READY is
+    // included only for an explicit regen so accidental retries can't silently
+    // burn credits on a product that already has a GLB.
+    const allowedStatuses = allowFromReady
+      ? [ProductStatus.PENDING, ProductStatus.FAILED, ProductStatus.READY]
+      : [ProductStatus.PENDING, ProductStatus.FAILED];
+
     // Two-step because Prisma's updateMany doesn't expose JSONB merge: first
     // read existing metadata under the (brandId, status-in) guard, then write
     // a merged copy back under the same guard. The second step's updateMany
@@ -78,7 +95,7 @@ export const generationRepository = {
         id: productId,
         brandId,
         deletedAt: null,
-        status: { in: [ProductStatus.PENDING, ProductStatus.FAILED] },
+        status: { in: allowedStatuses },
       },
       select: { metadata: true },
     });
@@ -98,7 +115,7 @@ export const generationRepository = {
         id: productId,
         brandId,
         deletedAt: null,
-        status: { in: [ProductStatus.PENDING, ProductStatus.FAILED] },
+        status: { in: allowedStatuses },
       },
       data: {
         status: ProductStatus.PROCESSING,

@@ -115,14 +115,19 @@ export const generationService = {
     });
 
     // Step 2 — atomic transition. updateMany guards on (status IN [PENDING,
-    // FAILED]) so a concurrent request that already moved the row to
-    // PROCESSING returns count: 0 here.
+    // FAILED], plus READY for an explicit regen) so a concurrent request that
+    // already moved the row to PROCESSING returns count: 0 here. The regen
+    // flag MUST mirror the precondition check above (READY allowed only when
+    // input.config was provided) — otherwise the guard rejects a legitimate
+    // regen and orphans the just-paid-for Meshy task.
+    const allowFromReady = Boolean(input.config);
     const { updated } = await generationRepository.markProductProcessing(
       brandId,
       productId,
       meshyTaskId,
       meshyTaskKind,
       attemptNumber,
+      allowFromReady,
     );
     if (!updated) {
       // Race detected. We have already been billed for the Meshy task and
