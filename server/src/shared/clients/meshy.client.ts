@@ -107,10 +107,24 @@ const meshyCreateResponseSchema = z.object({
 // and `consumed_credits` is the v1 field (older docs say `credits_used`).
 // Use `.nullish()` everywhere null-or-undefined is possible — `.optional()`
 // alone fails on null and crashes the worker mid-poll.
+//
+// ONLY `id` and `status` are load-bearing for the worker's control flow
+// (status drives SUCCEEDED → download / FAILED → mark-failed / else → poll).
+// EVERYTHING else is metadata and MUST be `.nullish()` — a strict requirement
+// on a non-essential field makes the whole parse fail, the client throws
+// `ExternalServiceError`, and the worker treats that as TRANSIENT and keeps
+// polling until its 300s budget runs out, then lies about a "timeout".
+//
+// This is exactly what bit us in May 2026: a FAILED task returns `null`/`0`/
+// omitted timestamps, the then-required `started_at`/`finished_at`/`created_at`
+// rejected it, and a Meshy `service_unavailable` (status: FAILED, with a real
+// `task_error.message`) was mis-reported as "Generation timed out after 300s".
+// The worker's FAILED branch was correct all along — it just never got to run
+// because parsing died first. Keep every metadata field nullish.
 const meshyTaskResponseSchema = z.object({
   id: z.string(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'SUCCEEDED', 'FAILED', 'CANCELED']),
-  progress: z.number().min(0).max(100),
+  progress: z.number().min(0).max(100).nullish(),
   model_urls: z
     .object({
       glb: z.string().url().nullish(),
@@ -132,9 +146,11 @@ const meshyTaskResponseSchema = z.object({
     )
     .nullish(),
   task_error: z.object({ message: z.string() }).nullish(),
-  started_at: z.number().int().nonnegative(),
-  finished_at: z.number().int().nonnegative(),
-  created_at: z.number().int().nonnegative(),
+  // Timestamps are metadata the worker never reads — nullish so a FAILED task
+  // with null/omitted timestamps still parses (see block comment above).
+  started_at: z.number().int().nonnegative().nullish(),
+  finished_at: z.number().int().nonnegative().nullish(),
+  created_at: z.number().int().nonnegative().nullish(),
   // Meshy v1 returns `consumed_credits`; older payloads sometimes had
   // `credits_used`. Accept both — we read whichever is present.
   consumed_credits: z.number().int().nonnegative().nullish(),
@@ -300,7 +316,8 @@ class MeshyClient {
     return {
       id: data.id,
       status: data.status,
-      progress: data.progress,
+      // progress is cosmetic (BullMQ job inspector); default 0 if Meshy omits.
+      progress: data.progress ?? 0,
       // `.nullish()` lets `model_urls` be null/undefined; collapse to {}
       // so callers can always do `task.modelUrls.glb`.
       modelUrls: {
@@ -318,9 +335,11 @@ class MeshyClient {
           roughness: t.roughness ?? undefined,
         })) ?? undefined,
       taskError: data.task_error ?? undefined,
-      startedAt: data.started_at,
-      finishedAt: data.finished_at,
-      createdAt: data.created_at,
+      // Default to 0 — these are metadata the worker never reads; nullish in
+      // the schema so a FAILED task with null/omitted timestamps still parses.
+      startedAt: data.started_at ?? 0,
+      finishedAt: data.finished_at ?? 0,
+      createdAt: data.created_at ?? 0,
       // Prefer the v1 field; fall back for older payloads.
       creditsUsed: data.consumed_credits ?? data.credits_used ?? undefined,
     };
