@@ -386,9 +386,18 @@ class MeshyClient {
       case 401:
         logger.error(ctx, 'meshy auth failed — check MESHY_API_KEY');
         throw new ExternalServiceError('meshy', 'Meshy authentication failed');
-      case 402:
-        logger.warn(ctx, 'meshy credits exhausted');
-        throw new PaymentRequiredError('Meshy credits exhausted');
+      case 402: {
+        // Pass Meshy's ACTUAL message through — a 402 is not always literal
+        // "credits exhausted". A lapsed subscription returns
+        // "Task creation on the free plan is no longer supported…" with a real
+        // balance still showing (diagnosed July 2026). Hardcoding "credits
+        // exhausted" hid the true cause for a whole debugging session.
+        const meshyMsg = extractMeshyMessage(bodyText);
+        logger.warn(ctx, 'meshy payment required');
+        throw new PaymentRequiredError(
+          meshyMsg ? `Meshy payment required: ${meshyMsg}` : 'Meshy credits exhausted',
+        );
+      }
       case 404:
         logger.warn(ctx, 'meshy task not found');
         throw new NotFoundError('Meshy task');
@@ -406,6 +415,24 @@ class MeshyClient {
         throw new ExternalServiceError('meshy', `Meshy returned ${response.status}`);
     }
   }
+}
+
+/**
+ * Best-effort extraction of Meshy's human-readable error message from a
+ * response body. Meshy returns `{"message":"…"}` on errors; fall back to a
+ * trimmed raw snippet, or undefined if the body is empty. Never throws.
+ */
+function extractMeshyMessage(bodyText: string): string | undefined {
+  if (!bodyText) return undefined;
+  try {
+    const parsed = JSON.parse(bodyText) as { message?: unknown };
+    if (typeof parsed.message === 'string' && parsed.message.trim()) {
+      return parsed.message.trim().slice(0, 200);
+    }
+  } catch {
+    // not JSON — fall through to raw snippet
+  }
+  return bodyText.trim().slice(0, 200) || undefined;
 }
 
 let cached: MeshyClient | undefined;

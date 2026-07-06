@@ -20,12 +20,18 @@ type ProductMetadataShape = {
 function mergeGenerationMetadata(
   existing: Prisma.JsonValue | null,
   patch: GenerationMetadata,
+  clearKeys: Array<keyof GenerationMetadata> = [],
 ): Prisma.InputJsonValue {
   const base =
     existing && typeof existing === 'object' && !Array.isArray(existing)
       ? (existing as ProductMetadataShape)
       : {};
   const generation: GenerationMetadata = { ...(base.generation ?? {}), ...patch };
+  // Drop stale keys AFTER the merge — e.g. a successful regen must not leave
+  // a prior attempt's `failedAt`/`reason`/`isTransient` sitting alongside the
+  // new success fields (a READY product showing a failure reason confuses the
+  // dashboard). Merging doesn't remove keys, so clear them explicitly.
+  for (const k of clearKeys) delete generation[k];
   // The merged object is a plain JSON-serializable record; the cast goes
   // through `unknown` because Prisma's `InputJsonValue` union confuses TS's
   // structural-compatibility check on object types (TS2352).
@@ -149,12 +155,17 @@ export const generationRepository = {
     });
     if (!current) return { updated: false };
 
-    const merged = mergeGenerationMetadata(current.metadata, {
-      completedAt: new Date().toISOString(),
-      version: args.version,
-      creditsUsed: args.creditsUsed,
-      thumbnailUrl: args.thumbnailUrl,
-    });
+    const merged = mergeGenerationMetadata(
+      current.metadata,
+      {
+        completedAt: new Date().toISOString(),
+        version: args.version,
+        creditsUsed: args.creditsUsed,
+        thumbnailUrl: args.thumbnailUrl,
+      },
+      // Clear any failure state from a prior attempt — this row is now READY.
+      ['failedAt', 'reason', 'isTransient'],
+    );
 
     const result = await prisma.product.updateMany({
       where: { id: productId, brandId, deletedAt: null },
