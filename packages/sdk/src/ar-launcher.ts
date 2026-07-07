@@ -127,7 +127,7 @@ export async function launchArExperience(product: ProductData): Promise<void> {
       // Older versions (v1–v10) remain in S3 as fallbacks for any SDK still
       // cached on a brand site that hasn't refreshed its sdk.js yet (5-min
       // browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v11.js');
+      await loadChunk('placement-engine-v12.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');

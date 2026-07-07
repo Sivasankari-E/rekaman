@@ -171,6 +171,37 @@ export function computeRealWorldScale(
   return { scalar: 1.0 / longest, basis: 'fallback-longest-axis', aspectWarning: false, basisMetres: null };
 }
 
+/**
+ * A soft radial contact-shadow "blob" — a flat plane on the floor with a
+ * dark-centre → transparent-edge gradient. Sits just under the model so it
+ * reads as planted (see call site). Transparent + depthWrite:false so it
+ * blends over the camera feed without occluding anything.
+ */
+function makeBlobShadow(diameter: number): THREE.Mesh {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(0,0,0,0.42)');
+  g.addColorStop(0.65, 'rgba(0,0,0,0.16)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    depthWrite: false,
+  });
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(diameter, diameter), mat);
+  plane.rotation.x = -Math.PI / 2; // lay flat on the floor
+  plane.position.y = 0.002; // hair above y=0 to avoid z-fighting with the floor
+  plane.renderOrder = -1; // draw before the model
+  return plane;
+}
+
 async function startPlacementAR(product: ProductData): Promise<void> {
   if (!product.glbUrl) {
     throw new Error('Product has no GLB URL for placement AR');
@@ -231,6 +262,20 @@ async function startPlacementAR(product: ProductData): Promise<void> {
 
     const wrapper = new THREE.Group();
     wrapper.add(inner);
+
+    // Contact shadow — a soft radial "blob" on the floor under the model.
+    // Without it, a thin-legged object (this coffee table, a chair) reads as
+    // FLOATING even though it's geometrically grounded (bottom at y=0). This
+    // is the standard AR-realism fix (model-viewer / IKEA / Wayfair all do it).
+    //
+    // Why a blob, not a real DirectionalLight shadow map: the model is placed
+    // at an ARBITRARY reticle position (often metres from the world origin),
+    // and a directional shadow frustum anchored near the origin would miss it.
+    // The blob is parented to the wrapper, so it clones + places WITH the
+    // model — always correct, and far cheaper on mobile GPUs.
+    const footprint = Math.max(box.max.x - box.min.x, box.max.z - box.min.z);
+    wrapper.add(makeBlobShadow(footprint * 1.15));
+
     loadedModel = wrapper;
 
     // Fire the scale-applied event ONCE per session right after the decision.

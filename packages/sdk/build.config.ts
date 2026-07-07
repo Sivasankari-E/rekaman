@@ -126,7 +126,7 @@ const mainBundle: esbuild.BuildOptions = {
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v11.js'),
+  outfile: join(outdir, 'placement-engine-v12.js'),
   format: 'iife',
 };
 
@@ -189,8 +189,8 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v11.js (lazy chunk)',
-    join(outdir, 'placement-engine-v11.js'),
+    'placement-engine-v12.js (lazy chunk)',
+    join(outdir, 'placement-engine-v12.js'),
   );
   const viewer3dSize = reportSize(
     'viewer-3d-engine-v3.js (lazy chunk)',
@@ -211,7 +211,7 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v11.js': { ...chunkSize, metafile: placementResult.metafile },
+      'placement-engine-v12.js': { ...chunkSize, metafile: placementResult.metafile },
       'viewer-3d-engine-v3.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
     },
   };
