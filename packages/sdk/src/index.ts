@@ -88,34 +88,37 @@ async function mount(container: HTMLElement) {
     const platform = await platformPromise;
     instance.platform = platform;
 
-    if (platform === 'unsupported') {
-      // Don't show button on devices that can't do AR. Still await the product
-      // so we can fire ar_supported telemetry with arMode (helps us understand
-      // which arModes get blocked by which platforms).
-      try {
-        const product = await productPromise;
-        track('ar_supported', { productSlug, arMode: product.arMode, payload: { platform } });
-      } catch {
-        // ar_error already fired by the productPromise .then(reject) above.
-      }
-      return;
-    }
+    // "View in 3D" works on ANY WebGL browser (iOS / Android / desktop), so it
+    // is ALWAYS offered. "View in your room" (AR) is shown only where AR
+    // actually runs: WebXR (Android) or AR Quick Look (iOS). Previously a
+    // platform of 'unsupported' injected NO button at all — so laptops and any
+    // iPhone whose browser reported no AR support showed nothing, even though
+    // the 3D viewer would have worked fine. (Bug fixed July 2026.)
+    const arSupported = platform === 'webxr' || platform === 'ios-quicklook';
 
-    // Inject IMMEDIATELY. Default label = placement-mode label = correct for
-    // 100% of today's products. setLabel below only fires if a future try-on
-    // product is mounted (Phase 3) — for placement, it's a no-op.
-    instance.buttonHandle = injectButton(container, {
-      label: getButtonLabel('placement'),
-      onClick: () => handleButtonClick(instance),
-      // v5.21 — secondary "View in 3D" button. Available on all platforms
-      // (iOS / Android / desktop) — anywhere WebGL works, which is everywhere
-      // shoppers actually browse from. The 3D viewer chunk handles its own
-      // overlay UI; this button just routes a tap into the chunk.
-      secondary: {
+    if (arSupported) {
+      // Primary = AR "View in your room"; secondary = "View in 3D".
+      // Default label = placement-mode label = correct for 100% of today's
+      // products. setLabel below only fires for a future try-on mode / brand
+      // override.
+      instance.buttonHandle = injectButton(container, {
+        label: getButtonLabel('placement'),
+        onClick: () => handleButtonClick(instance),
+        secondary: {
+          label: 'View in 3D',
+          onClick: () => handle3DButtonClick(instance),
+        },
+      });
+    } else {
+      // No AR on this device (desktop, or an iOS browser without AR Quick
+      // Look). Promote "View in 3D" to the sole primary button (cube icon).
+      // Fully functional — orbit/zoom the model in the 3D viewer chunk.
+      instance.buttonHandle = injectButton(container, {
         label: 'View in 3D',
-        onClick: () => handle3DButtonClick(instance),
-      },
-    });
+        primaryIcon: 'cube',
+        onClick: () => handle3DButtonClick(instance, { primary: true }),
+      });
+    }
 
     // Continue resolving the product in the background. When it lands:
     //   • apply the brand theme (button colours + radius) — no-op for brands
@@ -134,11 +137,15 @@ async function mount(container: HTMLElement) {
 
         // Label precedence: brand's explicit buttonLabel override wins,
         // else the per-arMode default. Only call setLabel if it differs
-        // from what's already painted ("View in your room").
-        const desiredLabel =
-          product.brand.theme?.buttonLabel ?? getButtonLabel(product.arMode);
-        if (desiredLabel !== getButtonLabel('placement')) {
-          instance.buttonHandle?.setLabel(desiredLabel);
+        // from what's already painted ("View in your room"). Skip entirely
+        // when AR is unsupported — that button says "View in 3D" and must
+        // not be relabelled to an AR label.
+        if (arSupported) {
+          const desiredLabel =
+            product.brand.theme?.buttonLabel ?? getButtonLabel(product.arMode);
+          if (desiredLabel !== getButtonLabel('placement')) {
+            instance.buttonHandle?.setLabel(desiredLabel);
+          }
         }
       })
       .catch(() => {
@@ -246,19 +253,30 @@ async function handleButtonClick(instance: MountedInstance) {
  * — WebGL is available everywhere shoppers actually browse. We still wait
  * for the product fetch so we have the GLB URL.
  */
-async function handle3DButtonClick(instance: MountedInstance) {
+async function handle3DButtonClick(
+  instance: MountedInstance,
+  opts: { primary?: boolean } = {},
+) {
+  // The 3D action is the SECONDARY button when AR is supported, but the
+  // PRIMARY (sole) button when it isn't — spinner goes on whichever slot it
+  // actually occupies.
+  const setBusy = (loading: boolean) =>
+    opts.primary
+      ? instance.buttonHandle?.setLoading(loading)
+      : instance.buttonHandle?.setSecondaryLoading(loading);
+
   const earlyTap = !instance.product;
   if (earlyTap) {
     if (!instance.productPromise) return;
-    instance.buttonHandle?.setSecondaryLoading(true);
+    setBusy(true);
     try {
       await instance.productPromise;
     } catch {
-      instance.buttonHandle?.setSecondaryLoading(false);
+      setBusy(false);
       return;
     }
     if (!instance.product) {
-      instance.buttonHandle?.setSecondaryLoading(false);
+      setBusy(false);
       return;
     }
   }
@@ -270,7 +288,7 @@ async function handle3DButtonClick(instance: MountedInstance) {
     arMode: product.arMode,
     payload: earlyTap ? { earlyTap: true } : undefined,
   });
-  instance.buttonHandle?.setSecondaryLoading(true);
+  setBusy(true);
 
   try {
     await launchProductViewer3D(product);
@@ -281,7 +299,7 @@ async function handle3DButtonClick(instance: MountedInstance) {
     });
     console.warn('[Rekaman] 3D viewer launch failed', err);
   } finally {
-    instance.buttonHandle?.setSecondaryLoading(false);
+    setBusy(false);
   }
 }
 

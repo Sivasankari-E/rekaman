@@ -31,6 +31,13 @@ export interface ButtonConfig {
   label?: string;
   onClick: () => void;
   /**
+   * Which icon the PRIMARY button shows. 'ar' (default) = the room/camera
+   * icon for "View in your room". 'cube' = the 3D-viewer icon, used when AR
+   * is unsupported (desktop, or an iOS browser without AR Quick Look) and the
+   * "View in 3D" action is promoted to the sole primary button.
+   */
+  primaryIcon?: 'ar' | 'cube';
+  /**
    * Optional secondary action — when provided, a smaller second button
    * is stacked below the primary AR button. Used for "View in 3D" alongside
    * "View in your room" (v5.21+ — interactive 3D viewer for users who can't
@@ -186,11 +193,15 @@ export function injectButton(
   // Screen readers + voice control: keep accessible name aligned with visible label
   button.setAttribute('aria-label', labelText);
 
+  // The primary button normally shows the AR icon; when it's the promoted
+  // "View in 3D" button (AR unsupported), it shows the cube icon instead.
+  const primaryIconHtml = config.primaryIcon === 'cube' ? cubeIcon() : arIcon();
+
   const icon = document.createElement('span');
   icon.className = 'icon';
   // Decorative — the button's aria-label carries the meaning
   icon.setAttribute('aria-hidden', 'true');
-  icon.innerHTML = arIcon();
+  icon.innerHTML = primaryIconHtml;
 
   const label = document.createElement('span');
   label.textContent = labelText;
@@ -230,7 +241,7 @@ export function injectButton(
     setLoading(loading: boolean) {
       button.disabled = loading;
       button.setAttribute('aria-busy', loading ? 'true' : 'false');
-      icon.innerHTML = loading ? '<div class="spinner"></div>' : arIcon();
+      icon.innerHTML = loading ? '<div class="spinner"></div>' : primaryIconHtml;
     },
     setLabel(text: string) {
       label.textContent = text;
