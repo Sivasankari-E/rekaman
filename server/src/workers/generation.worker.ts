@@ -320,8 +320,16 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
     );
     return;
   }
+  // Shrink the GLB before upload. Meshy ships multi-MB PBR textures (a single
+  // 6 MB PNG is common), which make the model slow to load on shopper phones
+  // across ALL platforms. Resize textures to <=2K + WebP-compress — typically
+  // 80-90% smaller, geometry untouched (no quality loss). Best-effort: on any
+  // error (incl. the sharp native binary being unavailable) it returns the
+  // original buffer, so a GLB is always uploaded and the job never fails here.
+  const rawSizeKb = Math.round(glbBuffer.length / 1024);
+  glbBuffer = await optimizeGlb(glbBuffer, log);
   const glbSizeKb = Math.round(glbBuffer.length / 1024);
-  log.info({ sizeKb: glbSizeKb }, 'glb downloaded');
+  log.info({ rawSizeKb, sizeKb: glbSizeKb }, 'glb downloaded + optimized');
   Sentry.addBreadcrumb({
     category: 'generation',
     type: 'info',
@@ -497,6 +505,50 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Best-effort GLB texture optimization. Meshy returns high-res PBR maps that
+ * dominate the file size (e.g. an 11 MB GLB that is ~10 MB textures). We resize
+ * textures to <=2048 and re-encode to WebP — geometry is left untouched, so
+ * there is no visible quality loss, and the file typically shrinks 80-90%.
+ *
+ * Every import is DYNAMIC and the whole thing is wrapped in try/catch: if the
+ * native `sharp` binary is missing on a given deploy, or the GLB is malformed,
+ * we log a warning and return the ORIGINAL buffer. Optimization must never
+ * fail a generation — a big GLB is worse than a slow one, not broken.
+ */
+async function optimizeGlb(
+  buf: Buffer,
+  log: { warn: (obj: object, msg: string) => void },
+): Promise<Buffer> {
+  try {
+    const [core, ext, fns, sharpMod] = await Promise.all([
+      import('@gltf-transform/core'),
+      import('@gltf-transform/extensions'),
+      import('@gltf-transform/functions'),
+      import('sharp'),
+    ]);
+    const io = new core.NodeIO().registerExtensions(ext.ALL_EXTENSIONS);
+    const doc = await io.readBinary(new Uint8Array(buf));
+    await doc.transform(
+      fns.dedup(),
+      fns.prune(),
+      fns.textureCompress({
+        encoder: sharpMod.default,
+        targetFormat: 'webp',
+        resize: [2048, 2048],
+      }),
+    );
+    const out = await io.writeBinary(doc);
+    return Buffer.from(out);
+  } catch (err) {
+    log.warn(
+      { err: (err as Error).message },
+      'glb optimization failed — uploading original (unoptimized) GLB',
+    );
+    return buf;
+  }
 }
 
 async function downloadToBuffer(url: string): Promise<Buffer> {
