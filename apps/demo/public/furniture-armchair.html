@@ -3,71 +3,98 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Northbeam Studio — Modular Study Desk + Tall Shelf</title>
-    <meta name="description" content="See the Modular Study Desk in your room at real size with augmented reality. A Rekaman demo." />
+    <title>Northbeam Studio — Florence Mango Wood Coffee Table</title>
+    <meta name="description" content="See the Florence Mango Wood Coffee Table in your room at real size with augmented reality. A Rekaman demo." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/_catalog.css" />
     <style>
       :root {
-        --accent: #3D4F5C;
+        --accent: #6B4A2F;
         --accent-ink: #ffffff;
         --page-bg: #f7f8f9;
         --heading-font: "Inter", system-ui, sans-serif;
       }
       h1.title { font-weight: 700; letter-spacing: -0.03em; }
+      /* Product shots sit on a plain studio background — use `contain` so the
+         whole table shows (no crop), letterboxed on the hero's warm grey. */
+      .gallery .hero img { object-fit: contain; }
+      /* Thumbnail row — shows every uploaded angle. Tap to swap the hero. */
+      .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+      .thumbs .t {
+        aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden;
+        background: #f1efea; border: 2px solid transparent; cursor: pointer;
+        padding: 0; transition: border-color 0.12s;
+      }
+      .thumbs .t.active, .thumbs .t:hover { border-color: var(--accent); }
+      .thumbs .t img { width: 100%; height: 100%; object-fit: contain; display: block; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <header class="brandbar">
         <div class="brand"><span class="mark">N</span>Northbeam Studio</div>
-        <div class="links">Study · Storage · Office</div>
+        <div class="links">Living · Tables · Décor</div>
       </header>
 
-      <nav class="crumb"><a href="/">Demo catalogue</a> · Furniture · Modular Study Desk</nav>
+      <nav class="crumb"><a href="/">Demo catalogue</a> · Furniture · Coffee Table</nav>
 
       <main class="product">
         <div class="gallery">
-          <div class="hero"><img src="https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/demo-test/furniture-modular-desk/02-three-quarter.png" onerror="this.closest('.hero').style.display='none'" alt="Modular Study Desk + Tall Shelf in frosty white finish" /></div>
+          <div class="hero">
+            <img id="hero-img"
+                 src="https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/demo-test/furniture-florence-table/01-front.png"
+                 alt="Florence Mango Wood Coffee Table — front view" />
+          </div>
+          <div class="thumbs">
+            <button class="t active" type="button" aria-label="Front view">
+              <img src="https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/demo-test/furniture-florence-table/01-front.png" alt="Front view" />
+            </button>
+            <button class="t" type="button" aria-label="Angled view">
+              <img src="https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/demo-test/furniture-florence-table/02-angle.png" alt="Angled view" />
+            </button>
+            <button class="t" type="button" aria-label="Top view">
+              <img src="https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/demo-test/furniture-florence-table/03-top.png" alt="Top view" />
+            </button>
+          </div>
         </div>
 
-        <p class="eyebrow">Frosty white · Engineered wood</p>
-        <h1 class="title">Modular Study Desk + Tall Shelf</h1>
+        <p class="eyebrow">Tubbaq finish · Brown tinted glass top</p>
+        <h1 class="title">Florence Mango Wood Coffee Table</h1>
 
         <div class="pricerow">
-          <span class="price">₹14,999</span>
-          <span class="price-was">₹21,500</span>
+          <span class="price">₹13,000</span>
+          <span class="price-was">₹18,500</span>
           <span class="price-off">30% off</span>
         </div>
-        <p class="price-note">Inclusive of all taxes · EMI from ₹714/month</p>
+        <p class="price-note">Inclusive of all taxes · EMI from ₹619/month</p>
 
         <p class="desc">
-          A <strong>spacious study desk</strong> paired with a deep tall-shelf cabinet — six
-          open compartments + one closed storage drawer. The frosty white finish keeps a
-          home office or study corner bright. Tool-assisted assembly in about 40 minutes;
-          dowel-and-screw construction holds steady under daily use.
+          A <strong>round solid mango-wood coffee table</strong> with three sculpted
+          cantilever legs and a brown tinted-glass inset at the centre. The warm Tubbaq
+          finish suits any living room. Carpenter assembly; sturdy dowel-and-screw joinery
+          that holds steady under daily use.
         </p>
 
         <div class="specs">
-          <div class="s"><div class="k">Footprint</div><div class="v">150 × 50 cm desk · 50 × 150 cm shelf</div></div>
-          <div class="s"><div class="k">Tabletop height</div><div class="v">76 cm</div></div>
-          <div class="s"><div class="k">Material</div><div class="v">Engineered wood · matte laminate</div></div>
-          <div class="s"><div class="k">Weight</div><div class="v">42 kg total (boxed in 2)</div></div>
+          <div class="s"><div class="k">Size</div><div class="v">86 cm diameter · 37 cm high</div></div>
+          <div class="s"><div class="k">Material</div><div class="v">Solid mango wood · tinted glass</div></div>
+          <div class="s"><div class="k">Finish</div><div class="v">Tubbaq (warm walnut-brown)</div></div>
+          <div class="s"><div class="k">Weight</div><div class="v">10.5 kg</div></div>
         </div>
 
         <div class="trust">
           <div class="b"><div class="bt">Free delivery</div><div class="bs">5–7 days · Pan India</div></div>
           <div class="b"><div class="bt">7-day returns</div><div class="bs">No questions asked</div></div>
-          <div class="b"><div class="bt">3-year warranty</div><div class="bs">On structure &amp; finish</div></div>
+          <div class="b"><div class="bt">36-month warranty</div><div class="bs">On structure &amp; finish</div></div>
         </div>
 
         <!-- THE REKAMAN INTEGRATION — ONE SCRIPT TAG, ONE DIV -->
         <div class="ar-slot">
           <div data-rk-product="cat-furniture-modular-desk" data-rk-key="rk_live_u5dKB3ZmNrlrDsNFNk1zT8pA0Yu3cPax"></div>
         </div>
-        <p class="ar-hint">Tap <strong>View in your room</strong> to place the full unit on your floor at real size — see if it fits before you order.</p>
+        <p class="ar-hint">Tap <strong>View in your room</strong> to place the table on your floor at real size — see if it fits before you order.</p>
       </main>
 
       <footer class="foot">
@@ -78,6 +105,21 @@
         <div class="disclaimer">Demo page · "Northbeam Studio" is a fictional brand · Built to showcase Rekaman AR.</div>
       </footer>
     </div>
+
+    <!-- Tiny demo-only thumbnail swap. Nothing to do with the SDK. -->
+    <script>
+      (function () {
+        var hero = document.getElementById('hero-img');
+        document.querySelectorAll('.thumbs .t').forEach(function (t) {
+          t.addEventListener('click', function () {
+            document.querySelectorAll('.thumbs .t').forEach(function (x) { x.classList.remove('active'); });
+            t.classList.add('active');
+            var img = t.querySelector('img');
+            if (hero && img) hero.src = img.src;
+          });
+        });
+      })();
+    </script>
 
     <!-- Demo-only: cache-bust sdk.js so the founder's demo always loads the latest SDK. -->
     <script>
