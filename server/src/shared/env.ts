@@ -3,6 +3,10 @@ import { logger } from './logger.js';
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  // Deployment-stage marker, independent of NODE_ENV (which stays 'production'
+  // for the optimized build on BOTH prod and staging). Set APP_ENV=staging on
+  // the Railway staging env so /metrics + telemetry can tell them apart.
+  APP_ENV: z.string().optional(),
   PORT: z.coerce.number().default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   SERVICE_NAME: z.string().default('api'),

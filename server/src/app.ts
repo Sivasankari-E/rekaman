@@ -112,6 +112,7 @@ export function createApp(): Express {
         db: dbUp ? 'up' : 'down',
         nodeVersion: process.version,
         env: env.NODE_ENV,
+        appEnv: env.APP_ENV ?? env.NODE_ENV,
         service: env.SERVICE_NAME,
       });
     } catch (err) {
