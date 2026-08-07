@@ -533,6 +533,31 @@ What auto-deploys on `git push origin main`, what doesn't:
 
 Future Claude must NOT assume "git push deploys SDK" — that's the trap that cost us a debug session. SDK is always manual S3 upload.
 
+### Environment Isolation — staging vs production (Week 8, Aug 7 2026)
+
+Two isolated environments so a bad push (or local dev/scripts) can never break a live paying brand. This closed the class of accidents behind the OS-reinstall `.env` drifts (local pointing at prod).
+
+**The three layers line up:**
+
+| Git branch | Railway environment | Neon branch | Redis | API URL |
+|---|---|---|---|---|
+| `main` | `production` | `production` (`ep-quiet-moon-ao50xygk`) | prod Railway Redis (`zephyr.proxy.rlwy.net`) | `api.rekaman.io` |
+| `dev` | `staging` | `staging` (`ep-summer-paper-ao9hqdfx`) | staging Railway Redis (separate instance, own password) | `api-staging-4666.up.railway.app` |
+
+- **`dev` → staging, `main` → prod.** Railway's staging `api`+`worker` deploy from `dev`; production's from `main`. (Set per-service: Settings → Source → branch. The fork defaults BOTH envs to `main` — you MUST switch staging to `dev`, else a push to main deploys to both.)
+- **Neon `staging`** is a copy-on-write branch off prod (created Aug 7; auto-delete Never; "Branch data and schema"). Near-free, scale-to-zero. Schema + PricingPlans came with the branch. Future migrations apply on staging via the api start script (`prisma migrate deploy`) when `dev` deploys.
+- **Redis isolation verified by different passwords** (staging vs prod) — separate instances. Staging services reach it via `redis.railway.internal` (per-env private DNS). For LOCAL ops scripts use the staging Redis **public** proxy URL (internal `.railway.internal` is unreachable from a laptop).
+- **Local `server/.env` points at STAGING** (`DATABASE_URL` = staging Neon, `REDIS_URL` = staging Redis). The laptop never touches prod again. Prod connection strings live in the password manager for rare, deliberate prod ops (swap in, do it, swap back).
+- Minor: staging `/metrics` reports `env: production` (NODE_ENV copied in the fork) — harmless for the build; add `APP_ENV=staging` later if telemetry needs to tell them apart.
+
+**The workflow (discipline):**
+1. Develop on `dev` → `git push origin dev` → staging redeploys (~2 min).
+2. Test against staging (`api-staging-4666.up.railway.app` + the staging Neon branch).
+3. Only when staging is green: `git checkout main && git merge dev && git push` → prod deploys.
+4. Never run local code against prod DB/queue (local `.env` = staging enforces this).
+
+**Not isolated (acceptable, Phase 1):** the SDK (CloudFront/S3 — already safe via `/v1/` versioning + immutable chunks) and the products S3 bucket (staging generations upload to the same public bucket; harmless with cuid keys). Vercel demo/landing still deploy from `main`.
+
 ### SDK Release Workflow
 
 The exact sequence when shipping new SDK code. Skipping a step = stale clients OR broken AR.
