@@ -558,6 +558,8 @@ Two isolated environments so a bad push (or local dev/scripts) can never break a
 
 **Not isolated (acceptable, Phase 1):** the SDK (CloudFront/S3 — already safe via `/v1/` versioning + immutable chunks) and the products S3 bucket (staging generations upload to the same public bucket; harmless with cuid keys). Vercel demo/landing still deploy from `main`.
 
+**Verified end-to-end (Aug 8 2026):** marker written to the staging DB via local Prisma showed up on the staging api but NOT prod; a `dev` push (added `appEnv` to `/metrics`) redeployed ONLY staging; merging `dev`→`main` redeployed ONLY prod. Both `api` and `worker` share `DATABASE_URL` (staging value). **Deploy-cadence note:** the api rebuilds only on `server/`-affecting changes — SDK/demo/CLAUDE.md pushes to `main` do NOT redeploy the api (that's why prod api uptime can read weeks; it's not a broken trigger). Doc-only changes may go straight to `main` (they don't touch the running app); CODE changes go `dev`→staging→`main`.
+
 ### SDK Release Workflow
 
 The exact sequence when shipping new SDK code. Skipping a step = stale clients OR broken AR.
