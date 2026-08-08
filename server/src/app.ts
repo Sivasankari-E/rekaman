@@ -50,11 +50,23 @@ export function createApp(): Express {
   //   - /v1/ar/* (public SDK endpoint embedded on third-party brand sites): permissive `*`,
   //     no credentials, applied to all responses including 404/500 + OPTIONS preflights.
   //   - everything else: strict whitelist + credentials for the dashboard.
+  // True production stays on the strict whitelist. STAGING (NODE_ENV=production
+  // but APP_ENV=staging) ALSO allows localhost, so the dashboard/landing can be
+  // developed locally against the staging api. Local dev/tests (NODE_ENV!==prod)
+  // reflect any origin.
+  const strictOrigins = [
+    env.DASHBOARD_URL,
+    'https://rekaman.io',
+    'https://dashboard.rekaman.io',
+  ].filter((o): o is string => Boolean(o));
+  const localhostOrigins = ['http://localhost:3000', 'http://localhost:3001'];
   const dashboardCorsOptions: CorsOptions = {
     origin:
-      env.NODE_ENV === 'production'
-        ? [env.DASHBOARD_URL, 'https://rekaman.io', 'https://dashboard.rekaman.io']
-        : true,
+      env.NODE_ENV !== 'production'
+        ? true
+        : env.APP_ENV === 'staging'
+          ? [...strictOrigins, ...localhostOrigins]
+          : strictOrigins,
     credentials: true,
   };
   const publicSdkCorsOptions: CorsOptions = {
