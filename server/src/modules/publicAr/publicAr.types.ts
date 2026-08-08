@@ -7,6 +7,13 @@ export interface PublicProductResponse {
   arMode: string;
   category: string | null;
 
+  // Hosted-viewer + link previews (v5.26). thumbnailUrl is the Meshy-generated
+  // render (every READY product has one via the generation pipeline); photoUrls
+  // are the brand's original product photos. Used by the Rekaman-hosted viewer
+  // page (rekaman.io/v/...) for a hero image + OG/WhatsApp rich link preview.
+  thumbnailUrl: string | null;
+  photoUrls: string[];
+
   glbUrl: string | null;                    // primary GLB (placement mode)
   // iOS AR Quick Look format (v5.15+ pipeline). Nullable so older products
   // (and Meshy soft-fails) gracefully fall back to GLB on iOS. SDK prefers

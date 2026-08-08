@@ -29,12 +29,21 @@ export const publicArService = {
       throw new NotFoundError('Product');
     }
 
+    // Thumbnail lives in metadata.generation.thumbnailUrl (best-effort upload
+    // in the worker — every READY product normally has one). Read defensively.
+    const genMeta = (product.metadata ?? {}) as {
+      generation?: { thumbnailUrl?: string | null };
+    };
+    const thumbnailUrl = genMeta.generation?.thumbnailUrl ?? null;
+
     return {
       id: product.id,
       slug: product.slug,
       name: product.name,
       arMode: product.arMode,
       category: product.category,
+      thumbnailUrl,
+      photoUrls: product.photoUrls ?? [],
       glbUrl: product.glbUrl,
       // v5.15: iOS AR Quick Look format. SDK serves USDZ to iOS Safari and
       // GLB to Android WebXR. Pre-v5.15-pipeline products have usdzUrl=null;
