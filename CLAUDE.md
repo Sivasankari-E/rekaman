@@ -1739,14 +1739,14 @@ rekaman/
 
 *Update every Sunday and after every major milestone.*
 
-- **Week/Month:** Week 8 (Aug 8, 2026) — regen bugs + on-device AR fixes (v5.24/v5.25), then **environment isolation** (staging/prod, verified end-to-end) + the **hosted viewer + QR** (`rekaman.io/v/…`) shipped (v5.26). See footers.
+- **Week/Month:** Week 8 (Aug 8, 2026) — env isolation + hosted viewer (v5.26), then **company incorporated** + a **brand rebrand (navy+blue)** and the **dashboard scaffold** started (v5.27). See footers.
 - **Last completed (v5.25, July 7):** On-device AR fixes + multi-image demo, driven by founder testing on iPhone/Android/laptop:
   - **SDK iOS + laptop buttons** (`d924cb5`): "View in 3D" was wrongly gated behind AR support, so laptops + any iPhone reporting no-AR showed NO buttons. Now 3D always shows (works on all WebGL); AR ("View in your room") shows only where it runs; iOS detection made lenient (`relList.supports('ar')` has false negatives on real iPhones).
   - **Furniture demo → Florence Mango Wood Coffee Table** (`09f50e1`): multi-image Meshy (3 angles, `meshyTaskKind: multi`), dims 86×37×86 cm, demo page now shows all 3 photos as a tap-to-swap gallery. Product `cmpmo7qh5002kdmcq2a6xfpy0` (slug still `cat-furniture-modular-desk`).
   - **Contact shadow** (`ea27eb2`, placement chunk **v11→v12**): a soft radial blob shadow under the placed model so thin-legged furniture reads as planted, not floating. (GLB geometry was already grounding correctly at y=0 — the "floating" was the missing shadow.)
   - **GLB texture optimization** (`c680b88`): worker now resizes textures to 2K + WebP via `gltf-transform`+`sharp` (dynamic-import, best-effort, never fails a job). **11 MB → 1.66 MB (85%)**, geometry untouched. Demo model already re-pointed to the optimized GLB (`v2/model-optimized.glb`).
   - **Deferred:** iOS real-size (USDZ scale bake via `usd-core` — "Part C") — needs a Python/USD toolchain in the worker; iOS is ~5% of India, so deferred to a focused session per founder.
-- **Currently working on:** Environment isolation is **DONE + fully verified** (v5.26 footer + Operational Runbooks → Environment Isolation) — including the founder follow-ups: `APP_ENV=staging` set on staging (metrics show `appEnv:staging`), and the staging Redis public proxy (`tokaido.proxy.rlwy.net:53455`) wired into local `.env`, so the laptop is now 100% on staging (DB + Redis). The **hosted viewer + QR** is live. Next engineering block: the **brand dashboard scaffold** (`dashboard.rekaman.io`). Pvt Ltd registration continues in parallel.
+- **Currently working on:** **Brand dashboard** (`apps/dashboard`, `dashboard.rekaman.io`) — scaffold shipped (v5.27): centralized design tokens (new navy+blue palette), login/signup wired to `/v1/auth`, responsive navy-sidebar shell, placeholder nav pages. Next: real inner pages (products upload/generate, API keys, embed/install, analytics), then the **landing redesign** onto the new tokens (fix the empty-space problem), then rebrand SDK/demo to blue. **Company is incorporated** (confirm exact legal name — used "Rekaman Spatial Private Limited" in the dashboard footer). Dry-run of Concierge onboarding planned ~2 days out.
 - **Blocked on:** Nothing. **PAN card physically received** (May 18) — Pvt Ltd registration via Razorpay Rize RESUMING in parallel (KYC video call now unblockable; mother's director docs already collected; registered office = corrected Thanjavur home address per v5.15). Registration remains a parallel paperwork stream with ~zero engineering-time cost and is still not revenue-blocking (Concierge MVP collects first payments via UPI/bank transfer if Razorpay live mode lags).
 - **Next milestone:** First ₹3,999/mo paying brand. **Sales motion shifted (v5.18):** primary channel is now **in-person demos in Coimbatore** (founder relocating there ~June 1st week for ~1 month; a friend at JustDial can pull verified brand-owner direct contacts). In-person B2B demos for a visual product convert far higher (~20-40%) than cold email (~2-5%), so the cold-email playbook is now secondary (used only for brands unreachable in person). This raises the correctness bar — owners point their own phone at their own showroom floor and instantly judge size accuracy — which is exactly why Part A (real-world scale) is now the top priority before June 1st. Demo on Android in person (95% of real Indian shoppers + the correct-scale path).
 - **Current MRR:** ₹0
@@ -1958,17 +1958,20 @@ When chosen, generate SVG files at multiple sizes:
 - `rekaman-favicon.svg` (cube only, 32×32 simplified)
 - `rekaman-favicon.ico` (legacy 16×16 fallback)
 
-### Colour system
+### Colour system — REBRANDED Aug 8 2026 (navy + blue)
 
-- **Primary text**: `#0F0F0F` (near-black, not pure black — softer)
-- **Secondary text**: `#6B6B6B`
-- **Faint text**: `#A0A0A0`
-- **Background light**: `#FAFAF7` (warm white) or `#FFFFFF`
-- **Background dark**: `#0F0F0F`
-- **Accent (Rekaman purple)**: `#5A4FCF` (light bg) / `#8B7FFF` (dark bg)
-- **Success**: `#2F7D4F`
-- **Warning**: `#E0A030`
-- **Danger**: `#D4493B`
+**The brand moved from purple to navy + blue** (new logo delivered Aug 8: a lens/sphere "capture" icon + geometric `REKAMAN` wordmark). The OLD warm-white/purple system below is DEPRECATED — kept struck-through for historical context (old landing/demo/SDK still show it until each surface is migrated).
+
+- **Brand (accent) blue**: `#3b82f6` (hover `#2563eb`, active `#1d4ed8`)
+- **Ink / navy** (primary text + dark sidebar surfaces): `#111827`
+- **Canvas / surfaces (light UI)**: `#f8fafc` bg, `#ffffff` cards, `#f1f5f9` subtle
+- **Text**: primary `#111827`, secondary `#64748b`, faint `#94a3b8`
+- **Lines**: `#e5e7eb` / `#cbd5e1`
+- **Success `#16a34a` · Warning `#d97706` · Danger `#dc2626`**
+
+**Centralized tokens (production-grade — the one rule):** never hard-code a hex in a component. All colours are CSS variables defined ONCE in `apps/dashboard/app/globals.css` (`:root`) and exposed to Tailwind as **semantic names** in `tailwind.config.ts` (`bg-brand`, `text-ink`, `border-line`, `bg-sidebar`, …). Rebranding or adding a dark theme = editing that one `:root` block. The landing/SDK will migrate onto the same token model as each is redesigned.
+
+*DEPRECATED (old v5.11 system): primary text `#0F0F0F`, secondary `#6B6B6B`, faint `#A0A0A0`, bg `#FAFAF7`/`#FFFFFF`, accent purple `#5A4FCF`/`#8B7FFF`, success `#2F7D4F`, warning `#E0A030`, danger `#D4493B`.*
 
 ### Typography system
 
@@ -2396,7 +2399,7 @@ Captured here so future-Claude doesn't have to grep through `Generation Pipeline
 
 ---
 
-*Last updated: Aug 8, 2026 | Version 5.26*
+*Last updated: Aug 8, 2026 | Version 5.27*
 *v5 changes from v4: Full feature catalog with phases. 5 schema hooks promoted to v3 schema. Indian-market differentiation made explicit. Anti-roadmap added. 18 core principles. References REKAMAN_ROADMAP.md for long-horizon vision.*
 *v5.1 (Week 4 close-out): SDK loads chunks via `<script>` tag (not `import()`) to bypass cross-origin module-fetch CORS quirks. AR session no longer pins `document.body` as `domOverlay`. Placement chunk bumped to v2 after immutable-cache contract was violated by editing v1 in place. ARSession idempotent insert via `createMany({ skipDuplicates: true })` instead of `upsert({ update: {} })` (Sentry P2002 race incident). Live demo at https://rekaman-demo.vercel.app — Week 4 complete.*
 *v5.2 (Week 5 — Part 1 close-out): Custom domains `api.rekaman.io` (Railway) and `cdn.rekaman.io` (CloudFront, ACM wildcard cert `*.rekaman.io`) live. SDK rebuilt with clean URLs baked in; placement chunk bumped to v3 (per immutable-cache discipline) since `__API_BASE__` is referenced inside chunk's bundled analytics module.*
@@ -2995,3 +2998,11 @@ The `sdk.js` main bundle was re-uploaded with each chunk version bump and CloudF
 *Next: the brand **dashboard scaffold** (`dashboard.rekaman.io`) is the next engineering block; the deferred **iOS Part C** stays a focused session. Strategic reminder captured this session: the tech pipeline is complete — the real gap is **customers (₹0 MRR)**, and the first paying brand needs Concierge + a sales "yes", NOT the dashboard. Rough runway to seamless self-serve ≈ 8 weeks part-time (~early Oct); first revenue possible in 2–4 weeks via Concierge if sales lands.*
 
 *Next steps (in order): (1) **Day 3 environment isolation** — the mandatory engineering gate before customer #1 (Railway staging env + Neon staging branch + `dev`→staging / `main`→prod branch deploy); needs no Meshy/worker. (2) Founder-side: phone-QA the furniture demo page (last "Coimbatore-ready" item), the 3 Google Forms UI toggles, Pvt Ltd paperwork (parallel). (3) Then Week 8 dashboard scaffold. Commit-message preference reconfirmed this session: short one-line `shiva | …` subjects, no long bodies.*
+
+*v5.27 (Week 8 — incorporation + brand rebrand + dashboard scaffold, Aug 8 2026): Company **incorporated** (legal name to confirm — used "Rekaman Spatial Private Limited" in the dashboard footer per the Plan-A name list). New **logo + rebrand from purple → navy `#111827` + blue `#3b82f6`** (assets in `apps/dashboard/public/brand/` + `apps/landing/public/brand/`: icon `rekaman-icon.png` = lens/sphere "capture" mark, plus blue-on-navy and white-on-blue wordmarks). See Brand Identity → Colour system (rebranded; old purple struck-through).*
+
+*Dashboard scaffold shipped (`apps/dashboard`, commit `936ac02`): Next.js 14 App Router, self-contained tsconfig (the v5.14 Vercel `extends` lesson). **Centralized design tokens** are the headline production-grade piece the founder asked for — every colour is a CSS variable in `app/globals.css` (`:root`) surfaced to Tailwind as semantic names in `tailwind.config.ts` (`bg-brand`/`text-ink`/`border-line`/`bg-sidebar`); NO component hard-codes a hex, so a rebrand or dark theme is a one-file change. Built: `Logo` (icon + wordmark, light/onDark tones), shared UI primitives (`Button`/`Input`/`Field`/`Card`/`Alert`/`Spinner` in `_components/ui.tsx`), an API client (`_lib/api.ts`, base configurable via `NEXT_PUBLIC_API_BASE`, JWT in localStorage + Bearer — httpOnly-cookie hardening deferred), a split-screen auth (login + signup wired to real `/v1/auth` with a navy brand panel that fills the width — deliberately fixing the old landing's empty-side-space complaint), a responsive app shell (navy sidebar → mobile drawer + sticky topbar, auth-gated via `/v1/auth/me`), a dashboard home (welcome + stat cards + get-started steps), and placeholder pages for Products/API-keys/Analytics/Install/Settings so nav never 404s. Builds clean (12 routes, ~88–99 KB first load); local smoke test green (pages 200, brand panel + logo render).*
+
+*Design decision (reversible via tokens): **light UI** — white surfaces, navy `#111827` sidebar+text, blue `#3b82f6` accent (Stripe/Linear-light pattern, best for non-technical brand owners). Local dashboard dev points at **staging** (`apps/dashboard/.env.local` → `NEXT_PUBLIC_API_BASE=api-staging-4666…`), per the isolation discipline. NOT yet done: Vercel project + `dashboard.rekaman.io` DNS (founder), the real inner pages, the landing redesign onto these tokens, and the SDK/demo blue rebrand. Scope note: this is a multi-session build — scaffold + auth is the foundation; inner pages next.*
+
+*Next: dashboard inner pages (products create→generate→preview, API-keys CRUD, embed/install tabs, analytics) → landing redesign (new tokens, fix empty space, competitor-grade, responsive) → SDK/demo blue rebrand → wire `dashboard.rekaman.io` on Vercel. Concierge dry-run ~2 days out per founder.*
