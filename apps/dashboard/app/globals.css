@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ─── DESIGN TOKENS — single source of truth ───────────────────────────────
+ * Every colour/radius in the app resolves to one of these CSS variables
+ * (mapped to Tailwind semantic names in tailwind.config.ts). To rebrand or add
+ * a dark theme, change values HERE only — nothing else in the codebase hard-
+ * codes a hex. Palette: navy #111827 + blue #3b82f6 (Rekaman, Aug 2026).
+ */
+:root {
+  /* Brand (blue) */
+  --brand: #3b82f6;
+  --brand-hover: #2563eb;
+  --brand-active: #1d4ed8;
+  --brand-fg: #ffffff;
+  --brand-soft: #eff6ff; /* tinted background for selected/hover states */
+
+  /* Surfaces (light UI) */
+  --canvas: #f8fafc; /* app background */
+  --surface: #ffffff; /* cards, panels */
+  --surface-2: #f1f5f9; /* subtle fills */
+
+  /* Sidebar / dark navy surfaces */
+  --sidebar: #111827;
+  --sidebar-2: #1b2436; /* hover / active row */
+  --sidebar-fg: #e5e7eb;
+  --sidebar-muted: #94a3b8;
+
+  /* Text */
+  --ink: #111827; /* primary */
+  --muted: #64748b; /* secondary */
+  --faint: #94a3b8; /* tertiary / placeholders */
+
+  /* Lines */
+  --line: #e5e7eb;
+  --line-2: #cbd5e1;
+
+  /* Feedback */
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  --ring: #3b82f6;
+  --radius: 10px;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  ::selection {
+    background: var(--brand);
+    color: #fff;
+  }
+  /* Default border colour so `border` alone reads as the token */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line);
+  }
+}
