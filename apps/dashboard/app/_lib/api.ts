@@ -81,3 +81,34 @@ export const auth = {
     apiFetch<AuthResponse>('/v1/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   me: () => apiFetch<MeResponse>('/v1/auth/me', { method: 'GET' }),
 };
+
+// ── API keys ──
+
+export interface ApiKeyListItem {
+  id: string;
+  prefix: string;
+  name: string | null;
+  scopes: string[];
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+/** Full key — returned ONCE, only on create. */
+export interface ApiKeyCreated {
+  id: string;
+  key: string;
+  prefix: string;
+  name: string | null;
+  scopes: string[];
+  createdAt: string;
+}
+
+export const apiKeys = {
+  list: () => apiFetch<{ keys: ApiKeyListItem[] }>('/v1/api-keys').then((r) => r.keys),
+  create: (input: { name?: string }) =>
+    apiFetch<{ key: ApiKeyCreated }>('/v1/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }).then((r) => r.key),
+  revoke: (id: string) => apiFetch<null>(`/v1/api-keys/${id}`, { method: 'DELETE' }),
+};

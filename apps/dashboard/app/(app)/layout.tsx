@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../_components/Logo';
+import { ProfileMenu } from '../_components/ProfileMenu';
 import { Spinner, cn } from '../_components/ui';
 import { auth, token, type MeResponse } from '../_lib/api';
 
@@ -68,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex h-16 items-center px-5">
-          <Logo tone="onDark" />
+          <Logo tone="onDark" size="lg" />
         </div>
         <nav className="flex-1 space-y-1 px-3 py-2">
           {NAV.map((item) => {
@@ -115,14 +116,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             <IconMenu />
           </button>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-muted sm:inline">{me.user.email}</span>
-            <button
-              onClick={logout}
-              className="rounded-[var(--radius)] border border-line px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-surface-2"
-            >
-              Sign out
-            </button>
+          <div className="ml-auto">
+            <ProfileMenu brandName={brandName} email={me.user.email} onLogout={logout} />
           </div>
         </header>
         <main className="mx-auto w-full max-w-container flex-1 px-4 py-6 sm:px-6 lg:px-8">
