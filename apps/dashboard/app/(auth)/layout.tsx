@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           style={{ background: 'var(--brand)' }}
         />
         <div className="relative">
-          <Logo tone="onDark" size={34} />
+          <Logo tone="onDark" size="lg" />
           <h2 className="mt-8 max-w-md text-3xl font-semibold leading-tight text-white">
             AR for your product pages — in minutes, not months.
           </h2>
