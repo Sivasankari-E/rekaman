@@ -24,7 +24,7 @@ export function Logo({
 }) {
   const s = SIZES[size];
   return (
-    <span className="inline-flex items-center gap-2.5 select-none">
+    <span className="inline-flex items-center gap-2 select-none">
       {/* Intrinsic 96px source, displayed at the responsive classes above (crisp on retina) */}
       <Image
         src="/brand/rekaman-icon.png"

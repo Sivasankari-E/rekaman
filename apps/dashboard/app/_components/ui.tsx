@@ -129,6 +129,35 @@ export function Card({
   );
 }
 
+// ── Status badge ────────────────────────────────────────────────────────────
+
+const STATUS_STYLE: Record<string, string> = {
+  READY: 'bg-success/10 text-success',
+  PROCESSING: 'bg-brand/10 text-brand',
+  PENDING: 'bg-surface-2 text-muted',
+  FAILED: 'bg-danger/10 text-danger',
+  ARCHIVED: 'bg-surface-2 text-faint',
+};
+const STATUS_LABEL: Record<string, string> = {
+  READY: 'Ready',
+  PROCESSING: 'Generating…',
+  PENDING: 'Not generated',
+  FAILED: 'Failed',
+  ARCHIVED: 'Archived',
+};
+export function StatusBadge({ status }: { status: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+        STATUS_STYLE[status] ?? 'bg-surface-2 text-muted',
+      )}
+    >
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  );
+}
+
 export function Alert({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-[var(--radius)] border border-danger/30 bg-danger/5 px-3 py-2 text-[13px] text-danger">

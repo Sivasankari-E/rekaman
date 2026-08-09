@@ -112,3 +112,67 @@ export const apiKeys = {
     }).then((r) => r.key),
   revoke: (id: string) => apiFetch<null>(`/v1/api-keys/${id}`, { method: 'DELETE' }),
 };
+
+// ── Products ──
+
+export type ProductStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED' | 'ARCHIVED';
+
+export interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  status: ProductStatus;
+  arMode: string;
+  category: string | null;
+  glbUrl: string | null;
+  usdzUrl: string | null;
+  widthCm: number | null;
+  heightCm: number | null;
+  depthCm: number | null;
+  photoUrls: string[];
+  createdAt: string;
+}
+
+export interface GenerationStatus {
+  productId: string;
+  status: ProductStatus;
+  glbUrl: string | null;
+  usdzUrl: string | null;
+  generation: { reason?: string } | null;
+}
+
+export const products = {
+  list: () => apiFetch<{ products: Product[] }>('/v1/products').then((r) => r.products),
+  create: (input: {
+    name: string;
+    slug: string;
+    category?: string;
+    widthCm?: number;
+    heightCm?: number;
+    depthCm?: number;
+  }) =>
+    apiFetch<{ product: Product }>('/v1/products', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }).then((r) => r.product),
+  // `config: {}` is sent so the server treats this as an explicit (re)generate —
+  // required to regenerate an already-READY product (the allowFromReady rule);
+  // harmless for a first generation (falls back to default generation config).
+  generate: (id: string, photoUrls: string[]) =>
+    apiFetch<{ status: string }>(`/v1/products/${id}/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ photoUrls, config: {} }),
+    }),
+  status: (id: string) =>
+    apiFetch<GenerationStatus>(`/v1/products/${id}/generation-status`, { method: 'GET' }),
+};
+
+/** URL-safe slug from a product name. */
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
