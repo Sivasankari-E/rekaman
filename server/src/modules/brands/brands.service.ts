@@ -1,4 +1,5 @@
 import { brandsRepository } from './brands.repository.js';
+import { NotFoundError } from '../../shared/errors.js';
 
 /**
  * Theme patch input. Every field is optional (PATCH semantics — only
@@ -24,7 +25,36 @@ export interface BrandThemeView {
   };
 }
 
+function toView(brand: {
+  id: string;
+  slug: string;
+  companyName: string;
+  primaryColor: string | null;
+  textColor: string | null;
+  buttonStyle: string | null;
+  buttonLabel: string | null;
+}): BrandThemeView {
+  return {
+    id: brand.id,
+    slug: brand.slug,
+    name: brand.companyName,
+    theme: {
+      primaryColor: brand.primaryColor,
+      textColor: brand.textColor,
+      buttonStyle: brand.buttonStyle,
+      buttonLabel: brand.buttonLabel,
+    },
+  };
+}
+
 export const brandsService = {
+  /** Read the caller's brand profile + AR-button theme. */
+  getBrand: async (brandId: string): Promise<BrandThemeView> => {
+    const brand = await brandsRepository.findById(brandId);
+    if (!brand) throw new NotFoundError('Brand');
+    return toView(brand);
+  },
+
   /**
    * Update the AR-button theme for a brand. Only the fields present in
    * `input` are written; absent fields are left untouched.
@@ -47,17 +77,6 @@ export const brandsService = {
     if ('buttonLabel' in input) data.buttonLabel = input.buttonLabel;
 
     const brand = await brandsRepository.updateTheme(brandId, data);
-
-    return {
-      id: brand.id,
-      slug: brand.slug,
-      name: brand.companyName,
-      theme: {
-        primaryColor: brand.primaryColor,
-        textColor: brand.textColor,
-        buttonStyle: brand.buttonStyle,
-        buttonLabel: brand.buttonLabel,
-      },
-    };
+    return toView(brand);
   },
 };

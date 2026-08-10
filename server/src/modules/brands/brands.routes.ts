@@ -39,6 +39,15 @@ const UpdateThemeSchema = z
  * Used today by `scripts/onboard-brand.mjs` during Concierge onboarding;
  * the Week 8 dashboard's "Branding" page will call the same endpoint.
  */
+/** GET /v1/brands/me — the caller's brand profile + AR-button theme. */
+router.get(
+  '/me',
+  asyncHandler(async (req: Request, res: Response) => {
+    const brand = await brandsService.getBrand(req.brandId!);
+    res.json({ brand });
+  }),
+);
+
 router.patch(
   '/me',
   requireRole('OWNER', 'ADMIN'),
