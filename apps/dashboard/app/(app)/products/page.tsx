@@ -9,12 +9,14 @@ import {
   type Product,
 } from '../../_lib/api';
 import { Button, Card, Input, Field, Alert, Spinner, StatusBadge, cn } from '../../_components/ui';
+import { Model3DModal } from '../../_components/Model3DModal';
 
 export default function ProductsPage() {
   const [list, setList] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ glbUrl: string; name: string } | null>(null);
   const polling = useRef<Set<string>>(new Set());
 
   async function load() {
@@ -103,6 +105,7 @@ export default function ProductsPage() {
                 product={p}
                 expanded={expanded === p.id}
                 onToggle={() => setExpanded(expanded === p.id ? null : p.id)}
+                onPreview={(glbUrl, name) => setPreview({ glbUrl, name })}
                 onGenerate={async (urls) => {
                   setError(null);
                   try {
@@ -123,6 +126,10 @@ export default function ProductsPage() {
         Tip: 2–4 clean angles (front, side, top) on a plain background produce the best 3D model.
         The generated model appears here when ready (~90s).
       </p>
+
+      {preview && (
+        <Model3DModal glbUrl={preview.glbUrl} name={preview.name} onClose={() => setPreview(null)} />
+      )}
     </div>
   );
 }
@@ -192,11 +199,13 @@ function ProductRow({
   product,
   expanded,
   onToggle,
+  onPreview,
   onGenerate,
 }: {
   product: Product;
   expanded: boolean;
   onToggle: () => void;
+  onPreview: (glbUrl: string, name: string) => void;
   onGenerate: (urls: string[]) => void;
 }) {
   const [files, setFiles] = useState<File[]>([]);
@@ -265,15 +274,19 @@ function ProductRow({
         <div className="border-t border-line bg-surface-2/40 px-5 py-4">
           {product.status === 'READY' && product.glbUrl && (
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <a
-                href={product.glbUrl}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => onPreview(product.glbUrl!, product.name)}
                 className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-brand px-3 py-1.5 text-[13px] font-medium text-brand-fg hover:bg-brand-hover"
               >
-                Open 3D model
-              </a>
-              <span className="text-xs text-muted">Model is live on the AR endpoint for this product.</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 8l-9-5-9 5 9 5 9-5z" />
+                  <path d="M3 8v8l9 5 9-5V8" />
+                  <path d="M12 13v8" />
+                </svg>
+                View 3D model
+              </button>
+              <span className="text-xs text-muted">Rotate, zoom, and (on a phone) place it in AR.</span>
             </div>
           )}
           {product.status === 'PROCESSING' ? (
