@@ -113,6 +113,35 @@ export const apiKeys = {
   revoke: (id: string) => apiFetch<null>(`/v1/api-keys/${id}`, { method: 'DELETE' }),
 };
 
+// ── Brand (settings / theme) ──
+
+export type ButtonStyle = 'pill' | 'rounded' | 'square';
+export interface BrandView {
+  id: string;
+  slug: string;
+  name: string;
+  theme: {
+    primaryColor: string | null;
+    textColor: string | null;
+    buttonStyle: ButtonStyle | null;
+    buttonLabel: string | null;
+  };
+}
+export interface ThemePatch {
+  primaryColor?: string | null;
+  buttonStyle?: ButtonStyle | null;
+  buttonLabel?: string | null;
+}
+
+export const brand = {
+  get: () => apiFetch<{ brand: BrandView }>('/v1/brands/me').then((r) => r.brand),
+  updateTheme: (patch: ThemePatch) =>
+    apiFetch<{ brand: BrandView }>('/v1/brands/me', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }).then((r) => r.brand),
+};
+
 // ── Products ──
 
 export type ProductStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED' | 'ARCHIVED';
