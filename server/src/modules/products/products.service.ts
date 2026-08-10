@@ -1,10 +1,17 @@
+import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { productsRepository } from './products.repository.js';
 import {
   NotFoundError,
   SlugAlreadyExistsError,
+  ExternalServiceError,
 } from '../../shared/errors.js';
 import { logger } from '../../shared/logger.js';
+import {
+  s3Keys,
+  uploadToProductsBucket,
+  publicProductUrl,
+} from '../../shared/clients/s3.client.js';
 import type {
   CreateProductInput,
   UpdateProductInput,
@@ -38,6 +45,34 @@ export const productsService = {
     const product = await productsRepository.findById(brandId, id);
     if (!product) throw new NotFoundError('Product');
     return product;
+  },
+
+  /**
+   * Upload a product photo to the products S3 bucket and return its public URL.
+   * The brand only ever talks to our API (multipart) — the server does the S3
+   * PutObject with its own credentials, so no browser→S3 CORS or presigned-URL
+   * plumbing is needed. The returned URL is a valid Meshy input for generation.
+   */
+  async uploadPhoto(
+    brandId: string,
+    productId: string,
+    body: Buffer,
+    ext: string,
+    contentType: string,
+  ): Promise<{ url: string }> {
+    // 404 (not 403) if the product isn't this brand's — no cross-tenant writes.
+    const product = await productsRepository.findById(brandId, productId);
+    if (!product) throw new NotFoundError('Product');
+
+    const key = s3Keys.productPhoto(brandId, productId, randomUUID(), ext);
+    try {
+      await uploadToProductsBucket(key, body, contentType);
+    } catch (err) {
+      logger.warn({ err, brandId, productId }, 'product photo upload failed');
+      throw new ExternalServiceError('s3', 'Could not upload the photo. Please try again.');
+    }
+    logger.info({ brandId, productId, key }, 'product photo uploaded');
+    return { url: publicProductUrl(key) };
   },
 
   async create(brandId: string, input: CreateProductInput): Promise<Product> {

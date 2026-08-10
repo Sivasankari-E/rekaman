@@ -167,6 +167,34 @@ export const products = {
     apiFetch<GenerationStatus>(`/v1/products/${id}/generation-status`, { method: 'GET' }),
 };
 
+/**
+ * Upload one product image file → returns its public URL (to feed generation).
+ * Multipart, so it can't use the JSON `apiFetch` (the browser must set the
+ * multipart boundary itself — we only add Authorization).
+ */
+export async function uploadProductPhoto(productId: string, file: File): Promise<string> {
+  const t = token.get();
+  const form = new FormData();
+  form.append('file', file);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/v1/products/${encodeURIComponent(productId)}/photos`, {
+      method: 'POST',
+      headers: t ? { Authorization: `Bearer ${t}` } : undefined,
+      body: form,
+    });
+  } catch {
+    throw new ApiError('Network error while uploading.', 0);
+  }
+  const body = (await res.json().catch(() => null)) as
+    | { url?: string; error?: string; message?: string }
+    | null;
+  if (!res.ok || !body?.url) {
+    throw new ApiError(body?.message || body?.error || 'Upload failed.', res.status);
+  }
+  return body.url;
+}
+
 /** URL-safe slug from a product name. */
 export function slugify(name: string): string {
   return name

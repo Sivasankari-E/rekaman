@@ -1,13 +1,46 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import type { Request, Response } from 'express';
+import multer from 'multer';
+import type { Request, Response, NextFunction } from 'express';
 import { productsService } from './products.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/asyncHandler.js';
+import { ValidationError } from '../../shared/errors.js';
 
 const router = Router();
 
 router.use(requireAuth);
+
+// ── Product photo upload (multipart) ──
+// In-memory (buffer) upload; the service streams it to S3. 12 MB cap, images
+// only. Wrapped so multer's own errors surface as our typed ValidationError.
+const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => cb(null, file.mimetype in ALLOWED_IMAGE_TYPES),
+});
+function uploadSingle(req: Request, res: Response, next: NextFunction): void {
+  upload.single('file')(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError) {
+      next(
+        new ValidationError(
+          err.code === 'LIMIT_FILE_SIZE' ? 'Image too large (max 12 MB).' : 'Upload failed.',
+        ),
+      );
+      return;
+    }
+    if (err) {
+      next(err as Error);
+      return;
+    }
+    next();
+  });
+}
 
 const SlugSchema = z
   .string()
@@ -103,6 +136,30 @@ router.delete(
     const { id } = IdParam.parse(req.params);
     await productsService.delete(req.brandId!, id);
     res.status(204).end();
+  })
+);
+
+// POST /v1/products/:id/photos — upload one product image (multipart field
+// "file"). Returns { url } (public S3 URL) to feed into generation.
+router.post(
+  '/:id/photos',
+  requireRole('OWNER', 'ADMIN', 'MEMBER'),
+  uploadSingle,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = IdParam.parse(req.params);
+    const file = req.file;
+    if (!file) {
+      throw new ValidationError('Please upload a JPEG, PNG, or WebP image under 12 MB.');
+    }
+    const ext = ALLOWED_IMAGE_TYPES[file.mimetype]!;
+    const result = await productsService.uploadPhoto(
+      req.brandId!,
+      id,
+      file.buffer,
+      ext,
+      file.mimetype,
+    );
+    res.status(201).json(result);
   })
 );
 

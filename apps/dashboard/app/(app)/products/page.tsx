@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   products,
   slugify,
+  uploadProductPhoto,
   ApiError,
   type Product,
 } from '../../_lib/api';
@@ -198,19 +199,40 @@ function ProductRow({
   onToggle: () => void;
   onGenerate: (urls: string[]) => void;
 }) {
-  const [urls, setUrls] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
   const dims =
     product.widthCm && product.heightCm
       ? `${product.widthCm}×${product.heightCm}${product.depthCm ? `×${product.depthCm}` : ''} cm`
       : null;
 
-  function generate() {
-    const list = urls
-      .split(/[\n,]/)
-      .map((u) => u.trim())
-      .filter(Boolean);
-    if (list.length === 0) return;
-    onGenerate(list.slice(0, 4));
+  function pickFiles(selected: FileList | null) {
+    if (!selected) return;
+    setUploadErr(null);
+    setFiles(
+      Array.from(selected)
+        .filter((f) => f.type.startsWith('image/'))
+        .slice(0, 4),
+    );
+  }
+
+  async function uploadAndGenerate() {
+    if (files.length === 0) return;
+    setUploadErr(null);
+    try {
+      const urls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        setUploadMsg(`Uploading ${i + 1}/${files.length}…`);
+        urls.push(await uploadProductPhoto(product.id, files[i]!));
+      }
+      setUploadMsg(null);
+      setFiles([]);
+      onGenerate(urls);
+    } catch (err) {
+      setUploadMsg(null);
+      setUploadErr(err instanceof ApiError ? err.message : 'Upload failed.');
+    }
   }
 
   return (
@@ -250,19 +272,50 @@ function ProductRow({
               <Spinner className="text-brand" /> Generating the 3D model… (~90 seconds)
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="block text-[13px] font-medium text-ink">
-                Photo URLs (1–4 angles, one per line)
+                Product photos — 1–4 angles (front, side, and top work best)
               </label>
-              <textarea
-                value={urls}
-                onChange={(e) => setUrls(e.target.value)}
-                rows={3}
-                placeholder={'https://…/front.jpg\nhttps://…/side.jpg'}
-                className="w-full rounded-[var(--radius)] border border-line bg-surface px-3 py-2 font-mono text-[13px] text-ink placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
-              />
-              <Button size="sm" onClick={generate} className={cn(!urls.trim() && 'opacity-60')}>
-                {product.status === 'READY' ? 'Regenerate' : 'Generate 3D model'}
+
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line-2 bg-surface px-4 py-6 text-center transition-colors hover:border-brand/50">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <path d="M17 8l-5-5-5 5M12 3v13" />
+                </svg>
+                <span className="text-sm font-medium text-ink">Click to choose photos</span>
+                <span className="text-xs text-muted">JPEG, PNG, or WebP · up to 4 · max 12 MB each</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => pickFiles(e.target.files)}
+                />
+              </label>
+
+              {files.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {files.map((f, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={i}
+                      src={URL.createObjectURL(f)}
+                      alt={f.name}
+                      className="h-16 w-16 rounded-lg border border-line object-cover"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {uploadErr && <p className="text-xs text-danger">{uploadErr}</p>}
+
+              <Button
+                size="sm"
+                onClick={uploadAndGenerate}
+                loading={!!uploadMsg}
+                className={cn(files.length === 0 && 'opacity-60')}
+              >
+                {uploadMsg ?? (product.status === 'READY' ? 'Upload & regenerate' : 'Generate 3D model')}
               </Button>
             </div>
           )}
