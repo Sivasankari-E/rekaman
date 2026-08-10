@@ -120,8 +120,8 @@ export default function ProductsPage() {
       </Card>
 
       <p className="text-xs text-faint">
-        Photo <strong>file upload</strong> is coming next — for now paste public image URLs (1–4
-        angles). The generated model appears here when ready (~90s).
+        Tip: 2–4 clean angles (front, side, top) on a plain background produce the best 3D model.
+        The generated model appears here when ready (~90s).
       </p>
     </div>
   );
@@ -210,11 +210,20 @@ function ProductRow({
   function pickFiles(selected: FileList | null) {
     if (!selected) return;
     setUploadErr(null);
-    setFiles(
-      Array.from(selected)
-        .filter((f) => f.type.startsWith('image/'))
-        .slice(0, 4),
-    );
+    const incoming = Array.from(selected).filter((f) => f.type.startsWith('image/'));
+    setFiles((cur) => {
+      const combined = [...cur];
+      for (const f of incoming) {
+        if (combined.length >= 4) break;
+        // dedupe by name + size so re-picking the same file doesn't double it
+        if (!combined.some((x) => x.name === f.name && x.size === f.size)) combined.push(f);
+      }
+      return combined;
+    });
+  }
+
+  function removeFile(idx: number) {
+    setFiles((cur) => cur.filter((_, i) => i !== idx));
   }
 
   async function uploadAndGenerate() {
@@ -277,32 +286,52 @@ function ProductRow({
                 Product photos — 1–4 angles (front, side, and top work best)
               </label>
 
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line-2 bg-surface px-4 py-6 text-center transition-colors hover:border-brand/50">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <path d="M17 8l-5-5-5 5M12 3v13" />
-                </svg>
-                <span className="text-sm font-medium text-ink">Click to choose photos</span>
-                <span className="text-xs text-muted">JPEG, PNG, or WebP · up to 4 · max 12 MB each</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => pickFiles(e.target.files)}
-                />
-              </label>
+              {files.length < 4 && (
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line-2 bg-surface px-4 py-6 text-center transition-colors hover:border-brand/50">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                    <path d="M17 8l-5-5-5 5M12 3v13" />
+                  </svg>
+                  <span className="text-sm font-medium text-ink">
+                    {files.length === 0 ? 'Click to choose photos' : 'Add another photo'}
+                  </span>
+                  <span className="text-xs text-muted">
+                    JPEG, PNG, or WebP · {files.length}/4 added · max 12 MB each
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      pickFiles(e.target.files);
+                      e.target.value = ''; // reset so the same file can be re-picked / added again
+                    }}
+                  />
+                </label>
+              )}
 
               {files.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {files.map((f, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={URL.createObjectURL(f)}
-                      alt={f.name}
-                      className="h-16 w-16 rounded-lg border border-line object-cover"
-                    />
+                    <div key={`${f.name}-${f.size}-${i}`} className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={URL.createObjectURL(f)}
+                        alt={f.name}
+                        className="h-16 w-16 rounded-lg border border-line object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        aria-label={`Remove ${f.name}`}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-card hover:text-danger"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                          <path d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
