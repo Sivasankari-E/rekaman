@@ -108,4 +108,45 @@
   .prose-rk a {
     @apply font-medium text-brand hover:underline;
   }
+
+  /* Gradient text for hero accent words */
+  .text-gradient {
+    background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 60%, #2563eb 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@layer utilities {
+  /* Dotted-grid textures for subtle depth */
+  .bg-grid-dark {
+    background-image: radial-gradient(circle, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+  .bg-grid-light {
+    background-image: radial-gradient(circle, rgba(17, 24, 39, 0.05) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+  /* Gradient hairline border (via padding trick) */
+  .ring-gradient {
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      linear-gradient(140deg, rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.05)) border-box;
+    border: 1px solid transparent;
+  }
+  .animate-fade-up {
+    animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

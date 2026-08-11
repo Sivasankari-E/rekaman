@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Hero3D } from './_components/Hero3D';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://rekaman.io' },
@@ -9,20 +10,16 @@ export const metadata: Metadata = {
 const DEMO_URL = 'https://demo.rekaman.io/';
 const ONBOARD = '/onboard';
 const FOUNDER_EMAIL = 'founder@rekaman.io';
-const WHATSAPP_E164 = '918248524449';
-const WHATSAPP_DISPLAY = '+91 8248 524449';
-const HERO_IMG =
-  'https://rekaman-products-prod-975050270919-ap-south-1-an.s3.ap-south-1.amazonaws.com/demo-test/furniture-florence-table/02-angle.png';
+const WA = '918248524449';
+const WA_DISPLAY = '+91 8248 524449';
 
 export default function HomePage() {
   return (
     <main>
-      <Nav />
-      <Hero />
-      <WorksOn />
+      <TopDark />
       <Problem />
-      <Solution />
-      <Integration />
+      <Features />
+      <HowItWorks />
       <Pricing />
       <BookDemo />
       <Footer />
@@ -30,62 +27,56 @@ export default function HomePage() {
   );
 }
 
-/* ── NAV ── */
-function Nav() {
+/* ─────────────── DARK BLOCK: nav + hero + works-on ─────────────── */
+function TopDark() {
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-canvas/80 backdrop-blur-md">
-      <div className="container-wide flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2" aria-label="Rekaman home">
-          <Image src="/brand/rekaman-icon.png" alt="" width={32} height={32} className="h-8 w-8" priority />
-          <span className="text-[18px] font-semibold tracking-tight text-ink">Rekaman</span>
-        </Link>
-        <nav className="hidden items-center gap-1 md:flex">
-          <a href="#how" className="btn-ghost">How it works</a>
-          <a href="#pricing" className="btn-ghost">Pricing</a>
-          <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">Live demo</a>
-        </nav>
-        <a href={ONBOARD} className="btn-primary px-4 py-2 text-[14px]">Book a demo</a>
-      </div>
-    </header>
-  );
-}
-
-/* ── HERO ── */
-function Hero() {
-  return (
-    <section className="relative overflow-hidden">
-      {/* soft brand glow, full-bleed so the sides never read as empty */}
+    <div className="relative overflow-hidden bg-navy text-white">
+      <div className="pointer-events-none absolute inset-0 bg-grid-dark opacity-60" aria-hidden />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[520px]"
-        style={{
-          background:
-            'radial-gradient(60% 60% at 50% 0%, rgba(59,130,246,0.10) 0%, rgba(59,130,246,0) 70%)',
-        }}
+        className="pointer-events-none absolute inset-x-0 -top-40 h-[560px]"
+        style={{ background: 'radial-gradient(46% 46% at 62% 30%, rgba(59,130,246,0.22), transparent 72%)' }}
       />
-      <div className="container-wide relative grid items-center gap-12 py-16 lg:grid-cols-2 lg:py-24">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-[12.5px] font-medium text-muted">
+      {/* Nav */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-navy/70 backdrop-blur-md">
+        <div className="container-wide flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2" aria-label="Rekaman home">
+            <Image src="/brand/rekaman-icon.png" alt="" width={32} height={32} className="h-8 w-8" priority />
+            <span className="text-[18px] font-semibold tracking-tight text-white">Rekaman</span>
+          </Link>
+          <nav className="hidden items-center gap-1 md:flex">
+            <a href="#how" className="rounded-md px-3 py-2 text-[14px] font-medium text-navy-fg/80 hover:text-white">How it works</a>
+            <a href="#pricing" className="rounded-md px-3 py-2 text-[14px] font-medium text-navy-fg/80 hover:text-white">Pricing</a>
+            <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="rounded-md px-3 py-2 text-[14px] font-medium text-navy-fg/80 hover:text-white">Live demo</a>
+          </nav>
+          <a href={ONBOARD} className="btn-primary px-4 py-2 text-[14px]">Book a demo</a>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="container-wide relative grid items-center gap-14 pb-14 pt-14 lg:grid-cols-[1.05fr_1fr] lg:pb-24 lg:pt-20">
+        <div className="animate-fade-up">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12.5px] font-medium text-navy-fg">
             <span className="h-1.5 w-1.5 rounded-full bg-brand animate-subtle-pulse" />
             Spatial commerce for any store
           </span>
-          <h1 className="h-hero mt-6 text-ink">
+          <h1 className="mt-6 text-[40px] font-extrabold leading-[1.05] tracking-[-0.03em] text-white sm:text-[56px] lg:text-[64px]">
             Capture products.
             <br />
-            <span className="text-brand">Place them anywhere.</span>
+            <span className="text-gradient">Place them anywhere.</span>
           </h1>
-          <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-muted sm:text-[18px]">
-            Add “View in your room” augmented reality to your product pages in minutes. Our AI turns
-            your photos into 3D models — shoppers see products at real-world scale, on any device.{' '}
-            <span className="font-semibold text-ink">No app. One line of code.</span>
+          <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-navy-fg/80 sm:text-[18px]">
+            Add “View in your room” AR to your product pages in minutes. Our AI turns your photos
+            into 3D models — shoppers see products at real-world scale, on any device.{' '}
+            <span className="font-semibold text-white">No app. One line of code.</span>
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a href={ONBOARD} className="btn-primary">Book a demo</a>
-            <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+            <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-5 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-white/10">
               See it live →
             </a>
           </div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-faint">
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-navy-muted">
             {['No app download', 'No 3D artists', 'Works on any store'].map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-brand" /> {t}
@@ -93,94 +84,44 @@ function Hero() {
             ))}
           </div>
         </div>
-
-        {/* Product visual */}
-        <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-          <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-brand/10 blur-2xl" aria-hidden />
-          <div className="overflow-hidden rounded-3xl border border-line bg-surface-2 shadow-pop">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={HERO_IMG} alt="A coffee table shown in AR" className="aspect-[4/3] w-full object-contain" />
-            <div className="flex items-center justify-between gap-3 border-t border-line bg-surface px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-ink">Florence Coffee Table</p>
-                <p className="text-xs text-muted">86 × 37 cm · real-world scale</p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg">
-                <Cube className="h-3.5 w-3.5" /> View in your room
-              </span>
-            </div>
-          </div>
+        <div className="animate-fade-up [animation-delay:120ms]">
+          <Hero3D />
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-/* ── WORKS-ON strip ── */
-function WorksOn() {
-  const platforms = ['Shopify', 'WooCommerce', 'Magento', 'BigCommerce', 'Webflow', 'Wix', 'Custom sites'];
-  return (
-    <section className="border-y border-line bg-surface-2">
-      <div className="container-wide py-8">
-        <p className="text-center text-[12.5px] font-medium uppercase tracking-[0.1em] text-faint">
-          Works on every store that can paste a script tag
-        </p>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          {platforms.map((p) => (
-            <span key={p} className="text-[15px] font-semibold text-muted">{p}</span>
+      {/* Works-on strip */}
+      <div className="relative border-t border-white/10">
+        <div className="container-wide flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-7">
+          <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-navy-muted">Works on</span>
+          {['Shopify', 'WooCommerce', 'Magento', 'BigCommerce', 'Webflow', 'Wix', 'Custom'].map((p) => (
+            <span key={p} className="text-[15px] font-semibold text-navy-fg/70">{p}</span>
           ))}
         </div>
       </div>
-    </section>
-  );
-}
-
-/* ── PROBLEM (dark) ── */
-function Problem() {
-  return (
-    <section className="bg-navy text-navy-fg">
-      <div className="container-wide py-20 lg:py-28">
-        <p className="eyebrow text-brand">The problem</p>
-        <h2 className="h-section mt-4 max-w-3xl text-white">
-          Shoppers can’t tell if a product fits — so they buy, return, and don’t come back.
-        </h2>
-        <div className="mt-14 grid gap-10 md:grid-cols-3">
-          <Stat n="25–30%" label="Return rate in Indian e-commerce" d="Furniture, decor, eyewear — mostly “it didn’t look/fit right.”" />
-          <Stat n="₹2K–5K" label="Cost per return" d="Reverse logistics, restocking, refunds — your margin, gone." />
-          <Stat n="3–4×" label="Conversion lift with AR" d="Shoppers who preview in their space add to cart far more often." />
-        </div>
-      </div>
-    </section>
-  );
-}
-function Stat({ n, label, d }: { n: string; label: string; d: string }) {
-  return (
-    <div>
-      <div className="text-[52px] font-bold leading-none tracking-tight text-brand sm:text-[60px]">{n}</div>
-      <div className="mt-3 text-[15px] font-semibold text-white">{label}</div>
-      <p className="mt-1.5 text-[14px] leading-relaxed text-navy-muted">{d}</p>
     </div>
   );
 }
 
-/* ── SOLUTION ── */
-function Solution() {
-  const steps = [
-    { n: '01', t: 'Upload your product photos', b: 'Even 1–4 photos from your catalog. No turntables, no studios, no 3D artists.' },
-    { n: '02', t: 'AI generates 3D in ~90 seconds', b: 'We convert photos into a clean, optimized 3D model with real measurements baked in.' },
-    { n: '03', t: 'Shoppers see it in their room', b: 'One script tag + one div. Shoppers tap, point their camera, and see it at real scale.' },
+/* ─────────────── PROBLEM ─────────────── */
+function Problem() {
+  const stats = [
+    ['25–30%', 'Return rate in Indian e-commerce', 'Furniture, decor, eyewear — mostly “it didn’t look or fit right.”'],
+    ['₹2K–5K', 'Cost per return', 'Reverse logistics, restocking, refunds — your margin, gone.'],
+    ['3–4×', 'Conversion lift with AR', 'Shoppers who preview in their own space add to cart far more often.'],
   ];
   return (
-    <section id="how" className="bg-canvas">
-      <div className="container-wide py-20 lg:py-28">
-        <p className="eyebrow">How Rekaman works</p>
-        <h2 className="h-section mt-4 max-w-2xl text-ink">Photos in. 3D out. On every shopper’s phone.</h2>
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {steps.map((s) => (
-            <div key={s.n} className="rounded-2xl border border-line bg-surface p-7 shadow-card">
-              <div className="text-[15px] font-bold text-brand">{s.n}</div>
-              <h3 className="mt-3 text-[19px] font-semibold tracking-tight text-ink">{s.t}</h3>
-              <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{s.b}</p>
+    <section className="bg-canvas">
+      <div className="container-wide py-16 lg:py-24">
+        <p className="eyebrow">The problem</p>
+        <h2 className="mt-3 max-w-3xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
+          Shoppers can’t tell if a product fits — so they buy, return, and don’t come back.
+        </h2>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {stats.map(([n, label, d]) => (
+            <div key={label} className="rounded-2xl border border-line bg-surface p-6 shadow-card">
+              <div className="text-[44px] font-extrabold leading-none tracking-tight text-brand">{n}</div>
+              <div className="mt-3 text-[15px] font-semibold text-ink">{label}</div>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{d}</p>
             </div>
           ))}
         </div>
@@ -189,22 +130,92 @@ function Solution() {
   );
 }
 
-/* ── INTEGRATION ── */
-function Integration() {
+/* ─────────────── FEATURES (bento) ─────────────── */
+function Features() {
   return (
     <section className="border-y border-line bg-surface-2">
-      <div className="container-wide py-20 lg:py-28">
-        <p className="eyebrow">Integration</p>
-        <h2 className="h-section mt-4 max-w-2xl text-ink">Two lines of code. Any product page.</h2>
-        <div className="mt-12 grid items-start gap-10 lg:grid-cols-[1fr_360px]">
-          <div className="overflow-hidden rounded-xl bg-navy font-mono text-[13px] leading-relaxed text-navy-fg shadow-card">
+      <div className="container-wide py-16 lg:py-24">
+        <p className="eyebrow">Why Rekaman</p>
+        <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
+          Everything you need to sell in 3D — nothing you don’t.
+        </h2>
+
+        <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Big: real scale */}
+          <Bento className="lg:col-span-2 lg:row-span-1" icon={<IcScale />} title="True-to-life scale">
+            Models render at their exact real-world size, so an 86 cm table is 86 cm on the
+            shopper’s floor. That’s the whole point — no more “it looked bigger online.”
+          </Bento>
+          <Bento icon={<IcDevices />} title="Every device">
+            iOS AR Quick Look, Android WebXR, and a 3D viewer on desktop — one integration.
+          </Bento>
+          <Bento icon={<IcBolt />} title="3D in ~90 seconds">
+            Upload photos, our AI returns a clean, optimized model. No studios, no artists.
+          </Bento>
+          <Bento icon={<IcQr />} title="No website? No problem">
+            Share a hosted link or QR for WhatsApp, Instagram, or packaging — no site needed.
+          </Bento>
+          <Bento icon={<IcCode />} title="One line of code">
+            A script tag and a div. Works on Shopify, WooCommerce, or any custom store.
+          </Bento>
+          {/* Wide: built for India */}
+          <Bento className="lg:col-span-3" icon={<IcGlobe />} title="Built for India">
+            WhatsApp-native sharing, regional-language UI, UPI-friendly billing, and a low-end
+            Android fallback — the things global tools won’t build, from a founder you can reach on
+            WhatsApp.
+          </Bento>
+        </div>
+      </div>
+    </section>
+  );
+}
+function Bento({ title, children, icon, className = '' }: { title: string; children: React.ReactNode; icon: React.ReactNode; className?: string }) {
+  return (
+    <div className={`group rounded-2xl border border-line bg-surface p-6 shadow-card transition-colors hover:border-brand/40 ${className}`}>
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand">{icon}</span>
+      <h3 className="mt-4 text-[18px] font-semibold tracking-tight text-ink">{title}</h3>
+      <p className="mt-1.5 max-w-xl text-[14.5px] leading-relaxed text-muted">{children}</p>
+    </div>
+  );
+}
+
+/* ─────────────── HOW IT WORKS (dark, with code) ─────────────── */
+function HowItWorks() {
+  const steps = [
+    ['01', 'Upload photos', 'Even 1–4 photos from your catalog — front, side, top.'],
+    ['02', 'AI generates 3D', 'A clean, optimized model with real measurements, in ~90 seconds.'],
+    ['03', 'Shoppers place it', 'They tap, point their camera, and see it at real scale.'],
+  ];
+  return (
+    <section id="how" className="relative overflow-hidden bg-navy text-white">
+      <div className="pointer-events-none absolute inset-0 bg-grid-dark opacity-50" aria-hidden />
+      <div className="container-wide relative py-16 lg:py-24">
+        <p className="eyebrow text-brand">How it works</p>
+        <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-white sm:text-[38px]">
+          Photos in. 3D out. Two lines of code.
+        </h2>
+
+        <div className="mt-12 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="space-y-6">
+            {steps.map(([n, t, d]) => (
+              <div key={n} className="flex gap-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/15 text-[13px] font-bold text-brand">{n}</span>
+                <div>
+                  <h3 className="text-[17px] font-semibold text-white">{t}</h3>
+                  <p className="mt-1 text-[14.5px] leading-relaxed text-navy-fg/70">{d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-black/30 font-mono text-[13px] leading-relaxed shadow-pop">
             <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5 text-[12px] text-navy-muted">
               <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" />
               <span className="ml-2">product page</span>
             </div>
-            <pre className="overflow-x-auto px-5 py-5">
+            <pre className="overflow-x-auto px-5 py-5 text-navy-fg">
               <code>
                 <span className="text-navy-muted">{'<!-- 1. Add once, before </body> -->'}</span>
                 {'\n'}
@@ -221,92 +232,51 @@ function Integration() {
               </code>
             </pre>
           </div>
-          <div className="space-y-3">
-            {[
-              ['Shopify', 'Liquid · {{ product.handle }}'],
-              ['WooCommerce', 'PHP · $product->get_slug()'],
-              ['Custom site', 'React, Next.js, plain HTML'],
-              ['No website?', 'Share a link or QR — no site needed'],
-            ].map(([name, detail]) => (
-              <div key={name} className="flex items-start gap-3 rounded-lg border border-line bg-surface p-4">
-                <Check className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
-                <div>
-                  <div className="text-[15px] font-semibold text-ink">{name}</div>
-                  <div className="mt-0.5 text-[13px] text-muted">{detail}</div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>
   );
 }
 
-/* ── PRICING ── */
+/* ─────────────── PRICING ─────────────── */
 function Pricing() {
   return (
     <section id="pricing" className="bg-canvas">
-      <div className="container-wide py-20 lg:py-28">
+      <div className="container-wide py-16 lg:py-24">
         <p className="eyebrow">Pricing</p>
-        <h2 className="h-section mt-4 max-w-2xl text-ink">Simple pricing, made for Indian SMBs.</h2>
+        <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
+          Simple pricing, made for Indian SMBs.
+        </h2>
         <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-muted">
           Every plan includes AI 3D generation, the SDK, multi-store support, and email support. No
           setup fees, cancel anytime.
         </p>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <PriceCard
-            name="Starter"
-            price="₹3,999"
-            period="/mo"
-            tagline="For brands with up to 10 products"
-            features={['10 products · 500 AR sessions/mo', 'AI 3D generation from photos', 'Placement AR', 'Basic analytics', 'Email support']}
-          />
-          <PriceCard
-            name="Pro"
-            price="₹12,999"
-            period="/mo"
-            tagline="For brands ready to scale"
-            features={['50 products · 5,000 sessions/mo', 'Everything in Starter', 'Full analytics + ROI', 'Bulk CSV import', 'Priority support · 24h SLA']}
-            highlighted
-          />
-          <PriceCard
-            name="Enterprise"
-            price="Custom"
-            period=""
-            tagline="For large catalogs & custom needs"
-            features={['Unlimited products & sessions', 'All AR modes', 'White-label SDK + custom domain', 'Dedicated manager · SLA', 'SSO + audit logs']}
-          />
+          <Price name="Starter" price="₹3,999" period="/mo" tagline="Up to 10 products" features={['10 products · 500 AR sessions/mo', 'AI 3D generation', 'Placement AR', 'Basic analytics', 'Email support']} />
+          <Price name="Pro" price="₹12,999" period="/mo" tagline="For brands ready to scale" features={['50 products · 5,000 sessions/mo', 'Everything in Starter', 'Full analytics + ROI', 'Bulk CSV import', 'Priority support · 24h SLA']} highlighted />
+          <Price name="Enterprise" price="Custom" period="" tagline="Large catalogs & custom needs" features={['Unlimited products & sessions', 'All AR modes', 'White-label + custom domain', 'Dedicated manager · SLA', 'SSO + audit logs']} />
         </div>
-        <p className="mt-8 text-center text-[13px] text-faint">
-          Annual plans get 2 months free · Prices exclude GST
-        </p>
+        <p className="mt-8 text-center text-[13px] text-faint">Annual plans get 2 months free · Prices exclude GST</p>
       </div>
     </section>
   );
 }
-function PriceCard({
-  name, price, period, tagline, features, highlighted,
-}: {
-  name: string; price: string; period: string; tagline: string; features: string[]; highlighted?: boolean;
-}) {
+function Price({ name, price, period, tagline, features, highlighted }: { name: string; price: string; period: string; tagline: string; features: string[]; highlighted?: boolean }) {
   return (
-    <div className={`rounded-2xl border p-7 ${highlighted ? 'border-brand bg-navy text-white shadow-pop' : 'border-line bg-surface shadow-card'}`}>
+    <div className={`relative flex flex-col rounded-2xl border p-7 ${highlighted ? 'border-brand bg-navy text-white shadow-pop' : 'border-line bg-surface shadow-card'}`}>
       {highlighted && (
-        <span className="inline-flex items-center rounded-full bg-brand/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
-          Most popular
-        </span>
+        <span className="absolute right-6 top-6 rounded-full bg-brand/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">Popular</span>
       )}
-      <h3 className={`mt-3 text-[20px] font-bold tracking-tight ${highlighted ? 'text-white' : 'text-ink'}`}>{name}</h3>
+      <h3 className={`text-[20px] font-bold tracking-tight ${highlighted ? 'text-white' : 'text-ink'}`}>{name}</h3>
       <p className={`text-[13px] ${highlighted ? 'text-navy-muted' : 'text-muted'}`}>{tagline}</p>
       <div className="mt-5 flex items-baseline gap-1">
-        <span className={`text-[36px] font-bold tracking-tight ${highlighted ? 'text-white' : 'text-ink'}`}>{price}</span>
+        <span className={`text-[36px] font-extrabold tracking-tight ${highlighted ? 'text-white' : 'text-ink'}`}>{price}</span>
         <span className={`text-[14px] ${highlighted ? 'text-navy-muted' : 'text-muted'}`}>{period}</span>
       </div>
-      <ul className="mt-6 space-y-2.5">
+      <ul className="mt-6 flex-1 space-y-2.5">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2.5 text-[14px]">
-            <Check className={`mt-0.5 h-4 w-4 shrink-0 ${highlighted ? 'text-brand' : 'text-brand'}`} />
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
             <span className={highlighted ? 'text-navy-fg' : 'text-muted'}>{f}</span>
           </li>
         ))}
@@ -318,31 +288,33 @@ function PriceCard({
   );
 }
 
-/* ── BOOK A DEMO ── */
+/* ─────────────── BOOK A DEMO ─────────────── */
 function BookDemo() {
   return (
     <section className="bg-canvas">
-      <div className="container-wide pb-24 pt-4 lg:pb-32">
-        <div className="overflow-hidden rounded-3xl bg-navy px-6 py-14 text-center sm:px-12">
-          <h2 className="mx-auto max-w-2xl text-[30px] font-bold leading-tight tracking-tight text-white sm:text-[40px]">
-            See your own products in AR — book a free demo.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-navy-muted">
-            Tell us about your store and we’ll show you a live AR preview of your products, set up in
-            minutes. Concierge onboarding for your first 5 products.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a href={ONBOARD} className="btn-primary">Book a demo — 60-second form</a>
-            <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 px-5 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-white/10">
-              See live demo
-            </a>
-          </div>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[14px] text-navy-muted">
-            <a href={`https://wa.me/${WHATSAPP_E164}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-              WhatsApp {WHATSAPP_DISPLAY}
-            </a>
-            <span className="text-navy-2">·</span>
-            <a href={`mailto:${FOUNDER_EMAIL}`} className="hover:text-white">{FOUNDER_EMAIL}</a>
+      <div className="container-wide pb-20 pt-2 lg:pb-28">
+        <div className="relative overflow-hidden rounded-[2rem] bg-navy px-6 py-16 text-center sm:px-12">
+          <div className="pointer-events-none absolute inset-0 bg-grid-dark opacity-50" aria-hidden />
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-64" style={{ background: 'radial-gradient(50% 60% at 50% 0%, rgba(59,130,246,0.3), transparent 70%)' }} />
+          <div className="relative">
+            <h2 className="mx-auto max-w-2xl text-[30px] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[42px]">
+              See your products in AR — book a free demo.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-navy-fg/70">
+              Tell us about your store and we’ll show a live AR preview of your products. Concierge
+              setup for your first 5 — live within days.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <a href={ONBOARD} className="btn-primary">Book a demo — 60-second form</a>
+              <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-5 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-white/10">
+                See live demo
+              </a>
+            </div>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[14px] text-navy-muted">
+              <a href={`https://wa.me/${WA}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">WhatsApp {WA_DISPLAY}</a>
+              <span className="text-white/20">·</span>
+              <a href={`mailto:${FOUNDER_EMAIL}`} className="hover:text-white">{FOUNDER_EMAIL}</a>
+            </div>
           </div>
         </div>
       </div>
@@ -350,18 +322,18 @@ function BookDemo() {
   );
 }
 
-/* ── FOOTER ── */
+/* ─────────────── FOOTER ─────────────── */
 function Footer() {
   return (
-    <footer className="border-t border-line bg-surface-2">
+    <footer className="border-t border-white/10 bg-navy text-white">
       <div className="container-wide py-14">
         <div className="grid gap-10 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2">
               <Image src="/brand/rekaman-icon.png" alt="" width={28} height={28} className="h-7 w-7" />
-              <span className="text-[17px] font-semibold text-ink">Rekaman</span>
+              <span className="text-[17px] font-semibold text-white">Rekaman</span>
             </div>
-            <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-muted">
+            <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-navy-fg/60">
               Spatial commerce for any e-commerce store. Built in Tamil Nadu.
             </p>
           </div>
@@ -379,11 +351,11 @@ function Footer() {
           ]} />
           <FooterCol title="Connect" links={[
             { label: FOUNDER_EMAIL, href: `mailto:${FOUNDER_EMAIL}` },
-            { label: 'WhatsApp', href: `https://wa.me/${WHATSAPP_E164}`, external: true },
+            { label: 'WhatsApp', href: `https://wa.me/${WA}`, external: true },
             { label: 'LinkedIn', href: 'https://www.linkedin.com/company/rekaman', external: true },
           ]} />
         </div>
-        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 text-[12.5px] text-faint">
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-[12.5px] text-navy-muted">
           <div>© 2026 Rekaman Spatial Private Limited · Tamil Nadu, India</div>
           <div>Capture products. Place them anywhere.</div>
         </div>
@@ -394,16 +366,11 @@ function Footer() {
 function FooterCol({ title, links }: { title: string; links: { label: string; href: string; external?: boolean }[] }) {
   return (
     <div>
-      <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-ink">{title}</h3>
+      <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-navy-fg/80">{title}</h3>
       <ul className="mt-4 space-y-2.5">
         {links.map((l) => (
           <li key={l.label}>
-            <a
-              href={l.href}
-              target={l.external ? '_blank' : undefined}
-              rel={l.external ? 'noopener noreferrer' : undefined}
-              className="text-[14px] text-muted transition-colors hover:text-brand"
-            >
+            <a href={l.href} target={l.external ? '_blank' : undefined} rel={l.external ? 'noopener noreferrer' : undefined} className="text-[14px] text-navy-fg/60 transition-colors hover:text-white">
               {l.label}
             </a>
           </li>
@@ -413,19 +380,16 @@ function FooterCol({ title, links }: { title: string; links: { label: string; hr
   );
 }
 
-/* ── icons ── */
+/* ─────────────── icons ─────────────── */
 function Check({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" className={className} aria-hidden>
-      <path d="M3 8.5L6.5 12L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <svg viewBox="0 0 16 16" fill="none" className={className} aria-hidden><path d="M3 8.5L6.5 12L13 5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
-function Cube({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 8l-9-5-9 5 9 5 9-5z" />
-      <path d="M3 8v8l9 5 9-5V8M12 13v8" />
-    </svg>
-  );
+function I({ children }: { children: React.ReactNode }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{children}</svg>;
 }
+function IcScale() { return <I><path d="M12 3v18M5 8l-3 5a3 3 0 006 0l-3-5zM19 8l-3 5a3 3 0 006 0l-3-5zM7 21h10M5 6h4l3-2 3 2h4" /></I>; }
+function IcDevices() { return <I><rect x="2" y="4" width="14" height="10" rx="1.5" /><path d="M2 18h14" /><rect x="17" y="9" width="5" height="11" rx="1.2" /></I>; }
+function IcBolt() { return <I><path d="M13 2L4 14h6l-1 8 9-12h-6z" /></I>; }
+function IcQr() { return <I><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M20 14v0M17 20h4M21 17v4" /></I>; }
+function IcCode() { return <I><path d="M16 18l6-6-6-6M8 6l-6 6 6 6" /></I>; }
+function IcGlobe() { return <I><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18" /></I>; }
