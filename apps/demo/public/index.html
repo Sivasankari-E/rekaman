@@ -7,110 +7,241 @@
     <meta name="description" content="See Rekaman AR on a real product page in your category — furniture, decor, eyewear, jewelry, watches, footwear." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/_catalog.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-      /* Hub uses the Rekaman brand defaults from _catalog.css (navy + blue). */
-      h1 { font-weight: 700; }
-      .brandbar .brand .logo { width: 30px; height: 30px; display: block; border-radius: 8px; }
-      /* Hub-only: colour-tile thumbnails (no image dependency). */
+      /* ============================================================
+         Rekaman demo HUB — premium dark, matches rekaman.io.
+         Self-contained (does NOT use _catalog.css, which is the light
+         store style for the mock product pages).
+         ============================================================ */
+      :root {
+        --navy: #0b1220;
+        --navy-2: #0f1729;
+        --ink: #e9eef7;
+        --muted: #9aa8bd;
+        --faint: #6b7a92;
+        --brand: #3b82f6;
+        --brand-2: #60a5fa;
+        --line: rgba(255, 255, 255, 0.09);
+        --glass: rgba(255, 255, 255, 0.035);
+        --glass-hover: rgba(255, 255, 255, 0.06);
+        --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        font-family: var(--font);
+        color: var(--ink);
+        background: var(--navy);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+      }
+      /* Depth: dotted grid + two radial blue glows, exactly like the landing hero. */
+      body::before {
+        content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        background-size: 22px 22px;
+        -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 40%, transparent 78%);
+                mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 40%, transparent 78%);
+      }
+      body::after {
+        content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background:
+          radial-gradient(60% 45% at 78% 8%, rgba(59, 130, 246, 0.16), transparent 62%),
+          radial-gradient(55% 42% at 12% 24%, rgba(96, 165, 250, 0.10), transparent 60%);
+      }
+      .wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+      a { text-decoration: none; color: inherit; }
+      img { max-width: 100%; display: block; }
+
+      /* ── Nav ─────────────────────────────────────────────── */
+      .nav {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 22px 0 20px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .brand img { width: 30px; height: 30px; }
+      .brand span {
+        font-weight: 700; font-size: 20px; letter-spacing: -0.02em; color: #fff;
+      }
+      .nav .tag {
+        font-size: 13px; color: var(--muted); font-weight: 500;
+        display: inline-flex; align-items: center; gap: 8px;
+      }
+      .nav .tag::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--brand); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+      }
+
+      /* ── Header ──────────────────────────────────────────── */
+      .head { text-align: center; padding: 46px 0 40px; }
+      .eyebrow {
+        display: inline-block;
+        font-size: 12px; font-weight: 600; letter-spacing: 0.16em;
+        text-transform: uppercase; color: var(--brand-2);
+        padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px;
+        background: rgba(59, 130, 246, 0.06); margin-bottom: 22px;
+      }
+      h1 {
+        font-weight: 800; letter-spacing: -0.035em; line-height: 1.04;
+        font-size: clamp(34px, 6.4vw, 60px); color: #fff;
+      }
+      h1 .grad {
+        background: linear-gradient(100deg, var(--brand-2), var(--brand));
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .sub {
+        color: var(--muted); font-size: clamp(15px, 2vw, 18px);
+        max-width: 560px; margin: 18px auto 0;
+      }
+
+      /* ── Category grid ───────────────────────────────────── */
+      .grid {
+        display: grid; grid-template-columns: 1fr; gap: 16px;
+        padding-bottom: 20px;
+      }
+      @media (min-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+      .cat {
+        position: relative; display: flex; flex-direction: column;
+        background: var(--glass);
+        border: 1px solid var(--line); border-radius: 20px;
+        overflow: hidden;
+        transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+      }
+      .cat:hover {
+        transform: translateY(-4px);
+        border-color: rgba(59, 130, 246, 0.5);
+        background: var(--glass-hover);
+      }
       .cat .tile {
-        aspect-ratio: 16 / 10;
+        position: relative; aspect-ratio: 16 / 10;
         display: flex; align-items: center; justify-content: center;
-        font-size: 40px;
+        font-size: 58px; line-height: 1;
+        background: radial-gradient(80% 80% at 50% 40%, var(--tint, rgba(59,130,246,0.14)), transparent 72%);
       }
-      .cat .body .cbrand {
-        font-size: 11px; color: var(--ink-faint);
-        letter-spacing: 0.06em; text-transform: uppercase; margin-top: 5px;
+      .cat .tile::after {
+        content: ""; position: absolute; inset: 0;
+        background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 16px 16px; opacity: 0.5;
       }
+      .cat .tile span { position: relative; z-index: 1; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4)); }
+      .cat .body { padding: 18px 20px 20px; border-top: 1px solid var(--line); }
+      .cat .ct { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; color: #fff; }
+      .cat .cs { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+      .cat .cbrand {
+        font-size: 11px; color: var(--faint); letter-spacing: 0.08em;
+        text-transform: uppercase; margin-top: 12px;
+      }
+      .cat .cgo {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13.5px; font-weight: 600; color: var(--brand-2); margin-top: 14px;
+        transition: gap 0.16s ease;
+      }
+      .cat:hover .cgo { gap: 10px; }
+
+      /* ── Footer ──────────────────────────────────────────── */
+      .foot {
+        margin-top: 34px; padding: 26px 0 44px;
+        border-top: 1px solid var(--line);
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; flex-wrap: wrap;
+        font-size: 13px; color: var(--faint);
+      }
+      .foot a { color: var(--brand-2); font-weight: 600; }
+      .foot .dis { width: 100%; font-size: 11.5px; color: var(--faint); opacity: 0.85; }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <header class="brandbar">
-        <div class="brand"><img class="logo" src="/brand/rekaman-icon.png" alt="" width="30" height="30" />Rekaman</div>
-        <div class="links">Live AR demos</div>
+      <nav class="nav">
+        <a class="brand" href="https://rekaman.io">
+          <img src="/brand/rekaman-icon.png" alt="" width="30" height="30" />
+          <span>Rekaman</span>
+        </a>
+        <div class="tag">Live AR demos</div>
+      </nav>
+
+      <header class="head">
+        <span class="eyebrow">See it in your category</span>
+        <h1>What do you <span class="grad">sell?</span></h1>
+        <p class="sub">
+          Tap your category to open a real product page with Rekaman AR built in —
+          the exact experience your shoppers would get.
+        </p>
       </header>
 
-      <main class="hub">
-        <div class="hub-head">
-          <p class="hub-eyebrow">See it in your category</p>
-          <h1>What do you sell?</h1>
-          <p class="hub-sub">
-            Tap your category to open a real product page with Rekaman AR built in —
-            the same experience your shoppers would get.
-          </p>
-        </div>
+      <div class="grid">
+        <a class="cat" href="/furniture-armchair" style="--tint: rgba(180,120,70,0.28)">
+          <div class="tile"><span>🪑</span></div>
+          <div class="body">
+            <div class="ct">Furniture</div>
+            <div class="cs">View in your room, at real size</div>
+            <div class="cbrand">Northbeam Studio · coffee table</div>
+            <div class="cgo">Open demo →</div>
+          </div>
+        </a>
 
-        <div class="grid">
-          <a class="cat" href="/furniture-armchair">
-            <div class="tile" style="background:#e3e7ea">🪑</div>
-            <div class="body">
-              <div class="ct">Furniture</div>
-              <div class="cs">View in your room, at real size</div>
-              <div class="cbrand">Northbeam Studio · coffee table</div>
-              <div class="cgo">Open demo →</div>
-            </div>
-          </a>
+        <a class="cat" href="/decor-pendant-lamp" style="--tint: rgba(245,200,90,0.26)">
+          <div class="tile"><span>💡</span></div>
+          <div class="body">
+            <div class="ct">Decor &amp; Lighting</div>
+            <div class="cs">Place it to true scale</div>
+            <div class="cbrand">Lumina Home · table lamp</div>
+            <div class="cgo">Open demo →</div>
+          </div>
+        </a>
 
-          <a class="cat" href="/decor-pendant-lamp">
-            <div class="tile" style="background:#f6efdc">💡</div>
-            <div class="body">
-              <div class="ct">Decor &amp; Lighting</div>
-              <div class="cs">Place it to true scale</div>
-              <div class="cbrand">Lumina Home · table lamp</div>
-              <div class="cgo">Open demo →</div>
-            </div>
-          </a>
+        <a class="cat" href="/eyewear-aviator" style="--tint: rgba(120,160,230,0.26)">
+          <div class="tile"><span>🕶️</span></div>
+          <div class="body">
+            <div class="ct">Eyewear</div>
+            <div class="cs">Rotate &amp; zoom in 3D</div>
+            <div class="cbrand">Lens Atelier · square frame</div>
+            <div class="cgo">Open demo →</div>
+          </div>
+        </a>
 
-          <a class="cat" href="/eyewear-aviator">
-            <div class="tile" style="background:#e6ebf3">🕶️</div>
-            <div class="body">
-              <div class="ct">Eyewear</div>
-              <div class="cs">Rotate &amp; zoom in 3D</div>
-              <div class="cbrand">Lens Atelier · square frame</div>
-              <div class="cgo">Open demo →</div>
-            </div>
-          </a>
+        <a class="cat" href="/jewelry-ring" style="--tint: rgba(230,150,170,0.26)">
+          <div class="tile"><span>💍</span></div>
+          <div class="body">
+            <div class="ct">Jewelry</div>
+            <div class="cs">Rotate &amp; zoom in 3D</div>
+            <div class="cbrand">Aurora Fine Jewelry · bangle</div>
+            <div class="cgo">Open demo →</div>
+          </div>
+        </a>
 
-          <a class="cat" href="/jewelry-ring">
-            <div class="tile" style="background:#f6e9ea">💍</div>
-            <div class="body">
-              <div class="ct">Jewelry</div>
-              <div class="cs">Rotate &amp; zoom in 3D</div>
-              <div class="cbrand">Aurora Fine Jewelry · bangle</div>
-              <div class="cgo">Open demo →</div>
-            </div>
-          </a>
+        <a class="cat" href="/watches-chronograph" style="--tint: rgba(200,170,110,0.26)">
+          <div class="tile"><span>⌚</span></div>
+          <div class="body">
+            <div class="ct">Watches</div>
+            <div class="cs">Rotate &amp; zoom in 3D</div>
+            <div class="cbrand">Meridian Watches · chronograph</div>
+            <div class="cgo">Open demo →</div>
+          </div>
+        </a>
 
-          <a class="cat" href="/watches-chronograph">
-            <div class="tile" style="background:#f0ece1">⌚</div>
-            <div class="body">
-              <div class="ct">Watches</div>
-              <div class="cs">Rotate &amp; zoom in 3D</div>
-              <div class="cbrand">Meridian Watches · chronograph</div>
-              <div class="cgo">Open demo →</div>
-            </div>
-          </a>
-
-          <a class="cat" href="/footwear-sneaker">
-            <div class="tile" style="background:#e6efe9">👟</div>
-            <div class="body">
-              <div class="ct">Footwear</div>
-              <div class="cs">3D, or place it in your room</div>
-              <div class="cbrand">Sole Studio · court sneaker</div>
-              <div class="cgo">Open demo →</div>
-            </div>
-          </a>
-        </div>
-      </main>
+        <a class="cat" href="/footwear-sneaker" style="--tint: rgba(90,190,150,0.26)">
+          <div class="tile"><span>👟</span></div>
+          <div class="body">
+            <div class="ct">Footwear</div>
+            <div class="cs">3D, or place it in your room</div>
+            <div class="cbrand">Sole Studio · court sneaker</div>
+            <div class="cgo">Open demo →</div>
+          </div>
+        </a>
+      </div>
 
       <footer class="foot">
-        <div class="powered">
-          <div class="rk">Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
-          <a href="https://rekaman.io">rekaman.io →</a>
-        </div>
-        <div class="disclaimer">
+        <div>Powered by <a href="https://rekaman.io">Rekaman</a> · Spatial commerce for any brand.</div>
+        <a href="https://rekaman.io">rekaman.io →</a>
+        <div class="dis">
           Demo catalogue · all brands shown are fictional · built to showcase Rekaman AR.
           Best on a phone — Android Chrome or iPhone Safari.
         </div>
