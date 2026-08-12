@@ -224,6 +224,26 @@ export async function uploadProductPhoto(productId: string, file: File): Promise
   return body.url;
 }
 
+// ── Analytics ──
+
+export interface AnalyticsSummary {
+  range: { days: number; since: string };
+  totals: {
+    sessions: number;
+    placedSessions: number;
+    placementRate: number; // 0..1
+    avgDurationMs: number | null;
+  };
+  devices: { ios: number; android: number; desktop: number; other: number };
+  sessionsByDay: Array<{ date: string; count: number }>;
+  topProducts: Array<{ productId: string; name: string; slug: string; sessions: number }>;
+}
+
+export const analytics = {
+  summary: (days = 30) =>
+    apiFetch<AnalyticsSummary>(`/v1/analytics/summary?days=${days}`, { method: 'GET' }),
+};
+
 /** URL-safe slug from a product name. */
 export function slugify(name: string): string {
   return name
