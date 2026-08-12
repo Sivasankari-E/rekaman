@@ -12,16 +12,17 @@
    ============================================================ */
 
 :root {
-  /* Per-page overrides set these; these are safe fallbacks. */
-  --accent: #5A4FCF;
+  /* Rekaman brand (navy #111827 + blue #3b82f6). Category demo pages override
+     --accent with their own mock-brand colour to show per-brand theming. */
+  --accent: #3b82f6;
   --accent-ink: #ffffff;          /* text on an --accent fill */
-  --page-bg: #faf9f7;
+  --page-bg: #f8fafc;
   --card-bg: #ffffff;
-  --ink: #16140f;
-  --ink-soft: #5c574e;
-  --ink-faint: #9a958b;
-  --hairline: #ece9e3;
-  --heading-font: "Fraunces", Georgia, "Times New Roman", serif;
+  --ink: #111827;
+  --ink-soft: #475569;
+  --ink-faint: #94a3b8;
+  --hairline: #e5e7eb;
+  --heading-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --body-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 

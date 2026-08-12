@@ -18,11 +18,11 @@ export interface BrandTheme {
  * because the server stores null for unthemed brands and the SDK resolves
  * null → these values at render time.
  *
- * `#5A4FCF` is the Rekaman purple from the CLAUDE.md brand-identity block
- * (also the landing-site accent) — the SDK button is now consistent with it.
+ * `#3b82f6` is the Rekaman brand blue (navy+blue rebrand, Aug 2026) — matches
+ * the landing/dashboard tokens. Brands that set their own theme override this.
  */
 const REKAMAN_DEFAULTS = {
-  primaryColor: '#5A4FCF',
+  primaryColor: '#3b82f6',
   textColor: '#FFFFFF',
   radius: '999px', // pill
 };

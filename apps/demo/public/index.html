@@ -7,17 +7,13 @@
     <meta name="description" content="See Rekaman AR on a real product page in your category — furniture, decor, eyewear, jewelry, watches, footwear." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/_catalog.css" />
     <style>
-      :root {
-        --accent: #5A4FCF;
-        --accent-ink: #ffffff;
-        --page-bg: #faf9f7;
-        --heading-font: "Fraunces", Georgia, serif;
-      }
-      /* Hub-only: colour-tile thumbnails (no image dependency). Each tile
-         carries its category page's brand accent for visual cohesion. */
+      /* Hub uses the Rekaman brand defaults from _catalog.css (navy + blue). */
+      h1 { font-weight: 700; }
+      .brandbar .brand .logo { width: 30px; height: 30px; display: block; border-radius: 8px; }
+      /* Hub-only: colour-tile thumbnails (no image dependency). */
       .cat .tile {
         aspect-ratio: 16 / 10;
         display: flex; align-items: center; justify-content: center;
@@ -32,7 +28,7 @@
   <body>
     <div class="wrap">
       <header class="brandbar">
-        <div class="brand"><span class="mark">R</span>Rekaman</div>
+        <div class="brand"><img class="logo" src="/brand/rekaman-icon.png" alt="" width="30" height="30" />Rekaman</div>
         <div class="links">Live AR demos</div>
       </header>
 
