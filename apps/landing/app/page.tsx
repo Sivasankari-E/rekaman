@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Hero3D } from './_components/Hero3D';
+import { Reveal } from './_components/Reveal';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://rekaman.io' },
@@ -34,7 +35,7 @@ function TopDark() {
       <div className="pointer-events-none absolute inset-0 bg-grid-dark opacity-60" aria-hidden />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-40 h-[560px]"
+        className="animate-float-slow pointer-events-none absolute inset-x-0 -top-40 h-[560px]"
         style={{ background: 'radial-gradient(46% 46% at 62% 30%, rgba(59,130,246,0.22), transparent 72%)' }}
       />
       {/* Nav */}
@@ -112,17 +113,21 @@ function Problem() {
   return (
     <section className="bg-canvas">
       <div className="container-wide py-16 lg:py-24">
-        <p className="eyebrow">The problem</p>
-        <h2 className="mt-3 max-w-3xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
-          Shoppers can’t tell if a product fits — so they buy, return, and don’t come back.
-        </h2>
+        <Reveal>
+          <p className="eyebrow">The problem</p>
+          <h2 className="mt-3 max-w-3xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
+            Shoppers can’t tell if a product fits — so they buy, return, and don’t come back.
+          </h2>
+        </Reveal>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {stats.map(([n, label, d]) => (
-            <div key={label} className="rounded-2xl border border-line bg-surface p-6 shadow-card">
-              <div className="text-[44px] font-extrabold leading-none tracking-tight text-brand">{n}</div>
-              <div className="mt-3 text-[15px] font-semibold text-ink">{label}</div>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{d}</p>
-            </div>
+          {stats.map(([n, label, d], i) => (
+            <Reveal key={label} delay={i * 90}>
+              <div className="h-full rounded-2xl border border-line bg-surface p-6 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand/40 hover:shadow-pop">
+                <div className="text-[44px] font-extrabold leading-none tracking-tight text-brand">{n}</div>
+                <div className="mt-3 text-[15px] font-semibold text-ink">{label}</div>
+                <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{d}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -135,12 +140,14 @@ function Features() {
   return (
     <section className="border-y border-line bg-surface-2">
       <div className="container-wide py-16 lg:py-24">
-        <p className="eyebrow">Why Rekaman</p>
-        <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
-          Everything you need to sell in 3D — nothing you don’t.
-        </h2>
+        <Reveal>
+          <p className="eyebrow">Why Rekaman</p>
+          <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
+            Everything you need to sell in 3D — nothing you don’t.
+          </h2>
+        </Reveal>
 
-        <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Reveal delay={80} className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {/* Big: real scale */}
           <Bento className="lg:col-span-2 lg:row-span-1" icon={<IcScale />} title="True-to-life scale">
             Models render at their exact real-world size, so an 86 cm table is 86 cm on the
@@ -164,15 +171,15 @@ function Features() {
             Android fallback — the things global tools won’t build, from a founder you can reach on
             WhatsApp.
           </Bento>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
 }
 function Bento({ title, children, icon, className = '' }: { title: string; children: React.ReactNode; icon: React.ReactNode; className?: string }) {
   return (
-    <div className={`group rounded-2xl border border-line bg-surface p-6 shadow-card transition-colors hover:border-brand/40 ${className}`}>
-      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand">{icon}</span>
+    <div className={`group rounded-2xl border border-line bg-surface p-6 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand/40 hover:shadow-pop ${className}`}>
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand transition-transform duration-200 group-hover:scale-110">{icon}</span>
       <h3 className="mt-4 text-[18px] font-semibold tracking-tight text-ink">{title}</h3>
       <p className="mt-1.5 max-w-xl text-[14.5px] leading-relaxed text-muted">{children}</p>
     </div>
@@ -189,14 +196,21 @@ function HowItWorks() {
   return (
     <section id="how" className="relative overflow-hidden bg-navy text-white">
       <div className="pointer-events-none absolute inset-0 bg-grid-dark opacity-50" aria-hidden />
+      <div
+        aria-hidden
+        className="animate-float-slow pointer-events-none absolute -right-24 top-0 h-[420px] w-[420px] rounded-full blur-3xl"
+        style={{ background: 'radial-gradient(50% 50% at 50% 50%, rgba(59,130,246,0.18), transparent 70%)' }}
+      />
       <div className="container-wide relative py-16 lg:py-24">
-        <p className="eyebrow text-brand">How it works</p>
-        <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-white sm:text-[38px]">
-          Photos in. 3D out. Two lines of code.
-        </h2>
+        <Reveal>
+          <p className="eyebrow text-brand">How it works</p>
+          <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-white sm:text-[38px]">
+            Photos in. 3D out. Two lines of code.
+          </h2>
+        </Reveal>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div className="space-y-6">
+          <Reveal className="space-y-6">
             {steps.map(([n, t, d]) => (
               <div key={n} className="flex gap-4">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/15 text-[13px] font-bold text-brand">{n}</span>
@@ -206,9 +220,9 @@ function HowItWorks() {
                 </div>
               </div>
             ))}
-          </div>
+          </Reveal>
 
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-black/30 font-mono text-[13px] leading-relaxed shadow-pop">
+          <Reveal delay={120} className="overflow-hidden rounded-xl border border-white/10 bg-black/30 font-mono text-[13px] leading-relaxed shadow-pop">
             <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5 text-[12px] text-navy-muted">
               <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
@@ -231,7 +245,7 @@ function HowItWorks() {
                 <span className="text-[#93c5fd]">{'></div>'}</span>
               </code>
             </pre>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>
@@ -243,18 +257,20 @@ function Pricing() {
   return (
     <section id="pricing" className="bg-canvas">
       <div className="container-wide py-16 lg:py-24">
-        <p className="eyebrow">Pricing</p>
-        <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
-          Simple pricing, made for Indian SMBs.
-        </h2>
-        <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-muted">
-          Every plan includes AI 3D generation, the SDK, multi-store support, and email support. No
-          setup fees, cancel anytime.
-        </p>
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <Price name="Starter" price="₹3,999" period="/mo" tagline="Up to 10 products" features={['10 products · 500 AR sessions/mo', 'AI 3D generation', 'Placement AR', 'Basic analytics', 'Email support']} />
-          <Price name="Pro" price="₹12,999" period="/mo" tagline="For brands ready to scale" features={['50 products · 5,000 sessions/mo', 'Everything in Starter', 'Full analytics + ROI', 'Bulk CSV import', 'Priority support · 24h SLA']} highlighted />
-          <Price name="Enterprise" price="Custom" period="" tagline="Large catalogs & custom needs" features={['Unlimited products & sessions', 'All AR modes', 'White-label + custom domain', 'Dedicated manager · SLA', 'SSO + audit logs']} />
+        <Reveal>
+          <p className="eyebrow">Pricing</p>
+          <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
+            Simple pricing, made for Indian SMBs.
+          </h2>
+          <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-muted">
+            Every plan includes AI 3D generation, the SDK, multi-store support, and email support. No
+            setup fees, cancel anytime.
+          </p>
+        </Reveal>
+        <div className="mt-12 grid items-stretch gap-6 md:grid-cols-3">
+          <Reveal delay={0} className="h-full"><Price name="Starter" price="₹3,999" period="/mo" tagline="Up to 10 products" features={['10 products · 500 AR sessions/mo', 'AI 3D generation', 'Placement AR', 'Basic analytics', 'Email support']} /></Reveal>
+          <Reveal delay={90} className="h-full"><Price name="Pro" price="₹12,999" period="/mo" tagline="For brands ready to scale" features={['50 products · 5,000 sessions/mo', 'Everything in Starter', 'Full analytics + ROI', 'Bulk CSV import', 'Priority support · 24h SLA']} highlighted /></Reveal>
+          <Reveal delay={180} className="h-full"><Price name="Enterprise" price="Custom" period="" tagline="Large catalogs & custom needs" features={['Unlimited products & sessions', 'All AR modes', 'White-label + custom domain', 'Dedicated manager · SLA', 'SSO + audit logs']} /></Reveal>
         </div>
         <p className="mt-8 text-center text-[13px] text-faint">Annual plans get 2 months free · Prices exclude GST</p>
       </div>
@@ -263,7 +279,7 @@ function Pricing() {
 }
 function Price({ name, price, period, tagline, features, highlighted }: { name: string; price: string; period: string; tagline: string; features: string[]; highlighted?: boolean }) {
   return (
-    <div className={`relative flex flex-col rounded-2xl border p-7 ${highlighted ? 'border-brand bg-navy text-white shadow-pop' : 'border-line bg-surface shadow-card'}`}>
+    <div className={`relative flex h-full flex-col rounded-2xl border p-7 transition-all duration-200 ${highlighted ? 'border-brand bg-navy text-white shadow-pop lg:-translate-y-2' : 'border-line bg-surface shadow-card hover:-translate-y-1 hover:border-brand/40 hover:shadow-pop'}`}>
       {highlighted && (
         <span className="absolute right-6 top-6 rounded-full bg-brand/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">Popular</span>
       )}
@@ -293,9 +309,9 @@ function BookDemo() {
   return (
     <section className="bg-canvas">
       <div className="container-wide pb-20 pt-2 lg:pb-28">
-        <div className="relative overflow-hidden rounded-[2rem] bg-navy px-6 py-16 text-center sm:px-12">
+        <Reveal className="relative overflow-hidden rounded-[2rem] bg-navy px-6 py-16 text-center sm:px-12">
           <div className="pointer-events-none absolute inset-0 bg-grid-dark opacity-50" aria-hidden />
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-64" style={{ background: 'radial-gradient(50% 60% at 50% 0%, rgba(59,130,246,0.3), transparent 70%)' }} />
+          <div aria-hidden className="animate-float-slow pointer-events-none absolute inset-x-0 top-0 h-64" style={{ background: 'radial-gradient(50% 60% at 50% 0%, rgba(59,130,246,0.3), transparent 70%)' }} />
           <div className="relative">
             <h2 className="mx-auto max-w-2xl text-[30px] font-extrabold leading-tight tracking-[-0.02em] text-white sm:text-[42px]">
               See your products in AR — book a free demo.
@@ -316,7 +332,7 @@ function BookDemo() {
               <a href={`mailto:${FOUNDER_EMAIL}`} className="hover:text-white">{FOUNDER_EMAIL}</a>
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

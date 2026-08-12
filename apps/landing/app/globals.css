@@ -138,6 +138,36 @@
   .animate-fade-up {
     animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+  /* Scroll-reveal — driven by <Reveal>. Hidden until .reveal-in is added. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+  .reveal-in {
+    opacity: 1;
+    transform: none;
+  }
+  /* Slow drifting glow for dark sections — adds life without noise. */
+  .animate-float-slow {
+    animation: float-slow 14s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .animate-fade-up,
+  .animate-float-slow,
+  .animate-subtle-pulse {
+    animation: none !important;
+  }
 }
 
 @keyframes fade-up {
@@ -148,5 +178,17 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(2%, 4%, 0) scale(1.08);
+    opacity: 1;
   }
 }
