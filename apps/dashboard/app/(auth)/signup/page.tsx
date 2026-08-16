@@ -25,7 +25,8 @@ export default function SignupPage() {
         email: email.trim(),
         password,
       });
-      router.push('/dashboard');
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.push(next && next.startsWith('/') ? next : '/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);

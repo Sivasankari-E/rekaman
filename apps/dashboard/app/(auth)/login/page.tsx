@@ -21,7 +21,9 @@ export default function LoginPage() {
       // Sets the httpOnly rk_auth cookie (via credentials:'include'); nothing
       // to persist client-side.
       await auth.login({ email: email.trim(), password });
-      router.push('/dashboard');
+      // Honor ?next= (e.g. an accept-invite link), but only relative paths.
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.push(next && next.startsWith('/') ? next : '/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);

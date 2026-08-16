@@ -16,6 +16,7 @@ import { publicArRoutes } from './modules/publicAr/publicAr.routes.js';
 import { arSessionsRoutes } from './modules/arSessions/arSessions.routes.js';
 import { generationRoutes } from './modules/generation/generation.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
+import { teamRoutes } from './modules/team/team.routes.js';
 import { meshyWebhookRoutes } from './modules/webhooks/meshy.webhook.js';
 import { prisma } from './shared/db.js';
 import { NotFoundError } from './shared/errors.js';
@@ -150,6 +151,7 @@ export function createApp(): Express {
   app.use('/v1/api-keys', apiKeysRoutes);
   app.use('/v1/brands', brandsRoutes);
   app.use('/v1/analytics', analyticsRoutes);
+  app.use('/v1/team', teamRoutes);
   // Generation routes share the `/v1/products/:productId/...` prefix with
   // productsRoutes but live in their own module — mount at `/v1` so the
   // router's internal paths (e.g. `/products/:productId/generate`) compose

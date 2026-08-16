@@ -222,6 +222,55 @@ export async function uploadProductPhoto(productId: string, file: File): Promise
   return body.url;
 }
 
+// ── Team ──
+
+export type Role = 'OWNER' | 'ADMIN' | 'MEMBER';
+
+export interface TeamMember {
+  userId: string;
+  name: string | null;
+  email: string;
+  role: Role;
+  joinedAt: string;
+  isYou: boolean;
+}
+export interface TeamInvite {
+  id: string;
+  email: string;
+  role: Role;
+  status: string;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+}
+export interface TeamView {
+  members: TeamMember[];
+  invitations: TeamInvite[];
+}
+
+export const team = {
+  get: () => apiFetch<TeamView>('/v1/team', { method: 'GET' }),
+  invite: (input: { email: string; role: 'ADMIN' | 'MEMBER' }) =>
+    apiFetch<{ invitation: TeamInvite }>('/v1/team/invite', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }).then((r) => r.invitation),
+  accept: (token: string) =>
+    apiFetch<{ brandId: string; brandName: string; role: Role }>('/v1/team/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  setRole: (userId: string, role: Role) =>
+    apiFetch<{ ok: boolean }>(`/v1/team/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+  remove: (userId: string) =>
+    apiFetch<{ ok: boolean }>(`/v1/team/${userId}`, { method: 'DELETE' }),
+  revokeInvite: (id: string) =>
+    apiFetch<{ ok: boolean }>(`/v1/team/invitations/${id}`, { method: 'DELETE' }),
+};
+
 // ── Analytics ──
 
 export interface AnalyticsSummary {
