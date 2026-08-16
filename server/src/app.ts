@@ -18,6 +18,8 @@ import { generationRoutes } from './modules/generation/generation.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 import { teamRoutes } from './modules/team/team.routes.js';
 import { meshyWebhookRoutes } from './modules/webhooks/meshy.webhook.js';
+import { razorpayWebhookRoutes } from './modules/webhooks/razorpay.webhook.js';
+import { billingRoutes } from './modules/billing/billing.routes.js';
 import { prisma } from './shared/db.js';
 import { NotFoundError } from './shared/errors.js';
 
@@ -143,6 +145,7 @@ export function createApp(): Express {
   // Mounted before apiRateLimit so a slow Meshy retry storm can't get
   // throttled — verification + idempotency log absorb duplicates safely.
   app.use('/v1/webhooks', meshyWebhookRoutes);
+  app.use('/v1/webhooks', razorpayWebhookRoutes);
 
   // ── Authenticated API routes ──
   app.use(apiRateLimit);
@@ -152,6 +155,7 @@ export function createApp(): Express {
   app.use('/v1/brands', brandsRoutes);
   app.use('/v1/analytics', analyticsRoutes);
   app.use('/v1/team', teamRoutes);
+  app.use('/v1/billing', billingRoutes);
   // Generation routes share the `/v1/products/:productId/...` prefix with
   // productsRoutes but live in their own module — mount at `/v1` so the
   // router's internal paths (e.g. `/products/:productId/generate`) compose

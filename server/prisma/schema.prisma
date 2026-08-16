@@ -266,6 +266,7 @@ model PricingPlan {
   productLimit  Int
   features      String[]      @default([])
   isPublic      Boolean       @default(true)
+  razorpayPlanId String?      @unique   // Razorpay plan_id — set by scripts/create-razorpay-plans.mjs
   createdAt     DateTime      @default(now())
   deprecatedAt  DateTime?
 

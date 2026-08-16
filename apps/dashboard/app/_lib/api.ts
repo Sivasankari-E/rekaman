@@ -291,6 +291,59 @@ export const analytics = {
     apiFetch<AnalyticsSummary>(`/v1/analytics/summary?days=${days}`, { method: 'GET' }),
 };
 
+// ── Billing ──
+
+export interface BillingPlan {
+  id: string;
+  code: string;
+  tier: string;
+  displayName: string;
+  amountInPaise: number;
+  currency: string;
+  billingPeriod: string;
+  sessionLimit: number;
+  productLimit: number;
+  features: string[];
+  subscribable: boolean;
+}
+export interface SubscriptionView {
+  status: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  canceledAt: string | null;
+}
+export interface Invoice {
+  id: string;
+  amountInPaise: number;
+  currency: string;
+  status: string;
+  periodStart: string;
+  periodEnd: string;
+  paidAt: string | null;
+  invoiceUrl: string | null;
+  createdAt: string;
+}
+
+export const billing = {
+  plans: () => apiFetch<{ plans: BillingPlan[] }>('/v1/billing/plans').then((r) => r.plans),
+  subscription: () =>
+    apiFetch<{ subscription: SubscriptionView | null; plan: BillingPlan | null }>(
+      '/v1/billing/subscription',
+    ),
+  invoices: () => apiFetch<{ invoices: Invoice[] }>('/v1/billing/invoices').then((r) => r.invoices),
+  subscribe: (planId: string) =>
+    apiFetch<{ subscriptionId: string; shortUrl: string | null; status: string }>(
+      '/v1/billing/subscribe',
+      { method: 'POST', body: JSON.stringify({ planId }) },
+    ),
+  cancel: (atPeriodEnd = true) =>
+    apiFetch<{ cancelAtPeriodEnd: boolean }>('/v1/billing/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ atPeriodEnd }),
+    }),
+};
+
 /** URL-safe slug from a product name. */
 export function slugify(name: string): string {
   return name

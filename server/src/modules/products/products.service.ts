@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { productsRepository } from './products.repository.js';
+import { assertCanAddProduct } from '../billing/billing.service.js';
 import {
   NotFoundError,
   SlugAlreadyExistsError,
@@ -76,6 +77,10 @@ export const productsService = {
   },
 
   async create(brandId: string, input: CreateProductInput): Promise<Product> {
+    // Plan gating: enforce the plan's product limit. No-op for brands without
+    // an active plan (Concierge/Phase 1) — see assertCanAddProduct.
+    await assertCanAddProduct(brandId);
+
     const existing = await productsRepository.findBySlug(brandId, input.slug);
     if (existing) throw new SlugAlreadyExistsError();
 

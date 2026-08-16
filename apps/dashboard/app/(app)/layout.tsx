@@ -15,6 +15,7 @@ const NAV: Array<{ label: string; href: string; icon: React.ReactNode }> = [
   { label: 'Analytics', href: '/analytics', icon: <IconChart /> },
   { label: 'Install', href: '/install', icon: <IconCode /> },
   { label: 'Team', href: '/team', icon: <IconUsers /> },
+  { label: 'Billing', href: '/billing', icon: <IconCard /> },
   { label: 'Settings', href: '/settings', icon: <IconGear /> },
 ];
 
@@ -192,6 +193,14 @@ function IconGear() {
     <I>
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.22.65.22 1s-.08.69-.22 1z" />
+    </I>
+  );
+}
+function IconCard() {
+  return (
+    <I>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
     </I>
   );
 }
