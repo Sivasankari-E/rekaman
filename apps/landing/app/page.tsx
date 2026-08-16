@@ -252,8 +252,79 @@ function HowItWorks() {
   );
 }
 
-/* ─────────────── PRICING ─────────────── */
-function Pricing() {
+/* ─────────────── PRICING (auto-synced from the DB) ─────────────── */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') ?? 'https://api.rekaman.io';
+
+interface ApiPlan {
+  tier: string;
+  displayName: string;
+  amountInPaise: number;
+  sessionLimit: number;
+  productLimit: number;
+  features: string[];
+}
+
+// Internal feature codes → display labels. Unknown codes are prettified.
+const FEATURE_LABELS: Record<string, string> = {
+  basic_analytics: 'Basic analytics',
+  email_support: 'Email support',
+  full_analytics: 'Full analytics',
+  roi_calculator: 'ROI dashboard',
+  shopify_app: 'Shopify app',
+  white_label_sdk: 'White-label SDK',
+  dedicated_support: 'Dedicated support',
+  sla: 'Priority SLA',
+};
+const TAGLINE: Record<string, string> = {
+  STARTER: 'Up to 10 products',
+  PRO: 'For brands ready to scale',
+  ENTERPRISE: 'Large catalogs & custom needs',
+};
+
+// Fallback so the page never breaks if the API is unreachable at build/request time.
+const FALLBACK_PLANS: ApiPlan[] = [
+  { tier: 'STARTER', displayName: 'Starter', amountInPaise: 399900, sessionLimit: 500, productLimit: 10, features: ['basic_analytics', 'email_support'] },
+  { tier: 'PRO', displayName: 'Pro', amountInPaise: 1299900, sessionLimit: 5000, productLimit: 50, features: ['full_analytics', 'roi_calculator', 'shopify_app'] },
+  { tier: 'ENTERPRISE', displayName: 'Enterprise', amountInPaise: 4999900, sessionLimit: 999999, productLimit: 999999, features: ['white_label_sdk', 'dedicated_support', 'sla'] },
+];
+
+async function fetchPlans(): Promise<ApiPlan[]> {
+  try {
+    // ISR: revalidate every 5 min so DB pricing changes reflect without a redeploy.
+    const res = await fetch(`${API_BASE}/v1/billing/plans`, { next: { revalidate: 300 } });
+    if (!res.ok) return FALLBACK_PLANS;
+    const data = (await res.json()) as { plans?: ApiPlan[] };
+    return data.plans?.length ? data.plans : FALLBACK_PLANS;
+  } catch {
+    return FALLBACK_PLANS;
+  }
+}
+
+function planToCard(p: ApiPlan) {
+  const isEnterprise = p.tier === 'ENTERPRISE';
+  const name = p.displayName.replace(/\s*\(monthly\)/i, '').trim();
+  const price = isEnterprise ? 'Custom' : `₹${(p.amountInPaise / 100).toLocaleString('en-IN')}`;
+  const unlimited = p.productLimit >= 999999;
+  const limitsLine = unlimited
+    ? 'Unlimited products & sessions'
+    : `${p.productLimit} products · ${p.sessionLimit.toLocaleString('en-IN')} AR sessions/mo`;
+  const featureLabels = p.features.map(
+    (c) => FEATURE_LABELS[c] ?? c.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+  );
+  return {
+    name,
+    price,
+    period: isEnterprise ? '' : '/mo',
+    tagline: TAGLINE[p.tier] ?? '',
+    features: [limitsLine, 'AI 3D generation', ...featureLabels],
+    highlighted: p.tier === 'PRO',
+  };
+}
+
+async function Pricing() {
+  const plans = await fetchPlans();
+  const cards = plans.map(planToCard);
   return (
     <section id="pricing" className="bg-canvas">
       <div className="container-wide py-16 lg:py-24">
@@ -268,9 +339,11 @@ function Pricing() {
           </p>
         </Reveal>
         <div className="mt-12 grid items-stretch gap-6 md:grid-cols-3">
-          <Reveal delay={0} className="h-full"><Price name="Starter" price="₹3,999" period="/mo" tagline="Up to 10 products" features={['10 products · 500 AR sessions/mo', 'AI 3D generation', 'Placement AR', 'Basic analytics', 'Email support']} /></Reveal>
-          <Reveal delay={90} className="h-full"><Price name="Pro" price="₹12,999" period="/mo" tagline="For brands ready to scale" features={['50 products · 5,000 sessions/mo', 'Everything in Starter', 'Full analytics + ROI', 'Bulk CSV import', 'Priority support · 24h SLA']} highlighted /></Reveal>
-          <Reveal delay={180} className="h-full"><Price name="Enterprise" price="Custom" period="" tagline="Large catalogs & custom needs" features={['Unlimited products & sessions', 'All AR modes', 'White-label + custom domain', 'Dedicated manager · SLA', 'SSO + audit logs']} /></Reveal>
+          {cards.map((c, i) => (
+            <Reveal key={c.name} delay={i * 90} className="h-full">
+              <Price {...c} />
+            </Reveal>
+          ))}
         </div>
         <p className="mt-8 text-center text-[13px] text-faint">Annual plans get 2 months free · Prices exclude GST</p>
       </div>

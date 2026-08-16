@@ -11,14 +11,6 @@ router.use(requireAuth);
 const SubscribeSchema = z.object({ planId: z.string().min(1) });
 const CancelSchema = z.object({ atPeriodEnd: z.boolean().default(true) });
 
-/** GET /v1/billing/plans — public pricing plans (for the subscribe UI). */
-router.get(
-  '/plans',
-  asyncHandler(async (_req: Request, res: Response) => {
-    res.json({ plans: await billingService.getPlans() });
-  }),
-);
-
 /** GET /v1/billing/subscription — the caller brand's current subscription + plan. */
 router.get(
   '/subscription',
