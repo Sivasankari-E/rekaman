@@ -95,6 +95,38 @@ router.post(
   })
 );
 
+const ForgotSchema = z.object({ email: z.string().email().max(255) });
+const ResetSchema = z.object({
+  token: z.string().min(10).max(255),
+  password: z.string().min(8).max(72),
+});
+
+/**
+ * POST /v1/auth/forgot-password — email a reset link. Always returns 200 with
+ * the same body whether or not the email exists (no account-existence leak).
+ * Rate-limited to blunt enumeration/spam.
+ */
+router.post(
+  '/forgot-password',
+  authRateLimit,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { email } = ForgotSchema.parse(req.body);
+    await authService.requestPasswordReset(email);
+    res.json({ ok: true });
+  }),
+);
+
+/** POST /v1/auth/reset-password — set a new password with a valid token. */
+router.post(
+  '/reset-password',
+  authRateLimit,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { token, password } = ResetSchema.parse(req.body);
+    await authService.resetPassword(token, password);
+    res.json({ ok: true });
+  }),
+);
+
 router.post('/logout', (_req, res) => {
   clearAuthCookie(res);
   res.json({ ok: true });

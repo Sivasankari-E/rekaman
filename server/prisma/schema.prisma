@@ -26,9 +26,25 @@ model User {
 
   memberships     Membership[]
   invitationsSent OrgInvitation[] @relation("InvitedBy")
+  passwordResetTokens PasswordResetToken[]
 
   @@index([googleId])
   @@index([email])
+}
+
+// Password-reset tokens — only the SHA-256 hash is stored; the raw token goes
+// in the email link. Single-use (usedAt) + short-lived (expiresAt).
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Brand {

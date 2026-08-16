@@ -96,4 +96,22 @@ export const authRepository = {
       where: { userId_brandId: { userId, brandId } },
       include: { brand: true },
     }),
+
+  // ── Password reset ──
+
+  createPasswordResetToken: (userId: string, tokenHash: string, expiresAt: Date) =>
+    prisma.passwordResetToken.create({ data: { userId, tokenHash, expiresAt } }),
+
+  findPasswordResetToken: (tokenHash: string) =>
+    prisma.passwordResetToken.findUnique({ where: { tokenHash } }),
+
+  /** Set a new password AND consume every outstanding reset token for the user. */
+  resetPassword: (userId: string, passwordHash: string) =>
+    prisma.$transaction([
+      prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      prisma.passwordResetToken.updateMany({
+        where: { userId, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+    ]),
 };

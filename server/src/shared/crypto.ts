@@ -28,3 +28,8 @@ export function hashApiKey(key: string): string {
 export function generateToken(length = 32): string {
   return randomBytes(length).toString('base64url');
 }
+
+/** SHA-256 hex of an opaque token (password-reset tokens are stored hashed). */
+export function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}

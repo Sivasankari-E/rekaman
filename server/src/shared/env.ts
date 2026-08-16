@@ -59,6 +59,7 @@ const EnvSchema = z.object({
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM: z.string().optional(), // e.g. "Rekaman <founder@rekaman.io>"
 });
 
 export type Env = z.infer<typeof EnvSchema>;

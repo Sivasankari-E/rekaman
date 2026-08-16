@@ -4,6 +4,8 @@ import { OAuth2Client } from 'google-auth-library';
 import { authRepository } from './auth.repository.js';
 import { getEnv } from '../../shared/env.js';
 import { logger } from '../../shared/logger.js';
+import { generateToken, hashToken } from '../../shared/crypto.js';
+import { sendEmail } from '../../shared/clients/resend.client.js';
 import {
   EmailAlreadyExistsError,
   InvalidCredentialsError,
@@ -200,6 +202,52 @@ export const authService = {
         role: m.role,
       })),
     };
+  },
+
+  /**
+   * Start a password reset. ALWAYS resolves the same way whether or not the
+   * email exists — never leak account existence. When the user exists we store
+   * a hashed, 1-hour, single-use token and email the raw token in a link.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await authRepository.findUserByEmail(email);
+    if (!user) {
+      logger.info({ email }, 'password reset requested for unknown email (no-op)');
+      return;
+    }
+    const raw = generateToken(32);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await authRepository.createPasswordResetToken(user.id, hashToken(raw), expiresAt);
+
+    const env = getEnv();
+    const link = `${env.DASHBOARD_URL.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(raw)}`;
+    await sendEmail({
+      to: user.email,
+      subject: 'Reset your Rekaman password',
+      html: `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px">
+          <h2 style="color:#111827">Reset your password</h2>
+          <p style="color:#475569;line-height:1.6">
+            We received a request to reset your Rekaman password. This link expires in 1 hour.
+          </p>
+          <p style="margin:24px 0">
+            <a href="${link}" style="background:#3b82f6;color:#fff;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600;display:inline-block">Reset password</a>
+          </p>
+          <p style="color:#94a3b8;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
+        </div>`,
+    });
+    logger.info({ userId: user.id }, 'password reset email dispatched');
+  },
+
+  /** Complete a password reset with a valid, unexpired, unused token. */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const record = await authRepository.findPasswordResetToken(hashToken(token));
+    if (!record || record.usedAt || record.expiresAt.getTime() < Date.now()) {
+      throw new ValidationError('This reset link is invalid or has expired');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await authRepository.resetPassword(record.userId, passwordHash);
+    logger.info({ userId: record.userId }, 'password reset completed');
   },
 
   /**

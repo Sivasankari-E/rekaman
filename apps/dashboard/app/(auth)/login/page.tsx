@@ -59,6 +59,11 @@ export default function LoginPage() {
             placeholder="••••••••"
           />
         </Field>
+        <div className="-mt-1 text-right">
+          <Link href="/forgot-password" className="text-[13px] font-medium text-brand hover:text-brand-hover">
+            Forgot password?
+          </Link>
+        </div>
         <Button type="submit" className="w-full" loading={loading}>
           Sign in
         </Button>

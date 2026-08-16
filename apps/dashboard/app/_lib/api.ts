@@ -80,6 +80,16 @@ export const auth = {
   // Re-issues the auth cookie scoped to another brand the user belongs to.
   switchBrand: (brandId: string) =>
     apiFetch<AuthResponse>(`/v1/auth/switch-brand/${brandId}`, { method: 'POST' }),
+  forgotPassword: (email: string) =>
+    apiFetch<{ ok: boolean }>('/v1/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, password: string) =>
+    apiFetch<{ ok: boolean }>('/v1/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
 };
 
 // ── API keys ──
