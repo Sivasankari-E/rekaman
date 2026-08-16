@@ -15,7 +15,7 @@ export function ComingSoon({ title, blurb }: { title: string; blurb: string }) {
           </svg>
         </span>
         <p className="mt-4 text-sm font-medium text-ink">Coming soon</p>
-        <p className="mt-1 max-w-sm text-[13px] text-muted">
+        <p className="mt-1 max-w-sm text-[14px] text-muted">
           This section is being built. The full self-serve dashboard rolls out over the next few
           weeks.
         </p>

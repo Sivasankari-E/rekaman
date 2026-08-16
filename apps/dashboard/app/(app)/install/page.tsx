@@ -29,7 +29,7 @@ function CopyBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="relative">
-      <pre className="overflow-x-auto rounded-[var(--radius)] border border-line bg-sidebar px-4 py-3 font-mono text-[13px] leading-relaxed text-sidebar-fg">
+      <pre className="overflow-x-auto rounded-[var(--radius)] border border-line bg-sidebar px-4 py-3 font-mono text-[14px] leading-relaxed text-sidebar-fg">
         {code}
       </pre>
       <button
@@ -68,7 +68,7 @@ export default function InstallPage() {
       </div>
 
       {hasKeys === false && (
-        <Card className="border-brand/30 bg-brand-soft p-4 text-[13px] text-ink">
+        <Card className="border-brand/30 bg-brand-soft p-4 text-[14px] text-ink">
           You don’t have an active API key yet. Create one on the{' '}
           <a href="/api-keys" className="font-medium text-brand hover:text-brand-hover">
             API keys
@@ -78,7 +78,7 @@ export default function InstallPage() {
       )}
 
       <Card className="p-5">
-        <label className="mb-1.5 block text-[13px] font-medium text-ink">Your live API key</label>
+        <label className="mb-1.5 block text-[14px] font-medium text-ink">Your live API key</label>
         <Input
           value={key}
           onChange={(e) => setKey(e.target.value.trim())}
@@ -93,12 +93,12 @@ export default function InstallPage() {
       {/* Embed on a store */}
       <Card className="p-5">
         <h2 className="text-sm font-semibold text-ink">1 · Embed on your store</h2>
-        <p className="mt-1 text-[13px] text-muted">
+        <p className="mt-1 text-[14px] text-muted">
           Add the script once, then a div wherever the AR button should appear.
         </p>
 
         <div className="mt-4 space-y-1.5">
-          <p className="text-[13px] font-medium text-ink">Add once, before &lt;/body&gt;:</p>
+          <p className="text-[14px] font-medium text-ink">Add once, before &lt;/body&gt;:</p>
           <CopyBlock code={SCRIPT_TAG} />
         </div>
 
@@ -109,7 +109,7 @@ export default function InstallPage() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  'rounded-[7px] px-3 py-1.5 text-[13px] font-medium transition-colors',
+                  'rounded-[7px] px-3 py-1.5 text-[14px] font-medium transition-colors',
                   tab === t.id ? 'bg-brand text-brand-fg' : 'text-muted hover:text-ink',
                 )}
               >
@@ -124,7 +124,7 @@ export default function InstallPage() {
       {/* No-website option */}
       <Card className="p-5">
         <h2 className="text-sm font-semibold text-ink">No website? Share a link or QR</h2>
-        <p className="mt-1 text-[13px] text-muted">
+        <p className="mt-1 text-[14px] text-muted">
           Every product also has a hosted page you can share on WhatsApp, Instagram, or a packaging
           QR — no site needed. Desktop shows a QR; phones open AR directly.
         </p>

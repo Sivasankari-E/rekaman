@@ -95,7 +95,7 @@ export default function ProductsPage() {
         ) : list.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <p className="text-sm font-medium text-ink">No products yet</p>
-            <p className="mt-1 text-[13px] text-muted">Add your first product to generate its 3D model.</p>
+            <p className="mt-1 text-[14px] text-muted">Add your first product to generate its 3D model.</p>
           </div>
         ) : (
           <div className="divide-y divide-line">
@@ -176,7 +176,7 @@ function CreateProductForm({
           <Input id="pname" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Florence Coffee Table" required />
         </Field>
         <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-ink">
+          <label className="mb-1.5 block text-[14px] font-medium text-ink">
             Real-world size (cm) — optional but recommended
           </label>
           <div className="grid grid-cols-3 gap-3">
@@ -260,11 +260,11 @@ function ProductRow({
           <p className="truncate text-sm font-medium text-ink">{product.name}</p>
           <code className="font-mono text-xs text-muted">{product.slug}</code>
         </div>
-        <span className="text-[13px] text-muted sm:text-center">{dims ?? '—'}</span>
+        <span className="text-[14px] text-muted sm:text-center">{dims ?? '—'}</span>
         <StatusBadge status={product.status} />
         <button
           onClick={onToggle}
-          className="justify-self-start rounded-[var(--radius)] border border-line px-2.5 py-1 text-[13px] font-medium text-ink hover:bg-surface-2 sm:justify-self-end"
+          className="justify-self-start rounded-[var(--radius)] border border-line px-2.5 py-1 text-[14px] font-medium text-ink hover:bg-surface-2 sm:justify-self-end"
         >
           {product.status === 'READY' ? 'Preview / Regenerate' : 'Generate'}
         </button>
@@ -277,7 +277,7 @@ function ProductRow({
               <button
                 type="button"
                 onClick={() => onPreview(product.glbUrl!, product.name)}
-                className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-brand px-3 py-1.5 text-[13px] font-medium text-brand-fg hover:bg-brand-hover"
+                className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-brand px-3 py-1.5 text-[14px] font-medium text-brand-fg hover:bg-brand-hover"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 8l-9-5-9 5 9 5 9-5z" />
@@ -295,7 +295,7 @@ function ProductRow({
             </div>
           ) : (
             <div className="space-y-3">
-              <label className="block text-[13px] font-medium text-ink">
+              <label className="block text-[14px] font-medium text-ink">
                 Product photos — 1–4 angles (front, side, and top work best)
               </label>
 

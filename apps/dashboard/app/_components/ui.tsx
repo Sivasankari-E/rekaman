@@ -24,7 +24,7 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-[13px]',
+  sm: 'h-8 px-3 text-[14px]',
   md: 'h-10 px-4 text-sm',
 };
 
@@ -98,7 +98,7 @@ export function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="block text-[13px] font-medium text-ink">
+      <label htmlFor={htmlFor} className="block text-[14px] font-medium text-ink">
         {label}
       </label>
       {children}
@@ -160,7 +160,7 @@ export function StatusBadge({ status }: { status: string }) {
 
 export function Alert({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-[var(--radius)] border border-danger/30 bg-danger/5 px-3 py-2 text-[13px] text-danger">
+    <div className="rounded-[var(--radius)] border border-danger/30 bg-danger/5 px-3 py-2 text-[14px] text-danger">
       {children}
     </div>
   );

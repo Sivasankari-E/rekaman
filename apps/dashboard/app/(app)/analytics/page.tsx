@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
               type="button"
               onClick={() => setDays(r.days)}
               className={cn(
-                'rounded-[calc(var(--radius)-2px)] px-3 py-1.5 text-[13px] font-medium transition-colors',
+                'rounded-[calc(var(--radius)-2px)] px-3 py-1.5 text-[14px] font-medium transition-colors',
                 days === r.days ? 'bg-brand text-brand-fg' : 'text-muted hover:text-ink',
               )}
             >
@@ -131,16 +131,16 @@ function Dashboard({ data }: { data: AnalyticsSummary }) {
         <Card className="p-5">
           <p className="text-sm font-medium text-ink">Top products</p>
           {topProducts.length === 0 ? (
-            <p className="mt-4 text-[13px] text-muted">No product-level sessions in this range yet.</p>
+            <p className="mt-4 text-[14px] text-muted">No product-level sessions in this range yet.</p>
           ) : (
             <ol className="mt-4 space-y-3">
               {topProducts.map((p, i) => (
                 <li key={p.productId} className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[12px] font-semibold text-brand">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand">
                     {i + 1}
                   </span>
-                  <span className="flex-1 truncate text-[14px] text-ink">{p.name}</span>
-                  <span className="text-[13px] font-medium tabular-nums text-muted">
+                  <span className="flex-1 truncate text-[15px] text-ink">{p.name}</span>
+                  <span className="text-[14px] font-medium tabular-nums text-muted">
                     {p.sessions.toLocaleString('en-IN')}
                   </span>
                 </li>
@@ -156,7 +156,7 @@ function Dashboard({ data }: { data: AnalyticsSummary }) {
 function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
     <Card className="p-4">
-      <p className="text-[13px] text-muted">{label}</p>
+      <p className="text-[14px] text-muted">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums text-ink">{value}</p>
       <p className="mt-1 text-xs text-faint">{hint}</p>
     </Card>
@@ -183,7 +183,7 @@ function SessionsChart({ series }: { series: Array<{ date: string; count: number
           </div>
         ))}
       </div>
-      <div className="mt-2 flex justify-between text-[11px] text-faint">
+      <div className="mt-2 flex justify-between text-[12px] text-faint">
         {series.map((d, i) => (
           <span key={d.date} className={labelIdx.has(i) ? '' : 'invisible'}>
             {fmtDay(d.date)}
@@ -198,7 +198,7 @@ function DeviceRow({ label, count, total }: { label: string; count: number; tota
   const w = total > 0 ? (count / total) * 100 : 0;
   return (
     <div>
-      <div className="flex items-center justify-between text-[13px]">
+      <div className="flex items-center justify-between text-[14px]">
         <span className="text-ink">{label}</span>
         <span className="tabular-nums text-muted">
           {count.toLocaleString('en-IN')} · {Math.round(w)}%
@@ -221,13 +221,13 @@ function EmptyState() {
         </svg>
       </span>
       <p className="mt-4 text-sm font-medium text-ink">No AR sessions yet</p>
-      <p className="mt-1 max-w-md text-[13px] text-muted">
+      <p className="mt-1 max-w-md text-[14px] text-muted">
         Once shoppers use “View in your room” on your site, you’ll see sessions, placement rate,
         and device breakdown here in real time.
       </p>
       <Link
         href="/install"
-        className="mt-5 inline-flex items-center rounded-[var(--radius)] bg-brand px-4 py-2 text-[13px] font-medium text-brand-fg hover:bg-brand-hover"
+        className="mt-5 inline-flex items-center rounded-[var(--radius)] bg-brand px-4 py-2 text-[14px] font-medium text-brand-fg hover:bg-brand-hover"
       >
         Install the SDK →
       </Link>

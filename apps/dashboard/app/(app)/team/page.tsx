@@ -26,7 +26,7 @@ const ROLE_STYLE: Record<Role, string> = {
 };
 function RoleBadge({ role }: { role: Role }) {
   return (
-    <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide', ROLE_STYLE[role])}>
+    <span className={cn('rounded-full px-2 py-0.5 text-[12px] font-semibold uppercase tracking-wide', ROLE_STYLE[role])}>
       {role.toLowerCase()}
     </span>
   );
@@ -160,7 +160,7 @@ function InviteForm({
 
       {created && (
         <div className="mt-4 rounded-[var(--radius)] border border-line bg-surface-2 p-3">
-          <p className="text-[13px] text-muted">
+          <p className="text-[14px] text-muted">
             Invite ready for <span className="font-medium text-ink">{created.email}</span>. Share this
             link — they sign in with that email to join.
           </p>
@@ -168,7 +168,7 @@ function InviteForm({
             <input
               readOnly
               value={inviteLink(created.token)}
-              className="min-w-0 flex-1 truncate rounded-[var(--radius)] border border-line bg-surface px-3 py-2 text-[12px] text-muted"
+              className="min-w-0 flex-1 truncate rounded-[var(--radius)] border border-line bg-surface px-3 py-2 text-[13px] text-muted"
               onFocus={(e) => e.currentTarget.select()}
             />
             <Button variant="secondary" size="sm" onClick={copy} type="button">
@@ -233,15 +233,15 @@ function MembersCard({
         const canChangeRole = isOwner && !m.isYou;
         return (
           <div key={m.userId} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[13px] font-semibold uppercase text-brand">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[14px] font-semibold uppercase text-brand">
               {(m.name || m.email).slice(0, 1)}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] font-medium text-ink">
+              <p className="truncate text-[15px] font-medium text-ink">
                 {m.name || m.email}
-                {m.isYou && <span className="ml-2 text-[12px] font-normal text-faint">You</span>}
+                {m.isYou && <span className="ml-2 text-[13px] font-normal text-faint">You</span>}
               </p>
-              {m.name && <p className="truncate text-[12.5px] text-muted">{m.email}</p>}
+              {m.name && <p className="truncate text-[13px] text-muted">{m.email}</p>}
             </div>
 
             {canChangeRole ? (
@@ -249,7 +249,7 @@ function MembersCard({
                 value={m.role}
                 disabled={busyId === m.userId}
                 onChange={(e) => changeRole(m, e.target.value as Role)}
-                className="h-8 rounded-[var(--radius)] border border-line bg-surface px-2 text-[12px] text-ink outline-none focus:border-brand disabled:opacity-50"
+                className="h-8 rounded-[var(--radius)] border border-line bg-surface px-2 text-[13px] text-ink outline-none focus:border-brand disabled:opacity-50"
               >
                 <option value="OWNER">Owner</option>
                 <option value="ADMIN">Admin</option>
@@ -315,8 +315,8 @@ function InvitesCard({
       {invites.map((inv) => (
         <div key={inv.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-medium text-ink">{inv.email}</p>
-            <p className="text-[12.5px] text-muted">Expires {fmtDate(inv.expiresAt)}</p>
+            <p className="truncate text-[15px] font-medium text-ink">{inv.email}</p>
+            <p className="text-[13px] text-muted">Expires {fmtDate(inv.expiresAt)}</p>
           </div>
           <RoleBadge role={inv.role} />
           <Button variant="secondary" size="sm" onClick={() => copy(inv)}>

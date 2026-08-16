@@ -106,7 +106,7 @@ export default function SettingsPage() {
       {/* AR button branding */}
       <Card className="p-5">
         <h2 className="text-sm font-semibold text-ink">AR button appearance</h2>
-        <p className="mt-1 text-[13px] text-muted">
+        <p className="mt-1 text-[14px] text-muted">
           Match the “View in your room” button to your storefront. Leave defaults for the standard
           Rekaman look.
         </p>
@@ -149,7 +149,7 @@ export default function SettingsPage() {
           </Field>
 
           <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-[13px] font-medium text-ink">Shape</label>
+            <label className="mb-1.5 block text-[14px] font-medium text-ink">Shape</label>
             <div className="inline-flex rounded-[var(--radius)] border border-line p-0.5">
               {STYLES.map((s) => (
                 <button
@@ -157,7 +157,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setStyle(s)}
                   className={cn(
-                    'rounded-[7px] px-4 py-1.5 text-[13px] font-medium capitalize transition-colors',
+                    'rounded-[7px] px-4 py-1.5 text-[14px] font-medium capitalize transition-colors',
                     style === s ? 'bg-brand text-brand-fg' : 'text-muted hover:text-ink',
                   )}
                 >
@@ -175,7 +175,7 @@ export default function SettingsPage() {
           <Button variant="ghost" onClick={resetDefaults}>
             Reset to default
           </Button>
-          {saved && <span className="text-[13px] font-medium text-success">Saved ✓</span>}
+          {saved && <span className="text-[14px] font-medium text-success">Saved ✓</span>}
         </div>
       </Card>
     </div>

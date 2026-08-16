@@ -27,7 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <h2 className="mt-8 max-w-md text-3xl font-semibold leading-tight text-white">
             AR for your product pages — in minutes, not months.
           </h2>
-          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-sidebar-muted">
+          <p className="mt-4 max-w-md text-[16px] leading-relaxed text-sidebar-muted">
             Upload photos, our AI builds the 3D model, and shoppers see your products in their
             room. Works on any store, no app download.
           </p>

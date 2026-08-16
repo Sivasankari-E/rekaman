@@ -56,7 +56,7 @@
     background: var(--canvas);
     color: var(--ink);
     font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.55;
   }
   ::selection {

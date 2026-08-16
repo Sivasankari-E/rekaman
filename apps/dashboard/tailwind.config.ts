@@ -43,6 +43,15 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
+      // Enlarged for readability (Aug 2026): xs 12→13, sm 14→15, base 15→16.
+      // Overriding here lifts every text-xs/text-sm/text-base usage at once,
+      // so the UI reads less cramped without touching each component. Heading
+      // sizes (lg/xl/2xl/3xl) keep Tailwind defaults.
+      fontSize: {
+        xs: ['13px', { lineHeight: '1.45' }],
+        sm: ['15px', { lineHeight: '1.5' }],
+        base: ['16px', { lineHeight: '1.6' }],
+      },
       borderRadius: {
         DEFAULT: 'var(--radius)',
       },

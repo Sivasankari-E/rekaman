@@ -62,8 +62,13 @@ async function main() {
       console.log(`• ${plan.code} — already linked (${plan.razorpayPlanId}), skipping`);
       continue;
     }
-    // Enterprise/custom plans are often "contact sales" — skip anything with a
-    // 0/placeholder amount so we don't create a junk plan.
+    // Enterprise is "Contact sales" everywhere (matches the landing) — never
+    // auto-create a self-serve Razorpay plan for it, even though it has a
+    // concrete ₹ amount in the DB. Also skip any 0/placeholder-amount plan.
+    if (plan.tier === 'ENTERPRISE') {
+      console.log(`• ${plan.code} — ENTERPRISE tier, skipping (stays Contact sales)`);
+      continue;
+    }
     if (!plan.amountInPaise || plan.amountInPaise <= 0) {
       console.log(`• ${plan.code} — no positive amount, skipping (contact-sales plan)`);
       continue;

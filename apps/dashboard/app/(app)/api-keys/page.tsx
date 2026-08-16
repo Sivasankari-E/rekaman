@@ -95,7 +95,7 @@ export default function ApiKeysPage() {
             For security we only show the full key once. Store it safely.
           </p>
           <div className="mt-3 flex items-center gap-2">
-            <code className="flex-1 truncate rounded-[var(--radius)] border border-line bg-surface px-3 py-2 font-mono text-[13px] text-ink">
+            <code className="flex-1 truncate rounded-[var(--radius)] border border-line bg-surface px-3 py-2 font-mono text-[14px] text-ink">
               {revealed.key}
             </code>
             <Button size="sm" variant="secondary" onClick={copyKey}>
@@ -113,7 +113,7 @@ export default function ApiKeysPage() {
         <Card className="p-4">
           <form onSubmit={onCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
-              <label className="mb-1.5 block text-[13px] font-medium text-ink">Key name (optional)</label>
+              <label className="mb-1.5 block text-[14px] font-medium text-ink">Key name (optional)</label>
               <Input
                 autoFocus
                 value={newName}
@@ -140,7 +140,7 @@ export default function ApiKeysPage() {
         ) : active.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <p className="text-sm font-medium text-ink">No API keys yet</p>
-            <p className="mt-1 text-[13px] text-muted">Create your first key to start embedding AR.</p>
+            <p className="mt-1 text-[14px] text-muted">Create your first key to start embedding AR.</p>
           </div>
         ) : (
           <div className="divide-y divide-line">
@@ -159,13 +159,13 @@ export default function ApiKeysPage() {
                   <p className="truncate text-sm font-medium text-ink">{k.name || 'Untitled key'}</p>
                   <code className="font-mono text-xs text-muted">{k.prefix}…</code>
                 </div>
-                <span className="text-[13px] text-muted sm:text-center">{fmtDate(k.createdAt)}</span>
-                <span className="text-[13px] text-muted sm:text-center">{fmtDate(k.lastUsedAt)}</span>
+                <span className="text-[14px] text-muted sm:text-center">{fmtDate(k.createdAt)}</span>
+                <span className="text-[14px] text-muted sm:text-center">{fmtDate(k.lastUsedAt)}</span>
                 <button
                   onClick={() => onRevoke(k.id)}
                   disabled={revoking === k.id}
                   className={cn(
-                    'justify-self-start rounded-[var(--radius)] px-2.5 py-1 text-[13px] font-medium text-danger hover:bg-danger/5 sm:justify-self-end',
+                    'justify-self-start rounded-[var(--radius)] px-2.5 py-1 text-[14px] font-medium text-danger hover:bg-danger/5 sm:justify-self-end',
                     revoking === k.id && 'opacity-60',
                   )}
                 >

@@ -38,7 +38,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {STATS.map((s) => (
           <Card key={s.label} className="p-4">
-            <p className="text-[13px] text-muted">{s.label}</p>
+            <p className="text-[14px] text-muted">{s.label}</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-ink">{s.value}</p>
             <p className="mt-1 text-xs text-faint">{s.hint}</p>
           </Card>
@@ -56,7 +56,7 @@ export default function DashboardHome() {
                   {i + 1}
                 </span>
                 <h3 className="mt-3 text-sm font-semibold text-ink">{step.title}</h3>
-                <p className="mt-1 text-[13px] leading-relaxed text-muted">{step.body}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-muted">{step.body}</p>
               </Card>
             </Link>
           ))}
