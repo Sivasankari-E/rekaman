@@ -100,6 +100,20 @@ router.post('/logout', (_req, res) => {
   res.json({ ok: true });
 });
 
+/**
+ * POST /v1/auth/switch-brand/:brandId — re-issue the auth cookie scoped to
+ * another brand the caller belongs to. Membership is verified in the service.
+ */
+router.post(
+  '/switch-brand/:brandId',
+  requireAuth,
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = await authService.switchBrand(req.auth!.userId, String(req.params.brandId));
+    setAuthCookie(res, result.token);
+    res.json(result);
+  }),
+);
+
 router.get(
   '/me',
   requireAuth,

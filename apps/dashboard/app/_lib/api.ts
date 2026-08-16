@@ -77,6 +77,9 @@ export const auth = {
     apiFetch<AuthResponse>('/v1/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   me: () => apiFetch<MeResponse>('/v1/auth/me', { method: 'GET' }),
   logout: () => apiFetch<{ ok: boolean }>('/v1/auth/logout', { method: 'POST' }),
+  // Re-issues the auth cookie scoped to another brand the user belongs to.
+  switchBrand: (brandId: string) =>
+    apiFetch<AuthResponse>(`/v1/auth/switch-brand/${brandId}`, { method: 'POST' }),
 };
 
 // ── API keys ──

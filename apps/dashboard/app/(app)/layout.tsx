@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../_components/Logo';
 import { ProfileMenu } from '../_components/ProfileMenu';
+import { BrandSwitcher } from '../_components/BrandSwitcher';
 import { Spinner, cn } from '../_components/ui';
 import { auth, type MeResponse } from '../_lib/api';
 
@@ -58,7 +59,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const brandName = me.memberships[0]?.brandName ?? 'Your brand';
+  const brandName =
+    me.memberships.find((m) => m.brandId === me.activeBrandId)?.brandName ??
+    me.memberships[0]?.brandName ??
+    'Your brand';
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[248px_1fr]">
@@ -92,9 +96,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="border-t border-white/10 px-4 py-4">
-          <p className="truncate text-sm font-medium text-sidebar-fg">{brandName}</p>
-          <p className="truncate text-xs text-sidebar-muted">{me.user.email}</p>
+        <div className="border-t border-white/10 px-3 py-3">
+          <BrandSwitcher memberships={me.memberships} activeBrandId={me.activeBrandId} />
         </div>
       </aside>
 

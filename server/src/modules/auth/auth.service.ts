@@ -8,6 +8,7 @@ import {
   EmailAlreadyExistsError,
   InvalidCredentialsError,
   ValidationError,
+  ForbiddenError,
 } from '../../shared/errors.js';
 import type {
   SignupInput,
@@ -199,5 +200,25 @@ export const authService = {
         role: m.role,
       })),
     };
+  },
+
+  /**
+   * Switch the active brand — issues a fresh JWT scoped to `targetBrandId`.
+   * The user must be a member of that brand (else ForbiddenError). The route
+   * sets the new cookie so subsequent requests are scoped to the new brand.
+   */
+  async switchBrand(userId: string, targetBrandId: string): Promise<AuthResponse> {
+    const membership = await authRepository.findMembership(userId, targetBrandId);
+    if (!membership) {
+      throw new ForbiddenError('You are not a member of that brand');
+    }
+    const user = await authRepository.findUserById(userId);
+    if (!user) throw new InvalidCredentialsError();
+
+    return buildAuthResponse(
+      { id: user.id, email: user.email, name: user.name, isSuperAdmin: user.isSuperAdmin },
+      membership.brand,
+      membership.role,
+    );
   },
 };
