@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { auth, token, ApiError } from '../../_lib/api';
+import { auth, ApiError } from '../../_lib/api';
 import { Button, Input, Field, Alert } from '../../_components/ui';
 
 export default function SignupPage() {
@@ -19,12 +19,12 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await auth.signup({
+      // Sets the httpOnly rk_auth cookie; nothing to persist client-side.
+      await auth.signup({
         companyName: companyName.trim(),
         email: email.trim(),
         password,
       });
-      token.set(res.token);
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');

@@ -2,21 +2,16 @@
  * Thin client for the Rekaman API. Base URL is configurable so local dev can
  * point at staging (set NEXT_PUBLIC_API_BASE in .env.local); defaults to prod.
  *
- * Auth: the API issues a JWT (and sets an httpOnly cookie). For this dashboard
- * scaffold we also keep the token in localStorage and send it as a Bearer
- * header — simplest correct approach for a separate-origin SPA. Hardening to
- * pure httpOnly cookies (SameSite=None + credentials) is a later step.
+ * Auth: cookie-only. The API issues the JWT as an httpOnly `rk_auth` cookie on
+ * login/signup and clears it on logout; every request here sends
+ * `credentials: 'include'` so the browser attaches it. The token is NEVER
+ * stored in JS-readable storage — httpOnly means an XSS payload can't exfiltrate
+ * it. Client-side auth gating goes through `auth.me()` (401 → redirect to login),
+ * not a readable token. CSRF is covered by the strict CORS whitelist +
+ * JSON-body mutations (which force a preflight).
  */
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') ?? 'https://api.rekaman.io';
-
-const TOKEN_KEY = 'rk_token';
-
-export const token = {
-  get: (): string | null => (typeof window === 'undefined' ? null : localStorage.getItem(TOKEN_KEY)),
-  set: (t: string) => localStorage.setItem(TOKEN_KEY, t),
-  clear: () => localStorage.removeItem(TOKEN_KEY),
-};
 
 export class ApiError extends Error {
   constructor(
@@ -30,14 +25,15 @@ export class ApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const t = token.get();
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
-  if (t) headers.set('Authorization', `Bearer ${t}`);
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+    // credentials:'include' sends the httpOnly rk_auth cookie cross-origin
+    // (dashboard ↔ api). The API's CORS reflects the specific origin + sets
+    // Allow-Credentials, so this is accepted.
+    res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'include' });
   } catch {
     throw new ApiError('Network error — please check your connection.', 0);
   }
@@ -80,6 +76,7 @@ export const auth = {
   login: (input: { email: string; password: string }) =>
     apiFetch<AuthResponse>('/v1/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   me: () => apiFetch<MeResponse>('/v1/auth/me', { method: 'GET' }),
+  logout: () => apiFetch<{ ok: boolean }>('/v1/auth/logout', { method: 'POST' }),
 };
 
 // ── API keys ──
@@ -202,14 +199,15 @@ export const products = {
  * multipart boundary itself — we only add Authorization).
  */
 export async function uploadProductPhoto(productId: string, file: File): Promise<string> {
-  const t = token.get();
   const form = new FormData();
   form.append('file', file);
   let res: Response;
   try {
+    // No Content-Type header — the browser sets the multipart boundary itself.
+    // credentials:'include' carries the auth cookie.
     res = await fetch(`${API_BASE}/v1/products/${encodeURIComponent(productId)}/photos`, {
       method: 'POST',
-      headers: t ? { Authorization: `Bearer ${t}` } : undefined,
+      credentials: 'include',
       body: form,
     });
   } catch {

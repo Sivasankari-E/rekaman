@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '../_components/Logo';
 import { ProfileMenu } from '../_components/ProfileMenu';
 import { Spinner, cn } from '../_components/ui';
-import { auth, token, type MeResponse } from '../_lib/api';
+import { auth, type MeResponse } from '../_lib/api';
 
 const NAV: Array<{ label: string; href: string; icon: React.ReactNode }> = [
   { label: 'Dashboard', href: '/dashboard', icon: <IconGrid /> },
@@ -25,10 +25,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (!token.get()) {
-      router.replace('/login');
-      return;
-    }
+    // Cookie-only auth: no readable token to pre-check. Ask the API who we are;
+    // a 401 (no/invalid cookie) sends us to login.
     auth
       .me()
       .then((res) => {
@@ -36,7 +34,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         setReady(true);
       })
       .catch(() => {
-        token.clear();
         router.replace('/login');
       });
   }, [router]);
@@ -45,7 +42,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => setMobileOpen(false), [pathname]);
 
   function logout() {
-    token.clear();
+    // Clear the httpOnly cookie server-side, then leave — redirect regardless
+    // of the request outcome so a network blip can't trap the user signed-in.
+    void auth.logout().catch(() => {});
     router.replace('/login');
   }
 

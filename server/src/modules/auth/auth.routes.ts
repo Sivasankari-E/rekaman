@@ -26,27 +26,40 @@ const GoogleSchema = z.object({
   idToken: z.string().min(10).max(2048),
 });
 
-function setAuthCookie(res: Response, token: string) {
+/**
+ * Cookie attributes shared by set + clear (they MUST match — path/domain/
+ * sameSite/secure are part of a cookie's identity, so clearCookie only removes
+ * it when they line up).
+ *
+ * SameSite:
+ *  - Production: dashboard.rekaman.io ↔ api.rekaman.io are same-site (same
+ *    registrable domain rekaman.io), so `lax` sends the cookie on the
+ *    dashboard's credentialed fetches AND resists CSRF from third-party sites.
+ *  - Staging: the dashboard is developed on http://localhost against the
+ *    staging api (*.up.railway.app) — that's cross-site, where `lax` won't
+ *    send the cookie. `none` is required, and it's only valid with Secure,
+ *    which holds because staging runs NODE_ENV=production.
+ *  - Local http api: `lax` (Secure is off, so `none` would be rejected).
+ */
+function cookieBaseOptions() {
   const env = getEnv();
-  res.cookie('rk_auth', token, {
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+  const secure = env.NODE_ENV === 'production';
+  const sameSite: 'lax' | 'none' = secure && env.APP_ENV === 'staging' ? 'none' : 'lax';
+  return {
+    httpOnly: true as const,
+    secure,
+    sameSite,
     domain: env.COOKIE_DOMAIN || undefined,
     path: '/',
-  });
+  };
+}
+
+function setAuthCookie(res: Response, token: string) {
+  res.cookie('rk_auth', token, { ...cookieBaseOptions(), maxAge: 7 * 24 * 60 * 60 * 1000 });
 }
 
 function clearAuthCookie(res: Response) {
-  const env = getEnv();
-  res.clearCookie('rk_auth', {
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    domain: env.COOKIE_DOMAIN || undefined,
-    path: '/',
-  });
+  res.clearCookie('rk_auth', cookieBaseOptions());
 }
 
 router.post(
