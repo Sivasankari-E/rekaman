@@ -9,7 +9,9 @@ import { logger } from '../logger.js';
  * is down. When RESEND_API_KEY is unset we log the intended email at warn level
  * so the founder can still operate/test before wiring the key.
  */
-const DEFAULT_FROM = 'Rekaman <founder@rekaman.io>';
+// Dedicated transactional sender (a Google Workspace alias routing to the
+// founder inbox) — never the personal founder@ address. Overridable via RESEND_FROM.
+const DEFAULT_FROM = 'Rekaman <support@rekaman.io>';
 
 export async function sendEmail(input: {
   to: string;
