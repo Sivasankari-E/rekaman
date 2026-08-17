@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Hero3D } from './_components/Hero3D';
 import { Reveal } from './_components/Reveal';
+import { Faq } from './_components/Faq';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://rekaman.io' },
@@ -22,6 +23,8 @@ export default function HomePage() {
       <Features />
       <HowItWorks />
       <Pricing />
+      <FaqSection />
+      <About />
       <BookDemo />
       <Footer />
     </main>
@@ -48,6 +51,7 @@ function TopDark() {
           <nav className="hidden items-center gap-1 md:flex">
             <a href="#how" className="rounded-md px-3 py-2 text-[14px] font-medium text-navy-fg/80 hover:text-white">How it works</a>
             <a href="#pricing" className="rounded-md px-3 py-2 text-[14px] font-medium text-navy-fg/80 hover:text-white">Pricing</a>
+            <a href="#faq" className="rounded-md px-3 py-2 text-[14px] font-medium text-navy-fg/80 hover:text-white">FAQ</a>
             <a href={DEMO_URL} target="_blank" rel="noopener noreferrer" className="rounded-md px-3 py-2 text-[14px] font-medium text-navy-fg/80 hover:text-white">Live demo</a>
           </nav>
           <a href={ONBOARD} className="btn-primary px-4 py-2 text-[14px]">Book a demo</a>
@@ -374,6 +378,53 @@ function Price({ name, price, period, tagline, features, highlighted }: { name: 
         {name === 'Enterprise' ? 'Contact sales' : 'Book a demo'}
       </a>
     </div>
+  );
+}
+
+/* ─────────────── FAQ ─────────────── */
+function FaqSection() {
+  return (
+    <section id="faq" className="border-y border-line bg-surface-2">
+      <div className="container-wide py-16 lg:py-24">
+        <Reveal>
+          <p className="eyebrow">FAQ</p>
+          <h2 className="mt-3 max-w-2xl text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[38px]">
+            Questions, answered.
+          </h2>
+        </Reveal>
+        <Reveal delay={80}>
+          <Faq />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────── ABOUT / FOUNDER ─────────────── */
+function About() {
+  return (
+    <section className="bg-canvas">
+      <div className="container-wide py-16 lg:py-24">
+        <Reveal className="mx-auto max-w-3xl rounded-[2rem] border border-line bg-surface p-8 shadow-card sm:p-12">
+          <p className="eyebrow">Built in Tamil Nadu</p>
+          <blockquote className="mt-4 text-[20px] font-medium leading-relaxed tracking-[-0.01em] text-ink sm:text-[26px]">
+            “I got tired of watching Indian brands lose a quarter of their orders to
+            returns — shoppers just couldn’t tell if a product would fit. So I built
+            Rekaman: <span className="text-gradient">photo-to-AR in 90 seconds</span>, at a
+            price a small store can actually afford.”
+          </blockquote>
+          <div className="mt-7 flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-[17px] font-semibold text-white">
+              S
+            </span>
+            <div>
+              <p className="text-[15px] font-semibold text-ink">Sivasankari</p>
+              <p className="text-[13px] text-muted">Founder, Rekaman · reachable on WhatsApp</p>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
   );
 }
 

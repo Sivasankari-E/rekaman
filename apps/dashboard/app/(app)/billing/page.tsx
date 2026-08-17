@@ -25,6 +25,37 @@ const STATUS_STYLE: Record<string, string> = {
   EXPIRED: 'bg-surface-2 text-muted',
 };
 
+// Internal feature codes → readable labels (matches the landing site).
+const FEATURE_LABELS: Record<string, string> = {
+  basic_analytics: 'Basic analytics',
+  email_support: 'Email support',
+  full_analytics: 'Full analytics',
+  roi_calculator: 'ROI dashboard',
+  shopify_app: 'Shopify app',
+  white_label_sdk: 'White-label SDK',
+  dedicated_support: 'Dedicated support',
+  sla: 'Priority SLA',
+};
+function featureLabel(code: string): string {
+  return FEATURE_LABELS[code] ?? code.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+}
+function planName(displayName: string): string {
+  return displayName.replace(/\s*\(monthly\)/i, '').trim();
+}
+const TAGLINE: Record<string, string> = {
+  STARTER: 'For getting started',
+  PRO: 'For brands ready to scale',
+  ENTERPRISE: 'Large catalogs & custom needs',
+};
+
+function Check() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-brand" aria-hidden>
+      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function BillingPage() {
   const [sub, setSub] = useState<{ subscription: SubscriptionView | null; plan: BillingPlan | null } | null>(null);
   const [plans, setPlans] = useState<BillingPlan[] | null>(null);
@@ -130,59 +161,83 @@ export default function BillingPage() {
           )}
 
           {/* Plans */}
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid items-stretch gap-5 md:grid-cols-3">
             {plans!.map((plan) => {
               const isCurrent = plan.id === currentPlanId && hasActive;
+              const isEnterprise = plan.tier === 'ENTERPRISE';
+              const popular = plan.tier === 'PRO';
+              const unlimited = plan.productLimit >= 999999;
+              const limitsLine = unlimited
+                ? 'Unlimited products & sessions'
+                : `${plan.productLimit} products · ${plan.sessionLimit.toLocaleString('en-IN')} AR sessions/mo`;
+              const featureItems = [limitsLine, 'AI 3D generation', ...plan.features.map(featureLabel)];
               return (
-                <Card key={plan.id} className={cn('flex flex-col p-5', isCurrent && 'border-brand')}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[16px] font-semibold text-ink">{plan.displayName}</p>
-                    {isCurrent && (
-                      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[12px] font-semibold text-brand">
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-ink">
-                      {plan.amountInPaise > 0 ? inr(plan.amountInPaise) : 'Custom'}
+                <div
+                  key={plan.id}
+                  className={cn(
+                    'relative flex flex-col rounded-2xl border bg-surface p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-pop',
+                    popular ? 'border-brand shadow-pop md:-translate-y-1' : 'border-line shadow-card',
+                    isCurrent && 'ring-2 ring-brand',
+                  )}
+                >
+                  {popular && !isCurrent && (
+                    <span className="absolute right-5 top-5 rounded-full bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
+                      Popular
                     </span>
-                    {plan.amountInPaise > 0 && (
+                  )}
+                  {isCurrent && (
+                    <span className="absolute right-5 top-5 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-fg">
+                      Current
+                    </span>
+                  )}
+
+                  <p className="text-[17px] font-semibold text-ink">{planName(plan.displayName)}</p>
+                  <p className="text-[13px] text-muted">{TAGLINE[plan.tier] ?? ''}</p>
+
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold tracking-tight text-ink">
+                      {isEnterprise ? 'Custom' : inr(plan.amountInPaise)}
+                    </span>
+                    {!isEnterprise && (
                       <span className="text-[14px] text-muted">
                         /{plan.billingPeriod === 'YEARLY' ? 'yr' : 'mo'}
                       </span>
                     )}
                   </div>
-                  <ul className="mt-4 flex-1 space-y-2 text-[14px] text-muted">
-                    <li>{plan.productLimit.toLocaleString('en-IN')} products</li>
-                    <li>{plan.sessionLimit.toLocaleString('en-IN')} AR sessions/mo</li>
-                    {plan.features.slice(0, 4).map((f) => (
-                      <li key={f}>{f}</li>
+
+                  <ul className="mt-5 flex-1 space-y-2.5 text-[14px]">
+                    {featureItems.map((f, i) => (
+                      <li key={f + i} className="flex items-start gap-2.5 text-ink">
+                        <Check />
+                        <span>{f}</span>
+                      </li>
                     ))}
                   </ul>
-                  <div className="mt-5">
+
+                  <div className="mt-6">
                     {isCurrent ? (
                       <Button variant="secondary" disabled className="w-full">
                         Current plan
                       </Button>
-                    ) : plan.subscribable ? (
+                    ) : isEnterprise || !plan.subscribable ? (
+                      <a
+                        href="mailto:founder@rekaman.io?subject=Rekaman%20plan%20enquiry"
+                        className="block w-full rounded-[var(--radius)] border border-line-2 bg-surface py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-surface-2"
+                      >
+                        Contact sales
+                      </a>
+                    ) : (
                       <Button
                         className="w-full"
+                        variant={popular ? 'primary' : 'secondary'}
                         loading={busyPlan === plan.id}
                         onClick={() => subscribe(plan)}
                       >
                         {hasActive ? 'Switch to this' : 'Subscribe'}
                       </Button>
-                    ) : (
-                      <a
-                        href="mailto:founder@rekaman.io?subject=Enterprise%20plan"
-                        className="block w-full rounded-[var(--radius)] border border-line bg-surface py-2 text-center text-[15px] font-medium text-ink hover:bg-surface-2"
-                      >
-                        Contact sales
-                      </a>
                     )}
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
