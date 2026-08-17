@@ -63,6 +63,7 @@ export default function BillingPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   async function load() {
     try {
@@ -160,50 +161,55 @@ export default function BillingPage() {
             </Card>
           )}
 
-          {/* Plans */}
-          <div className="grid items-stretch gap-5 md:grid-cols-3">
-            {plans!.map((plan) => {
-              const isCurrent = plan.id === currentPlanId && hasActive;
-              const isEnterprise = plan.tier === 'ENTERPRISE';
-              const popular = plan.tier === 'PRO';
-              const unlimited = plan.productLimit >= 999999;
-              const limitsLine = unlimited
-                ? 'Unlimited products & sessions'
-                : `${plan.productLimit} products · ${plan.sessionLimit.toLocaleString('en-IN')} AR sessions/mo`;
-              const featureItems = [limitsLine, 'AI 3D generation', ...plan.features.map(featureLabel)];
-              return (
-                <div
-                  key={plan.id}
-                  className={cn(
-                    'relative flex flex-col rounded-2xl border bg-surface p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-pop',
-                    popular ? 'border-brand shadow-pop md:-translate-y-1' : 'border-line shadow-card',
-                    isCurrent && 'ring-2 ring-brand',
-                  )}
-                >
-                  {popular && !isCurrent && (
-                    <span className="absolute right-5 top-5 rounded-full bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
-                      Popular
-                    </span>
-                  )}
-                  {isCurrent && (
-                    <span className="absolute right-5 top-5 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-fg">
-                      Current
-                    </span>
-                  )}
+          {/* Plans — the emphasis (brand border + lift) follows the pointer,
+              defaulting to the Pro tier at rest. */}
+          <div
+            className="grid items-stretch gap-5 md:grid-cols-3"
+            onMouseLeave={() => setHovered(null)}
+          >
+            {(() => {
+              const proIdx = Math.max(0, plans!.findIndex((p) => p.tier === 'PRO'));
+              const activeIdx = hovered ?? proIdx;
+              return plans!.map((plan, idx) => {
+                const isCurrent = plan.id === currentPlanId && hasActive;
+                const isEnterprise = plan.tier === 'ENTERPRISE';
+                const active = idx === activeIdx;
+                const unlimited = plan.productLimit >= 999999;
+                const limitsLine = unlimited
+                  ? 'Unlimited products & sessions'
+                  : `${plan.productLimit} products · ${plan.sessionLimit.toLocaleString('en-IN')} AR sessions/mo`;
+                const featureItems = [limitsLine, 'AI 3D generation', ...plan.features.map(featureLabel)];
+                return (
+                  <div
+                    key={plan.id}
+                    onMouseEnter={() => setHovered(idx)}
+                    className={cn(
+                      'relative flex flex-col rounded-2xl border bg-surface p-6 transition-all duration-300 ease-out',
+                      active ? '-translate-y-1.5 border-brand shadow-pop' : 'border-line shadow-card',
+                      isCurrent && 'ring-2 ring-brand',
+                    )}
+                  >
+                    {plan.tier === 'PRO' && !isCurrent && (
+                      <span className="absolute right-5 top-5 rounded-full bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
+                        Popular
+                      </span>
+                    )}
+                    {isCurrent && (
+                      <span className="absolute right-5 top-5 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-fg">
+                        Current
+                      </span>
+                    )}
 
-                  <p className="text-[17px] font-semibold text-ink">{planName(plan.displayName)}</p>
-                  <p className="text-[13px] text-muted">{TAGLINE[plan.tier] ?? ''}</p>
+                    <p className="text-[17px] font-semibold text-ink">{planName(plan.displayName)}</p>
+                    <p className="text-[13px] text-muted">{TAGLINE[plan.tier] ?? ''}</p>
 
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold tracking-tight text-ink">
-                      {isEnterprise ? 'Custom' : inr(plan.amountInPaise)}
-                    </span>
-                    {!isEnterprise && (
+                    <div className="mt-4 flex items-baseline gap-1.5">
+                      {isEnterprise && <span className="text-[14px] font-medium text-muted">From</span>}
+                      <span className="text-3xl font-bold tracking-tight text-ink">{inr(plan.amountInPaise)}</span>
                       <span className="text-[14px] text-muted">
                         /{plan.billingPeriod === 'YEARLY' ? 'yr' : 'mo'}
                       </span>
-                    )}
-                  </div>
+                    </div>
 
                   <ul className="mt-5 flex-1 space-y-2.5 text-[14px]">
                     {featureItems.map((f, i) => (
@@ -229,7 +235,7 @@ export default function BillingPage() {
                     ) : (
                       <Button
                         className="w-full"
-                        variant={popular ? 'primary' : 'secondary'}
+                        variant={active ? 'primary' : 'secondary'}
                         loading={busyPlan === plan.id}
                         onClick={() => subscribe(plan)}
                       >
@@ -238,8 +244,9 @@ export default function BillingPage() {
                     )}
                   </div>
                 </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
 
           {/* Invoices */}
