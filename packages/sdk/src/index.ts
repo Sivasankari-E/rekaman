@@ -364,8 +364,11 @@ async function handle3DButtonClick(
 }
 
 function scan() {
+  // Match any embed that carries a product slug; mount() validates that it also
+  // has an identifier (data-rk-key for brand pages OR data-rk-brand for keyless
+  // hosted-viewer / share embeds) and warns if neither is present.
   const elements = document.querySelectorAll<HTMLElement>(
-    '[data-rk-product][data-rk-key]:not([data-rk-mounted])',
+    '[data-rk-product]:not([data-rk-mounted])',
   );
   elements.forEach((el) => mount(el));
 }
