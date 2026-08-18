@@ -7,3 +7,4 @@
 declare const __SDK_VERSION__: string;
 declare const __API_BASE__: string;
 declare const __CDN_BASE__: string;
+declare const __SITE_BASE__: string;

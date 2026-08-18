@@ -28,6 +28,11 @@ const sharedConfig: esbuild.BuildOptions = {
     __CDN_BASE__: JSON.stringify(
       process.env.SDK_CDN_BASE ?? 'http://localhost:8080',
     ),
+    // Marketing site host — serves the hosted viewer (/v/...) + the /qr endpoint
+    // used by the desktop "View in your room" QR fallback.
+    __SITE_BASE__: JSON.stringify(
+      process.env.SDK_SITE_BASE ?? 'http://localhost:3001',
+    ),
   },
 };
 

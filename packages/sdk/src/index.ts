@@ -1,8 +1,9 @@
 import { fetchProduct, type ProductData } from './api-client.js';
 import { initAnalytics, track } from './analytics.js';
-import { detectPlatform, type Platform } from './platform-detect.js';
+import { detectPlatform, detectDeviceType, type Platform } from './platform-detect.js';
 import { launchIosQuickLook, launchArExperience, launchProductViewer3D } from './ar-launcher.js';
 import { injectButton } from './ui.js';
+import { showQrModal } from './qr-modal.js';
 
 // __SDK_VERSION__ is declared globally in src/globals.d.ts.
 
@@ -95,6 +96,12 @@ async function mount(container: HTMLElement) {
     // iPhone whose browser reported no AR support showed nothing, even though
     // the 3D viewer would have worked fine. (Bug fixed July 2026.)
     const arSupported = platform === 'webxr' || platform === 'ios-quicklook';
+    const deviceType = detectDeviceType();
+    // The primary button is the "room" button (AR launch OR desktop QR) on
+    // AR-capable devices and on desktop; only a bare "View in 3D" on the rare
+    // mobile-without-AR case. Used below to decide whether a brand's custom
+    // label / a non-placement arMode label should apply.
+    const roomButton = arSupported || deviceType === 'desktop';
 
     if (arSupported) {
       // Primary = AR "View in your room"; secondary = "View in 3D".
@@ -109,10 +116,23 @@ async function mount(container: HTMLElement) {
           onClick: () => handle3DButtonClick(instance),
         },
       });
+    } else if (deviceType === 'desktop') {
+      // Desktop/laptop: no in-browser camera-AR. "View in your room" opens a
+      // QR of the product's hosted-viewer URL — the shopper scans it and
+      // continues in AR on their phone (the IKEA/Wayfair pattern). "View in
+      // 3D" still orbits the model right here in the browser.
+      instance.buttonHandle = injectButton(container, {
+        label: getButtonLabel('placement'),
+        onClick: () => handleDesktopQr(instance),
+        secondary: {
+          label: 'View in 3D',
+          onClick: () => handle3DButtonClick(instance),
+        },
+      });
     } else {
-      // No AR on this device (desktop, or an iOS browser without AR Quick
-      // Look). Promote "View in 3D" to the sole primary button (cube icon).
-      // Fully functional — orbit/zoom the model in the 3D viewer chunk.
+      // Mobile browser that reports no AR support (rare) — promote "View in
+      // 3D" to the sole primary button (cube icon). A QR is pointless here:
+      // they're already on the phone.
       instance.buttonHandle = injectButton(container, {
         label: 'View in 3D',
         primaryIcon: 'cube',
@@ -140,7 +160,7 @@ async function mount(container: HTMLElement) {
         // from what's already painted ("View in your room"). Skip entirely
         // when AR is unsupported — that button says "View in 3D" and must
         // not be relabelled to an AR label.
-        if (arSupported) {
+        if (roomButton) {
           const desiredLabel =
             product.brand.theme?.buttonLabel ?? getButtonLabel(product.arMode);
           if (desiredLabel !== getButtonLabel('placement')) {
@@ -159,6 +179,27 @@ async function mount(container: HTMLElement) {
     });
     console.warn('[Rekaman] failed to initialize', err);
   }
+}
+
+/**
+ * Desktop "View in your room" — show a QR of the product's hosted-viewer URL
+ * so the shopper can continue in AR on their phone. No product fetch needed
+ * (apiKey + slug are known at mount), so this works instantly even before the
+ * product resolves; the modal enriches with the product name/brand colour if
+ * they've landed.
+ */
+function handleDesktopQr(instance: MountedInstance) {
+  const hostedUrl = `${__SITE_BASE__}/v/${encodeURIComponent(instance.apiKey)}/${encodeURIComponent(instance.productSlug)}`;
+  track('ar_qr_shown', {
+    productSlug: instance.productSlug,
+    arMode: instance.product?.arMode,
+    payload: { platform: 'desktop' },
+  });
+  showQrModal({
+    hostedUrl,
+    productName: instance.product?.name,
+    primaryColor: instance.product?.brand.theme?.primaryColor ?? undefined,
+  });
 }
 
 function getButtonLabel(arMode: string): string {
