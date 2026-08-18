@@ -194,13 +194,17 @@ export const products = {
       method: 'POST',
       body: JSON.stringify(input),
     }).then((r) => r.product),
-  // `config: {}` is sent so the server treats this as an explicit (re)generate —
-  // required to regenerate an already-READY product (the allowFromReady rule);
-  // harmless for a first generation (falls back to default generation config).
-  generate: (id: string, photoUrls: string[]) =>
+  // `config` is always sent so the server treats this as an explicit
+  // (re)generate — required to regenerate an already-READY product (the
+  // allowFromReady rule); harmless for a first generation.
+  //
+  // captureMode: 'single' (default) reconstructs from the best single photo
+  // with ultra fidelity — the right call for typical product images. 'multi'
+  // uses all photos, only better for a matched turntable-style angle set.
+  generate: (id: string, photoUrls: string[], captureMode: 'single' | 'multi' = 'single') =>
     apiFetch<{ status: string }>(`/v1/products/${id}/generate`, {
       method: 'POST',
-      body: JSON.stringify({ photoUrls, config: {} }),
+      body: JSON.stringify({ photoUrls, config: { captureMode } }),
     }),
   status: (id: string) =>
     apiFetch<GenerationStatus>(`/v1/products/${id}/generation-status`, { method: 'GET' }),

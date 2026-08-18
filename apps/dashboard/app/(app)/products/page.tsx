@@ -122,10 +122,10 @@ export default function ProductsPage() {
                 expanded={expanded === p.id}
                 onToggle={() => setExpanded(expanded === p.id ? null : p.id)}
                 onPreview={(glbUrl, name) => setPreview({ glbUrl, name })}
-                onGenerate={async (urls) => {
+                onGenerate={async (urls, captureMode) => {
                   setError(null);
                   try {
-                    await products.generate(p.id, urls);
+                    await products.generate(p.id, urls, captureMode);
                     patchProduct(p.id, { status: 'PROCESSING' });
                     startPolling(p.id);
                   } catch (err) {
@@ -139,8 +139,8 @@ export default function ProductsPage() {
       </Card>
 
       <p className="text-xs text-faint">
-        Tip: 2–4 clean angles (front, side, top) on a plain background produce the best 3D model.
-        The generated model appears here when ready (~90s).
+        Tip: one sharp, high-resolution photo on a plain background gives the best 3D model — the
+        AI fills in the unseen sides. The generated model appears here when ready (~90s).
       </p>
 
       {preview && (
@@ -234,11 +234,15 @@ function ProductRow({
   expanded: boolean;
   onToggle: () => void;
   onPreview: (glbUrl: string, name: string) => void;
-  onGenerate: (urls: string[]) => void;
+  onGenerate: (urls: string[], captureMode: 'single' | 'multi') => void;
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
+  // Multi-angle reconstruction: only offered (and only helps) with 2+ photos
+  // that are a MATCHED set — same object, consistent framing. Off by default;
+  // single-photo ultra is the safe, higher-quality path for typical images.
+  const [multiAngle, setMultiAngle] = useState(false);
   const dims =
     product.widthCm && product.heightCm
       ? `${product.widthCm}×${product.heightCm}${product.depthCm ? `×${product.depthCm}` : ''} cm`
@@ -274,7 +278,8 @@ function ProductRow({
       }
       setUploadMsg(null);
       setFiles([]);
-      onGenerate(urls);
+      // Multi only when the brand explicitly opted in AND actually gave a set.
+      onGenerate(urls, multiAngle && urls.length >= 2 ? 'multi' : 'single');
     } catch (err) {
       setUploadMsg(null);
       setUploadErr(err instanceof ApiError ? err.message : 'Upload failed.');
@@ -336,9 +341,15 @@ function ProductRow({
             </div>
           ) : (
             <div className="space-y-3">
-              <label className="block text-[14px] font-medium text-ink">
-                Product photos — 1–4 angles (front, side, and top work best)
-              </label>
+              <div>
+                <label className="block text-[14px] font-medium text-ink">
+                  Product photo — one sharp, high-resolution image works best
+                </label>
+                <p className="mt-1 text-xs text-muted">
+                  Use the full-size product image from your store (not a thumbnail), on a plain
+                  background. The AI intelligently fills in the sides you don&apos;t photograph.
+                </p>
+              </div>
 
               {files.length < 4 && (
                 <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line-2 bg-surface px-4 py-6 text-center transition-colors hover:border-brand/50">
@@ -388,6 +399,23 @@ function ProductRow({
                     </div>
                   ))}
                 </div>
+              )}
+
+              {files.length >= 2 && (
+                <label className="flex items-start gap-2.5 rounded-lg border border-line bg-surface px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={multiAngle}
+                    onChange={(e) => setMultiAngle(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
+                  />
+                  <span className="text-xs text-muted">
+                    <span className="font-medium text-ink">These are matched angles of the same product</span>{' '}
+                    (a clean turntable-style set — consistent distance &amp; lighting). We&apos;ll
+                    reconstruct the real sides from all photos. Leave this off for casual or
+                    mismatched shots — a single photo gives a cleaner model.
+                  </span>
+                </label>
               )}
 
               {uploadErr && <p className="text-xs text-danger">{uploadErr}</p>}
