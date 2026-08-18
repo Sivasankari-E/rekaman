@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   products,
+  auth,
   slugify,
   uploadProductPhoto,
   ApiError,
@@ -10,6 +11,7 @@ import {
 } from '../../_lib/api';
 import { Button, Card, Input, Field, Alert, Spinner, StatusBadge, cn } from '../../_components/ui';
 import { Model3DModal } from '../../_components/Model3DModal';
+import { ShareModal } from '../../_components/ShareModal';
 
 export default function ProductsPage() {
   const [list, setList] = useState<Product[] | null>(null);
@@ -17,6 +19,9 @@ export default function ProductsPage() {
   const [creating, setCreating] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ glbUrl: string; name: string } | null>(null);
+  const [share, setShare] = useState<{ slug: string; name: string } | null>(null);
+  // Brand slug for building keyless share links (rekaman.io/s/{brand}/{slug}).
+  const [brandSlug, setBrandSlug] = useState<string | null>(null);
   const polling = useRef<Set<string>>(new Set());
 
   async function load() {
@@ -31,6 +36,15 @@ export default function ProductsPage() {
   }
   useEffect(() => {
     void load();
+    // Resolve the active brand's slug for share links (best-effort).
+    auth
+      .me()
+      .then((me) => {
+        const active =
+          me.memberships.find((m) => m.brandId === me.activeBrandId) ?? me.memberships[0];
+        setBrandSlug(active?.brandSlug ?? null);
+      })
+      .catch(() => {});
     return () => polling.current.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -103,6 +117,8 @@ export default function ProductsPage() {
               <ProductRow
                 key={p.id}
                 product={p}
+                canShare={Boolean(brandSlug)}
+                onShare={() => setShare({ slug: p.slug, name: p.name })}
                 expanded={expanded === p.id}
                 onToggle={() => setExpanded(expanded === p.id ? null : p.id)}
                 onPreview={(glbUrl, name) => setPreview({ glbUrl, name })}
@@ -129,6 +145,14 @@ export default function ProductsPage() {
 
       {preview && (
         <Model3DModal glbUrl={preview.glbUrl} name={preview.name} onClose={() => setPreview(null)} />
+      )}
+      {share && brandSlug && (
+        <ShareModal
+          brandSlug={brandSlug}
+          productSlug={share.slug}
+          productName={share.name}
+          onClose={() => setShare(null)}
+        />
       )}
     </div>
   );
@@ -197,12 +221,16 @@ function CreateProductForm({
 
 function ProductRow({
   product,
+  canShare,
+  onShare,
   expanded,
   onToggle,
   onPreview,
   onGenerate,
 }: {
   product: Product;
+  canShare: boolean;
+  onShare: () => void;
   expanded: boolean;
   onToggle: () => void;
   onPreview: (glbUrl: string, name: string) => void;
@@ -286,7 +314,20 @@ function ProductRow({
                 </svg>
                 View 3D model
               </button>
-              <span className="text-xs text-muted">Rotate, zoom, and (on a phone) place it in AR.</span>
+              {canShare && (
+                <button
+                  type="button"
+                  onClick={onShare}
+                  className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-line-2 bg-surface px-3 py-1.5 text-[14px] font-medium text-ink hover:bg-surface-2"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                    <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+                  </svg>
+                  Share link &amp; QR
+                </button>
+              )}
+              <span className="text-xs text-muted">Rotate, zoom, or share a link/QR — shoppers view it in AR.</span>
             </div>
           )}
           {product.status === 'PROCESSING' ? (

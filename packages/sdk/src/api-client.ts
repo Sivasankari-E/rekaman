@@ -45,12 +45,7 @@ interface ApiErrorBody {
   requestId?: string;
 }
 
-export async function fetchProduct(
-  apiKey: string,
-  productSlug: string,
-): Promise<ProductData> {
-  const url = `${API_BASE}/v1/ar/${encodeURIComponent(apiKey)}/${encodeURIComponent(productSlug)}`;
-
+async function fetchFromUrl(url: string): Promise<ProductData> {
   const response = await fetch(url);
   if (!response.ok) {
     // Pull error envelope so tickets like "AR isn't loading" carry the requestId
@@ -66,6 +61,19 @@ export async function fetchProduct(
     }
     throw new Error(`Failed to load product (${response.status})${detail}`);
   }
-
   return response.json() as Promise<ProductData>;
+}
+
+/** Fetch by API key — brand product pages (`data-rk-key`). */
+export function fetchProduct(apiKey: string, productSlug: string): Promise<ProductData> {
+  return fetchFromUrl(
+    `${API_BASE}/v1/ar/${encodeURIComponent(apiKey)}/${encodeURIComponent(productSlug)}`,
+  );
+}
+
+/** Fetch by brand slug (keyless) — the hosted viewer / `data-rk-brand` embeds. */
+export function fetchProductByBrand(brandSlug: string, productSlug: string): Promise<ProductData> {
+  return fetchFromUrl(
+    `${API_BASE}/v1/ar/b/${encodeURIComponent(brandSlug)}/${encodeURIComponent(productSlug)}`,
+  );
 }

@@ -1,4 +1,4 @@
-import { fetchProduct, type ProductData } from './api-client.js';
+import { fetchProduct, fetchProductByBrand, type ProductData } from './api-client.js';
 import { initAnalytics, track } from './analytics.js';
 import { detectPlatform, detectDeviceType, type Platform } from './platform-detect.js';
 import { launchIosQuickLook, launchArExperience, launchProductViewer3D } from './ar-launcher.js';
@@ -9,7 +9,12 @@ import { showQrModal } from './qr-modal.js';
 
 interface MountedInstance {
   container: HTMLElement;
-  apiKey: string;
+  // Exactly one of apiKey / brandSlug identifies the product. apiKey is the
+  // brand-product-page embed (data-rk-key); brandSlug is the keyless hosted-
+  // viewer / share embed (data-rk-brand). apiKey also gates analytics — keyless
+  // embeds don't send events.
+  apiKey: string | null;
+  brandSlug: string | null;
   productSlug: string;
   product: ProductData | null;
   // v5.20: in-flight product fetch. Used by handleButtonClick when the
@@ -23,11 +28,17 @@ interface MountedInstance {
 const instances: MountedInstance[] = [];
 
 async function mount(container: HTMLElement) {
-  const apiKey = container.dataset.rkKey;
+  const apiKey = container.dataset.rkKey ?? null;
+  const brandSlug = container.dataset.rkBrand ?? null;
   const productSlug = container.dataset.rkProduct;
 
-  if (!apiKey || !productSlug) {
-    console.warn('[Rekaman] missing data-rk-key or data-rk-product on element', container);
+  // Need a product slug + one identifier: data-rk-key (brand product pages) OR
+  // data-rk-brand (keyless hosted-viewer / share embeds).
+  if ((!apiKey && !brandSlug) || !productSlug) {
+    console.warn(
+      '[Rekaman] need data-rk-product plus one of data-rk-key / data-rk-brand',
+      container,
+    );
     return;
   }
 
@@ -38,6 +49,7 @@ async function mount(container: HTMLElement) {
   const instance: MountedInstance = {
     container,
     apiKey,
+    brandSlug,
     productSlug,
     product: null,
     productPromise: null,
@@ -46,7 +58,9 @@ async function mount(container: HTMLElement) {
   };
   instances.push(instance);
 
-  initAnalytics(apiKey);
+  // Analytics attributes events via the API key, so keyless (brand-slug)
+  // embeds don't track — track() no-ops without an initialised key.
+  if (apiKey) initAnalytics(apiKey);
 
   // v5.20 (May 18 evening) — paint the button IMMEDIATELY after platform
   // detect (~50 ms), don't wait for the product fetch. The earlier "wait for
@@ -71,7 +85,9 @@ async function mount(container: HTMLElement) {
   // Both promises still race in parallel so total time-to-AR is bounded by
   // the slower of the two, never their sum.
   const platformPromise = detectPlatform();
-  const productPromise = fetchProduct(apiKey, productSlug).then(
+  const productPromise = (
+    apiKey ? fetchProduct(apiKey, productSlug) : fetchProductByBrand(brandSlug!, productSlug)
+  ).then(
     (p) => { instance.product = p; return p; },
     (err) => {
       track('ar_error', {
@@ -189,7 +205,10 @@ async function mount(container: HTMLElement) {
  * they've landed.
  */
 function handleDesktopQr(instance: MountedInstance) {
-  const hostedUrl = `${__SITE_BASE__}/v/${encodeURIComponent(instance.apiKey)}/${encodeURIComponent(instance.productSlug)}`;
+  const slug = encodeURIComponent(instance.productSlug);
+  const hostedUrl = instance.apiKey
+    ? `${__SITE_BASE__}/v/${encodeURIComponent(instance.apiKey)}/${slug}`
+    : `${__SITE_BASE__}/s/${encodeURIComponent(instance.brandSlug!)}/${slug}`;
   track('ar_qr_shown', {
     productSlug: instance.productSlug,
     arMode: instance.product?.arMode,

@@ -19,4 +19,23 @@ export const publicArRepository = {
         },
       },
     }),
+
+  /**
+   * Find a (non-deleted) brand by its public slug — for the keyless hosted-
+   * viewer / share endpoint. Returns only the public-safe fields (identity +
+   * AR-button theme); the AR data these gate is already public.
+   */
+  findBrandBySlug: (slug: string) =>
+    prisma.brand.findFirst({
+      where: { slug, deletedAt: null },
+      select: {
+        id: true,
+        slug: true,
+        companyName: true,
+        primaryColor: true,
+        textColor: true,
+        buttonStyle: true,
+        buttonLabel: true,
+      },
+    }),
 };

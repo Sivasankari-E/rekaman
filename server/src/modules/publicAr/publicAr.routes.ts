@@ -23,6 +23,29 @@ const ParamsSchema = z.object({
   productSlug: z.string().regex(/^[a-z0-9-]+$/).max(100),
 });
 
+const BrandParamsSchema = z.object({
+  brandSlug: z.string().regex(/^[a-z0-9-]+$/).max(100),
+  productSlug: z.string().regex(/^[a-z0-9-]+$/).max(100),
+});
+
+const AR_CACHE = 'public, max-age=30, s-maxage=30, stale-while-revalidate=60';
+
+/**
+ * GET /v1/ar/b/:brandSlug/:productSlug — keyless resolve by brand slug.
+ * Registered BEFORE the /:apiKey/:productSlug route so a `/b/...` path isn't
+ * mis-parsed as an API key. Powers the shareable hosted viewer.
+ */
+router.get(
+  '/b/:brandSlug/:productSlug',
+  publicArRateLimit,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { brandSlug, productSlug } = BrandParamsSchema.parse(req.params);
+    const product = await publicArService.resolveProductByBrandSlug(brandSlug, productSlug);
+    res.set('Cache-Control', AR_CACHE);
+    res.json(product);
+  }),
+);
+
 router.get(
   '/:apiKey/:productSlug',
   publicArRateLimit,
