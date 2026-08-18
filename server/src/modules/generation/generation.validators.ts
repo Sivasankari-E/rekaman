@@ -14,7 +14,11 @@ export const requestGenerationSchema = z.object({
   photoUrls: z.array(photoUrlSchema).min(1).max(4),
   config: z
     .object({
-      aiModel: z.enum(['meshy-6', 'latest']).optional(),
+      aiModel: z.enum(['meshy-6', 'meshy-7', 'latest']).optional(),
+      // `single` (default) = ultra single-image; `multi` = multi-image
+      // reconstruction (only for a matched angle set). See GenerationConfig.
+      captureMode: z.enum(['single', 'multi']).optional(),
+      ultraMode: z.boolean().optional(),
       shouldRemesh: z.boolean().optional(),
       shouldTexture: z.boolean().optional(),
       enablePbr: z.boolean().optional(),

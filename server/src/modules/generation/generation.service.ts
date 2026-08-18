@@ -89,19 +89,34 @@ export const generationService = {
       ...(input.config ?? {}),
     };
 
+    // Resolve which photos actually drive geometry. `single` (the default) uses
+    // ONLY the best/first photo — the right call for the mismatched hero +
+    // lifestyle shots brands hand us, and the only mode that unlocks
+    // `ultra_mode`. `multi` uses all of them, for brands with a matched angle
+    // set. See GenerationConfig.captureMode for the full rationale.
+    const geometryPhotos =
+      config.captureMode === 'multi' ? input.photoUrls : input.photoUrls.slice(0, 1);
+
+    // Texture guidance from the product's own name/category so Meshy paints the
+    // real product (correct colours, matte, no baked shadows) instead of
+    // free-associating. Empty-safe — buildTexturePrompt always returns a string.
+    const texturePrompt = buildTexturePrompt(product.name, product.category);
+
     // Step 1 — Meshy first. Throws typed errors (PaymentRequiredError,
     // ValidationError, ExternalServiceError, RateLimitExceededError) which
     // bubble up unchanged. Product stays in its prior state.
     //
-    // All of the product's photos (1-4, capped by the route's Zod schema)
-    // are sent. The client routes to the single-image or multi-image Meshy
-    // endpoint by count — 2-4 photos produce materially better back/side
-    // geometry. `kind` records which endpoint was used so the worker polls
-    // the matching GET URL.
+    // The client routes to the single-image or multi-image Meshy endpoint by
+    // count — with captureMode=single (default) it's always the single-image
+    // path, which is higher-fidelity for casual photos AND the only endpoint
+    // that accepts ultra_mode. `kind` records which endpoint was used so the
+    // worker polls the matching GET URL.
     const meshy = getMeshyClient();
     const { taskId: meshyTaskId, kind: meshyTaskKind } = await meshy.createImageTo3dTask({
-      imageUrls: input.photoUrls,
+      imageUrls: geometryPhotos,
       aiModel: config.aiModel,
+      ultraMode: config.ultraMode,
+      texturePrompt,
       shouldRemesh: config.shouldRemesh,
       shouldTexture: config.shouldTexture,
       enablePbr: config.enablePbr,
@@ -147,7 +162,9 @@ export const generationService = {
       productId,
       brandId,
       attemptNumber,
-      photoUrls: input.photoUrls,
+      // Record the photos that actually drove geometry (single-mode uses only
+      // the first) so logs/Sentry photoCount and any recovery reflect reality.
+      photoUrls: geometryPhotos,
       config,
     };
 
@@ -214,3 +231,23 @@ export const generationService = {
     };
   },
 };
+
+/**
+ * Build Meshy's `texture_prompt` from the product's own name + category.
+ *
+ * Without guidance, Meshy free-associates the surface, which is a big part of
+ * the "wrong colours / plastic-wrap sheen" look. Anchoring it to the product
+ * name/category and asking for a matte, reflection-free, shadow-free finish
+ * makes the texture read like the real product under AR lighting.
+ *
+ * Always returns a non-empty string (name is required on Product). Trimmed to
+ * Meshy's 600-char cap by the client.
+ */
+function buildTexturePrompt(name: string, category: string | null): string {
+  const subject = category ? `${name} (${category})` : name;
+  return (
+    `${subject}. Realistic product surface matching the source photo — ` +
+    `accurate colours and material, matte finish, no glossy or metallic ` +
+    `reflections, no baked-in shadows or lighting.`
+  );
+}

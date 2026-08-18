@@ -51,6 +51,7 @@ export const generationRepository = {
         brandId: true,
         name: true,
         slug: true,
+        category: true,
         status: true,
         photoUrls: true,
         glbUrl: true,

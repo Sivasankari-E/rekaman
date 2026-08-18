@@ -19,7 +19,9 @@ import { getRedis } from './connection.js';
  */
 
 export type GenerationConfigSnapshot = {
-  aiModel: 'meshy-6' | 'latest';
+  aiModel: 'meshy-6' | 'meshy-7' | 'latest';
+  captureMode: 'single' | 'multi';
+  ultraMode: boolean;
   shouldRemesh: boolean;
   shouldTexture: boolean;
   enablePbr: boolean;

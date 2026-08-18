@@ -63,7 +63,7 @@ export interface MeshyImageTo3dInput {
    * this is defense-in-depth for any caller bypassing the route).
    */
   imageUrls: string[];
-  aiModel?: 'meshy-6' | 'latest';
+  aiModel?: 'meshy-6' | 'meshy-7' | 'latest';
   shouldRemesh?: boolean;
   shouldTexture?: boolean;
   enablePbr?: boolean;
@@ -73,6 +73,19 @@ export interface MeshyImageTo3dInput {
   targetFormats?: Array<'glb' | 'fbx' | 'usdz' | 'obj'>;
   imageEnhancement?: boolean;
   removeLighting?: boolean;
+  /**
+   * Higher-fidelity geometry. Meshy accepts `ultra_mode` ONLY on the
+   * single-image endpoint — this client silently drops it when routing to
+   * multi-image-to-3d (which would 400 on the unknown param). Verified against
+   * Meshy API docs Aug 2026.
+   */
+  ultraMode?: boolean;
+  /**
+   * Text guidance for texturing (<=600 chars). Built by the caller from the
+   * product's name + category so the surface matches the real product instead
+   * of Meshy's free hallucination. Accepted on both single and multi endpoints.
+   */
+  texturePrompt?: string;
 }
 
 export interface MeshyTextureUrlSet {
@@ -201,10 +214,10 @@ class MeshyClient {
 
     const kind: MeshyTaskKind = input.imageUrls.length > 1 ? 'multi' : 'single';
 
-    // Shared params — identical across both endpoints. Only the image field
-    // and the URL path differ.
+    // Shared params — identical across both endpoints. Only the image field,
+    // the URL path, and the single-image-only `ultra_mode` differ.
     const commonBody = {
-      ai_model: input.aiModel ?? 'meshy-6',
+      ai_model: input.aiModel ?? 'meshy-7',
       should_remesh: input.shouldRemesh ?? true,
       should_texture: input.shouldTexture ?? true,
       enable_pbr: input.enablePbr ?? true,
@@ -219,6 +232,12 @@ class MeshyClient {
       target_formats: input.targetFormats ?? ['glb', 'usdz'],
       image_enhancement: input.imageEnhancement ?? true,
       remove_lighting: input.removeLighting ?? true,
+      // Steer texturing toward the real product (matte, correct colors) instead
+      // of Meshy's free hallucination. Trim to Meshy's 600-char cap. Only sent
+      // when the caller provides one.
+      ...(input.texturePrompt?.trim()
+        ? { texture_prompt: input.texturePrompt.trim().slice(0, 600) }
+        : {}),
     };
 
     const path =
@@ -226,7 +245,14 @@ class MeshyClient {
     const body =
       kind === 'multi'
         ? { image_urls: input.imageUrls, ...commonBody }
-        : { image_url: input.imageUrls[0], ...commonBody };
+        : {
+            image_url: input.imageUrls[0],
+            ...commonBody,
+            // ultra_mode is single-image-only — Meshy 400s on it at the
+            // multi-image endpoint. The service defaults captureMode to
+            // 'single' precisely so this quality lever is available.
+            ...(input.ultraMode ? { ultra_mode: true } : {}),
+          };
 
     let response: Response;
     try {
