@@ -66,6 +66,11 @@ export const s3Keys = {
     `brands/${brandId}/products/${productId}/v${version}/model.usdz`,
   productThumbnail: (brandId: string, productId: string, version: number) =>
     `brands/${brandId}/products/${productId}/v${version}/thumbnail.png`,
+  // Finish-adjusted GLB (matte/satin/glossy re-process of an existing model).
+  // `label` carries the finish + a timestamp so every write is a fresh,
+  // immutable-cache-safe URL — never overwrites an existing `-vN` model.glb.
+  productGlbVariant: (brandId: string, productId: string, version: number, label: string) =>
+    `brands/${brandId}/products/${productId}/v${version}/${label}.glb`,
   productPhoto: (brandId: string, productId: string, photoUuid: string, ext: string) =>
     `brands/${brandId}/products/${productId}/photos/${photoUuid}.${ext}`,
   tempDownload: (jobId: string, filename: string) =>

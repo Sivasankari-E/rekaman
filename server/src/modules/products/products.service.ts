@@ -5,6 +5,7 @@ import { assertCanAddProduct } from '../billing/billing.service.js';
 import {
   NotFoundError,
   SlugAlreadyExistsError,
+  ConflictError,
   ExternalServiceError,
 } from '../../shared/errors.js';
 import { logger } from '../../shared/logger.js';
@@ -13,6 +14,7 @@ import {
   uploadToProductsBucket,
   publicProductUrl,
 } from '../../shared/clients/s3.client.js';
+import { processGlb, FINISH_ROUGHNESS, type Finish } from '../../shared/glb.js';
 import type {
   CreateProductInput,
   UpdateProductInput,
@@ -149,4 +151,81 @@ export const productsService = {
     logger.info({ brandId, productId: id }, 'product deleted');
     return { ok: true };
   },
+
+  /**
+   * Change a product's surface finish (matte/satin/glossy) WITHOUT re-running
+   * Meshy. Downloads the current GLB, forces matte materials (metalness→0) and
+   * sets roughness for the chosen finish, uploads to a fresh immutable key, and
+   * repoints the product. Zero AI credits.
+   *
+   * This also doubles as the fix for products generated before the matte
+   * default landed: clicking any finish re-processes the chrome GLB to matte.
+   *
+   * Runs synchronously in the api process (not the worker) — the stored GLB is
+   * already texture-optimized (~1–2 MB), so download+process+upload is a few
+   * seconds. USDZ (iOS) is left as-is; the finish applies to the GLB path
+   * (Android WebXR, desktop, in-app 3D preview).
+   */
+  async setFinish(brandId: string, productId: string, finish: Finish): Promise<Product> {
+    const product = await productsRepository.findById(brandId, productId);
+    if (!product) throw new NotFoundError('Product');
+    if (product.status !== 'READY' || !product.glbUrl) {
+      throw new ConflictError('Finish can only be changed once the 3D model is ready.');
+    }
+
+    const buf = await downloadGlb(product.glbUrl);
+    const processed = await processGlb(
+      buf,
+      { setRoughness: FINISH_ROUGHNESS[finish], compress: false },
+      logger,
+    );
+
+    // Reuse the generation's version for the key namespace; a unique label
+    // (finish + timestamp) keeps every write on a fresh immutable URL.
+    const meta = (product.metadata ?? {}) as { generation?: { version?: number } };
+    const version = meta.generation?.version ?? 1;
+    const key = s3Keys.productGlbVariant(
+      brandId,
+      productId,
+      version,
+      `finish-${finish}-${Date.now()}`,
+    );
+    try {
+      await uploadToProductsBucket(key, processed, 'model/gltf-binary');
+    } catch (err) {
+      logger.warn({ err, brandId, productId }, 'finish: glb upload failed');
+      throw new ExternalServiceError('s3', 'Could not save the updated model. Please try again.');
+    }
+
+    const result = await productsRepository.setFinish(brandId, productId, {
+      glbUrl: publicProductUrl(key),
+      glbSizeKb: Math.round(processed.length / 1024),
+      finish,
+    });
+    if (result.count === 0) throw new NotFoundError('Product');
+
+    const updated = await productsRepository.findById(brandId, productId);
+    if (!updated) throw new NotFoundError('Product');
+    logger.info({ brandId, productId, finish }, 'product finish updated');
+    return updated;
+  },
 };
+
+/**
+ * Fetch a GLB from its public URL into a buffer (60s timeout). Wrapped so a
+ * network/status failure surfaces as a typed error, per External API Boundaries.
+ */
+async function downloadGlb(url: string): Promise<Buffer> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, url }, 'finish: glb download failed');
+    throw new ExternalServiceError('s3', 'Could not read the current 3D model. Please try again.');
+  } finally {
+    clearTimeout(timer);
+  }
+}

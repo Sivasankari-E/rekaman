@@ -8,6 +8,7 @@ import {
   uploadProductPhoto,
   ApiError,
   type Product,
+  type Finish,
 } from '../../_lib/api';
 import { Button, Card, Input, Field, Alert, Spinner, StatusBadge, cn } from '../../_components/ui';
 import { Model3DModal } from '../../_components/Model3DModal';
@@ -122,6 +123,7 @@ export default function ProductsPage() {
                 expanded={expanded === p.id}
                 onToggle={() => setExpanded(expanded === p.id ? null : p.id)}
                 onPreview={(glbUrl, name) => setPreview({ glbUrl, name })}
+                onUpdated={(patch) => patchProduct(p.id, patch)}
                 onGenerate={async (urls, captureMode) => {
                   setError(null);
                   try {
@@ -226,6 +228,7 @@ function ProductRow({
   expanded,
   onToggle,
   onPreview,
+  onUpdated,
   onGenerate,
 }: {
   product: Product;
@@ -234,11 +237,28 @@ function ProductRow({
   expanded: boolean;
   onToggle: () => void;
   onPreview: (glbUrl: string, name: string) => void;
+  onUpdated: (patch: Partial<Product>) => void;
   onGenerate: (urls: string[], captureMode: 'single' | 'multi') => void;
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const [finishBusy, setFinishBusy] = useState(false);
+  const [finishErr, setFinishErr] = useState<string | null>(null);
+  const currentFinish: Finish = product.metadata?.finish ?? 'matte';
+
+  async function applyFinish(f: Finish) {
+    setFinishBusy(true);
+    setFinishErr(null);
+    try {
+      const updated = await products.setFinish(product.id, f);
+      onUpdated({ glbUrl: updated.glbUrl, metadata: updated.metadata });
+    } catch (err) {
+      setFinishErr(err instanceof ApiError ? err.message : 'Could not update finish.');
+    } finally {
+      setFinishBusy(false);
+    }
+  }
   // Multi-angle reconstruction: only offered (and only helps) with 2+ photos
   // that are a MATCHED set — same object, consistent framing. Off by default;
   // single-photo ultra is the safe, higher-quality path for typical images.
@@ -333,6 +353,36 @@ function ProductRow({
                 </button>
               )}
               <span className="text-xs text-muted">Rotate, zoom, or share a link/QR — shoppers view it in AR.</span>
+            </div>
+          )}
+          {product.status === 'READY' && product.glbUrl && (
+            <div className="mb-4 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[14px] font-medium text-ink">Finish</span>
+                {(['matte', 'satin', 'glossy'] as Finish[]).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    disabled={finishBusy}
+                    onClick={() => applyFinish(f)}
+                    className={cn(
+                      'rounded-[var(--radius)] border px-2.5 py-1 text-[13px] font-medium capitalize',
+                      currentFinish === f
+                        ? 'border-brand bg-brand text-brand-fg'
+                        : 'border-line text-ink hover:bg-surface-2',
+                      finishBusy && 'opacity-60',
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+                {finishBusy && <Spinner className="text-brand" />}
+              </div>
+              <p className="text-xs text-muted">
+                Matte for wood &amp; fabric, glossy for glass &amp; lacquer. Also fixes
+                shiny/chrome-looking models — no credits used.
+              </p>
+              {finishErr && <p className="text-xs text-danger">{finishErr}</p>}
             </div>
           )}
           {product.status === 'PROCESSING' ? (

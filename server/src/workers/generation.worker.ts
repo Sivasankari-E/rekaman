@@ -13,6 +13,7 @@ import {
   publicProductUrl,
 } from '../shared/clients/s3.client.js';
 import { generationRepository } from '../modules/generation/generation.repository.js';
+import { processGlb } from '../shared/glb.js';
 import { getEnv } from '../shared/env.js';
 import { logger } from '../shared/logger.js';
 import {
@@ -327,7 +328,9 @@ async function processGenerationJobInner(job: Job<GenerationJobData>): Promise<v
   // error (incl. the sharp native binary being unavailable) it returns the
   // original buffer, so a GLB is always uploaded and the job never fails here.
   const rawSizeKb = Math.round(glbBuffer.length / 1024);
-  glbBuffer = await optimizeGlb(glbBuffer, log);
+  // Bake the matte default (metalness→0, roughness floored) + compress textures.
+  // Shared with the /finish endpoint so there's one implementation. See glb.ts.
+  glbBuffer = await processGlb(glbBuffer, { roughnessFloor: 0.6, compress: true }, log);
   const glbSizeKb = Math.round(glbBuffer.length / 1024);
   log.info({ rawSizeKb, sizeKb: glbSizeKb }, 'glb downloaded + optimized');
   Sentry.addBreadcrumb({

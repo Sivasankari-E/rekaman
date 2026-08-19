@@ -59,4 +59,30 @@ export const productsRepository = {
       where: { id, brandId, deletedAt: null },
       data: { deletedAt: new Date() },
     }),
+
+  /**
+   * Point a product at a re-processed (finish-adjusted) GLB. Merges
+   * `metadata.finish` without clobbering the `generation` namespace (read →
+   * merge → write, brand-scoped). Returns count: 0 if not found / not this brand.
+   */
+  async setFinish(
+    brandId: string,
+    id: string,
+    args: { glbUrl: string; glbSizeKb: number; finish: string },
+  ): Promise<{ count: number }> {
+    const current = await prisma.product.findFirst({
+      where: { id, brandId, deletedAt: null },
+      select: { metadata: true },
+    });
+    if (!current) return { count: 0 };
+    const base =
+      current.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
+        ? (current.metadata as Record<string, unknown>)
+        : {};
+    const merged = { ...base, finish: args.finish } as unknown as Prisma.InputJsonValue;
+    return prisma.product.updateMany({
+      where: { id, brandId, deletedAt: null },
+      data: { glbUrl: args.glbUrl, glbSizeKb: args.glbSizeKb, metadata: merged },
+    });
+  },
 };

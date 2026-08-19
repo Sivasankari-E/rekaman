@@ -91,6 +91,8 @@ const UpdateSchema = z.object({
 
 const IdParam = z.object({ id: z.string().min(1).max(50) });
 
+const FinishSchema = z.object({ finish: z.enum(['matte', 'satin', 'glossy']) });
+
 router.get(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
@@ -137,6 +139,19 @@ router.delete(
     await productsService.delete(req.brandId!, id);
     res.status(204).end();
   })
+);
+
+// POST /v1/products/:id/finish — re-process the existing GLB to a chosen
+// surface finish (matte/satin/glossy). No Meshy credits; runs in the api.
+router.post(
+  '/:id/finish',
+  requireRole('OWNER', 'ADMIN', 'MEMBER'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = IdParam.parse(req.params);
+    const { finish } = FinishSchema.parse(req.body);
+    const product = await productsService.setFinish(req.brandId!, id, finish);
+    res.json({ product });
+  }),
 );
 
 // POST /v1/products/:id/photos — upload one product image (multipart field

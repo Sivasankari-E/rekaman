@@ -156,6 +156,8 @@ export const brand = {
 
 export type ProductStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED' | 'ARCHIVED';
 
+export type Finish = 'matte' | 'satin' | 'glossy';
+
 export interface Product {
   id: string;
   name: string;
@@ -170,6 +172,9 @@ export interface Product {
   depthCm: number | null;
   photoUrls: string[];
   createdAt: string;
+  // Surface finish lives in the product metadata (server merges it there).
+  // Absent on models generated before the finish control — treated as matte.
+  metadata?: { finish?: Finish } | null;
 }
 
 export interface GenerationStatus {
@@ -208,6 +213,13 @@ export const products = {
     }),
   status: (id: string) =>
     apiFetch<GenerationStatus>(`/v1/products/${id}/generation-status`, { method: 'GET' }),
+  // Re-process the existing GLB to a surface finish (no AI credits). Also the
+  // one-click fix for chrome-looking models made before the matte default.
+  setFinish: (id: string, finish: Finish) =>
+    apiFetch<{ product: Product }>(`/v1/products/${id}/finish`, {
+      method: 'POST',
+      body: JSON.stringify({ finish }),
+    }).then((r) => r.product),
 };
 
 /**
