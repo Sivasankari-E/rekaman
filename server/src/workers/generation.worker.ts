@@ -508,44 +508,81 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Best-effort GLB texture optimization. Meshy returns high-res PBR maps that
- * dominate the file size (e.g. an 11 MB GLB that is ~10 MB textures). We resize
- * textures to <=2048 and re-encode to WebP — geometry is left untouched, so
- * there is no visible quality loss, and the file typically shrinks 80-90%.
+ * Best-effort GLB post-processing. Two independent jobs:
  *
- * Every import is DYNAMIC and the whole thing is wrapped in try/catch: if the
- * native `sharp` binary is missing on a given deploy, or the GLB is malformed,
- * we log a warning and return the ORIGINAL buffer. Optimization must never
- * fail a generation — a big GLB is worse than a slow one, not broken.
+ *  1. MATERIAL NORMALIZATION (the important one for quality). Meshy bakes a PBR
+ *     metallic map into nearly every model, and any metalness turns the surface
+ *     into mirror-chrome under a viewer's environment lighting (the "wrinkled
+ *     foil cupboard" symptom — the warped reflections read as crumpled geometry
+ *     even when the mesh is fine). Real products we target (furniture, décor,
+ *     homeware, footwear) are non-metallic, so we force `metallicFactor = 0` on
+ *     every material and floor `roughnessFactor` to a matte value. This kills
+ *     the chrome look everywhere at once — dashboard preview, SDK 3D viewer, and
+ *     AR — because it's fixed on the asset, not per-viewer. `texture_prompt`
+ *     can't do this; the metallic factor is geometry-of-the-material, not colour.
+ *     (Genuinely metallic products — watches/jewellery — already need CAD, so
+ *     forcing matte there is acceptable collateral.)
+ *
+ *  2. TEXTURE COMPRESSION (size). Resize maps to <=2048 + WebP; typically 80-90%
+ *     smaller with no visible quality loss. Needs the native `sharp` binary.
+ *
+ * Resilience: material normalization + dedup/prune need only gltf-transform (no
+ * native deps), so they run in their own stage that survives even when `sharp`
+ * is unavailable. Texture compression is a nested best-effort — if `sharp`
+ * fails to load we still return the material-normalized, geometry-identical GLB.
+ * The whole thing is wrapped so a malformed GLB just returns the ORIGINAL buffer
+ * — post-processing must NEVER fail a generation.
  */
 async function optimizeGlb(
   buf: Buffer,
   log: { warn: (obj: object, msg: string) => void },
 ): Promise<Buffer> {
   try {
-    const [core, ext, fns, sharpMod] = await Promise.all([
+    const [core, ext, fns] = await Promise.all([
       import('@gltf-transform/core'),
       import('@gltf-transform/extensions'),
       import('@gltf-transform/functions'),
-      import('sharp'),
     ]);
     const io = new core.NodeIO().registerExtensions(ext.ALL_EXTENSIONS);
     const doc = await io.readBinary(new Uint8Array(buf));
-    await doc.transform(
-      fns.dedup(),
-      fns.prune(),
-      fns.textureCompress({
-        encoder: sharpMod.default,
-        targetFormat: 'webp',
-        resize: [2048, 2048],
-      }),
-    );
+
+    // ── Stage 1: material normalization + cleanup (no native deps) ──
+    for (const mat of doc.getRoot().listMaterials()) {
+      // Force non-metallic. metallicFactor multiplies the metallic (blue)
+      // channel of any metallicRoughness texture, so 0 defeats a baked
+      // metallic map too — no need to delete the texture (its roughness/green
+      // channel detail is preserved).
+      mat.setMetallicFactor(0);
+      // Floor roughness so dielectric specular highlights don't turn a matte
+      // product glossy. Meshy sometimes ships a low roughnessFactor; clamp up,
+      // never down (a legitimately rougher value is left alone).
+      if (mat.getRoughnessFactor() < 0.6) mat.setRoughnessFactor(0.6);
+    }
+    await doc.transform(fns.dedup(), fns.prune());
+
+    // ── Stage 2: texture compression (needs sharp; nested best-effort) ──
+    try {
+      const sharpMod = await import('sharp');
+      await doc.transform(
+        fns.textureCompress({
+          encoder: sharpMod.default,
+          targetFormat: 'webp',
+          resize: [2048, 2048],
+        }),
+      );
+    } catch (err) {
+      log.warn(
+        { err: (err as Error).message },
+        'glb texture compression skipped (sharp unavailable) — shipping material-normalized GLB',
+      );
+    }
+
     const out = await io.writeBinary(doc);
     return Buffer.from(out);
   } catch (err) {
     log.warn(
       { err: (err as Error).message },
-      'glb optimization failed — uploading original (unoptimized) GLB',
+      'glb post-processing failed — uploading original GLB',
     );
     return buf;
   }
