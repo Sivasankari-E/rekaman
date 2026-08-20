@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { track } from '../analytics.js';
 import type { ProductData } from '../api-client.js';
 
@@ -218,12 +219,22 @@ async function startPlacementAR(product: ProductData): Promise<void> {
   renderer.xr.enabled = true;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
   document.body.appendChild(renderer.domElement);
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.0));
   const sun = new THREE.DirectionalLight(0xffffff, 1.5);
   sun.position.set(0.5, 1, 0.25);
   scene.add(sun);
+
+  // Image-based lighting so the placed model is bright + natural in AR
+  // regardless of the room's real lighting — and so a still-metallic GLB
+  // doesn't render near-black (no env to reflect). Procedural RoomEnvironment
+  // keeps the SDK self-contained (no external HDR). Only affects material
+  // lighting; the camera feed (transparent background) is untouched.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
 
   // Preload GLB; placement only fires after this resolves.
   //

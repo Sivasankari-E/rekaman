@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { track } from '../analytics.js';
 import type { ProductData } from '../api-client.js';
 
@@ -186,7 +187,19 @@ async function startProductViewer3D(product: ProductData): Promise<void> {
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
   stage.appendChild(renderer.domElement);
+
+  // Image-based lighting (IBL). CRITICAL for mobile: the laptop dashboard uses
+  // Google <model-viewer>, which applies a default neutral environment, so PBR
+  // materials look bright + natural. Our three.js viewer had only direct lights
+  // and NO environment map — which left matte materials dim and, worse, made
+  // any still-metallic GLB render near-black (metals reflect the environment;
+  // no environment = black). A procedural RoomEnvironment (no external HDR asset
+  // — keeps the SDK self-contained) fixes both, matching the laptop look.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
 
   const camera = new THREE.PerspectiveCamera(
     50,

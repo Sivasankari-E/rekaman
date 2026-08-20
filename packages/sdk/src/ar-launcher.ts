@@ -127,7 +127,7 @@ export async function launchArExperience(product: ProductData): Promise<void> {
       // Older versions (v1–v10) remain in S3 as fallbacks for any SDK still
       // cached on a brand site that hasn't refreshed its sdk.js yet (5-min
       // browser cache, 24-hr edge cache).
-      await loadChunk('placement-engine-v12.js');
+      await loadChunk('placement-engine-v13.js');
       const api = window.__rkChunks?.placement;
       if (!api?.startPlacementAR) {
         throw new Error('placement chunk did not register on window.__rkChunks.placement');
@@ -165,7 +165,7 @@ export async function launchProductViewer3D(product: ProductData): Promise<void>
   // close handlers; v3 sidesteps the problem by relying exclusively on
   // Android swipe-back / back-button → popstate → close(). v1+v2 stay in
   // S3 as fallbacks per the immutable-cache contract.
-  await loadChunk('viewer-3d-engine-v3.js');
+  await loadChunk('viewer-3d-engine-v4.js');
   const api = window.__rkChunks?.viewer3d;
   if (!api?.startProductViewer3D) {
     throw new Error('viewer-3d chunk did not register on window.__rkChunks.viewer3d');

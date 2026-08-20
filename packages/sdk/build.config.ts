@@ -131,7 +131,7 @@ const mainBundle: esbuild.BuildOptions = {
 const placementChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/placement-engine.ts'],
-  outfile: join(outdir, 'placement-engine-v12.js'),
+  outfile: join(outdir, 'placement-engine-v13.js'),
   format: 'iife',
 };
 
@@ -154,7 +154,7 @@ const placementChunk: esbuild.BuildOptions = {
 const viewer3dChunk: esbuild.BuildOptions = {
   ...sharedConfig,
   entryPoints: ['src/chunks/viewer-3d-engine.ts'],
-  outfile: join(outdir, 'viewer-3d-engine-v3.js'),
+  outfile: join(outdir, 'viewer-3d-engine-v4.js'),
   format: 'iife',
 };
 
@@ -194,12 +194,12 @@ async function buildOnce() {
     join(outdir, 'sdk.js'),
   );
   const chunkSize = reportSize(
-    'placement-engine-v12.js (lazy chunk)',
-    join(outdir, 'placement-engine-v12.js'),
+    'placement-engine-v13.js (lazy chunk)',
+    join(outdir, 'placement-engine-v13.js'),
   );
   const viewer3dSize = reportSize(
-    'viewer-3d-engine-v3.js (lazy chunk)',
-    join(outdir, 'viewer-3d-engine-v3.js'),
+    'viewer-3d-engine-v4.js (lazy chunk)',
+    join(outdir, 'viewer-3d-engine-v4.js'),
   );
 
   if (mainSize.gzipped > MAIN_GZIP_BUDGET_BYTES) {
@@ -216,8 +216,8 @@ async function buildOnce() {
     builtFor: isProd ? 'production' : 'development',
     bundles: {
       'sdk.js': { ...mainSize, metafile: mainResult.metafile },
-      'placement-engine-v12.js': { ...chunkSize, metafile: placementResult.metafile },
-      'viewer-3d-engine-v3.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
+      'placement-engine-v13.js': { ...chunkSize, metafile: placementResult.metafile },
+      'viewer-3d-engine-v4.js': { ...viewer3dSize, metafile: viewer3dResult.metafile },
     },
   };
   writeFileSync(join(outdir, 'manifest.json'), JSON.stringify(manifest, null, 2));
